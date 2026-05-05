@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { createList } from '$lib/data/lists';
-  import type { CreateGoalListInput, GoalListType } from '$lib/types';
+  import type { CreateGoalListInput, GoalListType, GoalListVisibility } from '$lib/types';
 
   let submitting = false;
   let error: string | undefined;
@@ -25,6 +25,7 @@
       name,
       description: (data.get('description') as string)?.trim() || undefined,
       type: (data.get('type') as GoalListType) ?? 'general',
+      visibility: (data.get('visibility') as GoalListVisibility) ?? 'private',
     };
 
     try {
@@ -60,6 +61,14 @@
           <option value="competition">Competition</option>
           <option value="wishlist">Wishlist</option>
           <option value="general">General</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="visibility">Visibility</label>
+        <select id="visibility" name="visibility">
+          <option value="private" selected>Private</option>
+          <option value="public">Public</option>
         </select>
       </div>
 

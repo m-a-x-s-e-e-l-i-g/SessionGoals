@@ -1,4 +1,4 @@
-import type { GoalStatus, GoalType, GoalListType } from '$lib/types';
+import type { GoalStatus, GoalType, GoalListType, GoalListVisibility } from '$lib/types';
 
 export function formatStatus(status: GoalStatus): string {
   const map: Record<GoalStatus, string> = {
@@ -16,7 +16,6 @@ export function formatGoalType(type: GoalType): string {
   const map: Record<GoalType, string> = {
     move: 'Move',
     spot: 'Spot',
-    challenge: 'Challenge',
     inspiration: 'Inspiration',
   };
   return map[type] ?? type;
@@ -30,6 +29,14 @@ export function formatListType(type: GoalListType): string {
     general: 'General',
   };
   return map[type] ?? type;
+}
+
+export function formatListVisibility(visibility: GoalListVisibility): string {
+  const map: Record<GoalListVisibility, string> = {
+    public: 'Public',
+    private: 'Private',
+  };
+  return map[visibility] ?? visibility;
 }
 
 export function statusColor(status: GoalStatus): string {
@@ -48,7 +55,6 @@ export function typeIcon(type: GoalType): string {
   const map: Record<GoalType, string> = {
     move: '🤸',
     spot: '📍',
-    challenge: '🏆',
     inspiration: '💡',
   };
   return map[type] ?? '•';

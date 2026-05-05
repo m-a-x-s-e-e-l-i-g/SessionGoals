@@ -53,11 +53,11 @@
           <span class="badge type-{goal.type}">
             {typeIcon(goal.type)} {formatGoalType(goal.type)}
           </span>
-          <select class="status-select" on:change={handleStatusChange} value={goal.status}>
+          <select class="status-select" aria-label="Goal status" on:change={handleStatusChange} value={goal.status}>
             <option value="idea">Idea</option>
             <option value="want_to_try">Want to try</option>
             <option value="training">Training</option>
-            <option value="landed">Landed ✓</option>
+            <option value="landed">Landed</option>
             <option value="done">Done</option>
             <option value="archived">Archived</option>
           </select>

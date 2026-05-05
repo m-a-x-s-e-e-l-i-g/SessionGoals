@@ -5,18 +5,36 @@
 import type { Spot } from '$lib/types';
 import { mockSpots } from './mock';
 
+let store: Spot[] = [...mockSpots];
+
 export function getSpots(): Spot[] {
-  return mockSpots;
+  return store;
 }
 
 export function getSpotById(id: string): Spot | undefined {
-  return mockSpots.find((s) => s.id === id);
+  return store.find((s) => s.id === id);
+}
+
+export function upsertSpot(spot: Spot): Spot {
+  const existingIndex = store.findIndex(
+    (entry) => entry.id === spot.id || (!!entry.externalId && entry.externalId === spot.externalId)
+  );
+
+  if (existingIndex >= 0) {
+    const existing = store[existingIndex];
+    const next = { ...existing, ...spot };
+    store = store.map((entry, index) => (index === existingIndex ? next : entry));
+    return next;
+  }
+
+  store = [spot, ...store];
+  return spot;
 }
 
 export function getSuggestedSpotsForGoal(goalTagNames: string[]): Spot[] {
   // Simple tag-matching recommendation.
   // TODO: Replace with parkour.spot API search + scoring.
-  return mockSpots.filter((spot) =>
+  return store.filter((spot) =>
     spot.tags.some((tag) => goalTagNames.includes(tag.name))
   );
 }

@@ -1,0 +1,41 @@
+import type { UserProfile } from '$lib/types';
+
+export const mockUsers: UserProfile[] = [
+  {
+    id: 'user-me',
+    username: 'max',
+    displayName: 'You',
+    role: 'athlete_teacher',
+    bio: 'Building movement consistency, one clean session at a time.',
+    city: 'Hamburg',
+    country: 'Germany',
+    isPublic: true,
+    joinedAt: '2024-03-01T10:00:00Z',
+  },
+  {
+    id: 'user-lena',
+    username: 'lena.h',
+    displayName: 'Lena Hartmann',
+    role: 'athlete',
+    teacherId: 'user-me',
+    coachingNeeds: ['Consistency under pressure', 'Rail precision landings', 'Session structure'],
+    bio: 'Flow-focused athlete. I share public jam prep and city line lists.',
+    city: 'Berlin',
+    country: 'Germany',
+    isPublic: true,
+    joinedAt: '2024-01-18T10:00:00Z',
+  },
+  {
+    id: 'user-milo',
+    username: 'milo.pk',
+    displayName: 'Milo K.',
+    role: 'athlete',
+    teacherId: 'user-me',
+    coachingNeeds: ['Kong confidence', 'Safer impact absorption', 'Line commitment'],
+    bio: 'Vault obsession + rail precision. Looking for spot collabs.',
+    city: 'Cologne',
+    country: 'Germany',
+    isPublic: true,
+    joinedAt: '2024-02-11T10:00:00Z',
+  },
+];

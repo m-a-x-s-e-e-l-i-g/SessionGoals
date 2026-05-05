@@ -5,12 +5,21 @@
 import type { Goal, CreateGoalInput } from '$lib/types';
 import { mockGoals } from './mock';
 import { mockTags } from './mock';
+import { CURRENT_USER_ID } from './session';
 
 // In-memory store (resets on page reload — replace with Supabase persistence)
 let store: Goal[] = [...mockGoals];
 
 export function getGoals(): Goal[] {
   return store;
+}
+
+export function getGoalsByUser(userId: string = CURRENT_USER_ID): Goal[] {
+  return store.filter((g) => g.userId === userId);
+}
+
+export function getMyGoals(): Goal[] {
+  return getGoalsByUser(CURRENT_USER_ID);
 }
 
 export function getGoalById(id: string): Goal | undefined {
@@ -22,6 +31,7 @@ export function createGoal(input: CreateGoalInput): Goal {
   const tags = mockTags.filter((t) => input.tagIds.includes(t.id));
   const goal: Goal = {
     id: `goal-${Date.now()}`,
+    userId: CURRENT_USER_ID,
     type: input.type,
     title: input.title,
     description: input.description,

@@ -1,10 +1,49 @@
 <script lang="ts">
-  import { getSpots } from '$lib/data/spots';
+  import type { Spot } from '$lib/types';
   import SpotCard from '$lib/components/SpotCard.svelte';
+  import SpotActions from '$lib/components/SpotActions.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import { getLists, getListById } from '$lib/data/lists';
+  import { getGoals, getMyGoals } from '$lib/data/goals';
+  import { getSpots } from '$lib/data/spots';
+  import { getTrackedProgress } from '$lib/data/listProgress';
+  import type { Goal } from '$lib/types';
 
-  const spots = getSpots();
-  let query = '';
+  export let data: {
+    spots: Spot[];
+    error: 'missing_api_key' | 'api_error' | null;
+    query: string;
+  };
+
+  $: spots = data.spots;
+  let query = data.query ?? '';
+  const lists = getLists();
+  const allGoals = getGoals();
+  const allKnownSpots = getSpots();
+
+  const goalById = new Map(allGoals.map((goal) => [goal.id, goal]));
+  const myGoals = getMyGoals();
+  const trackedProgress = getTrackedProgress();
+  const trackedGoals: Goal[] = trackedProgress.flatMap((progress) => {
+    const list = getListById(progress.sourceListId);
+    if (!list) return [];
+    return list.items
+      .map((item) => goalById.get(item.goalId) ?? item.goal)
+      .filter((goal): goal is Goal => !!goal);
+  });
+
+  const actionGoals = [...myGoals, ...trackedGoals].filter((goal) => !!goal.spotId);
+  const actionSpotCounts = new Map<string, number>();
+  for (const goal of actionGoals) {
+    const spotId = goal.spotId;
+    if (!spotId) continue;
+    actionSpotCounts.set(spotId, (actionSpotCounts.get(spotId) ?? 0) + 1);
+  }
+
+  const spotById = new Map(allKnownSpots.map((spot) => [spot.id, spot]));
+  const actionSpots = Array.from(actionSpotCounts.keys())
+    .map((spotId) => spotById.get(spotId))
+    .filter((spot): spot is Spot => !!spot);
 
   $: filtered = spots.filter(
     (s) =>
@@ -24,24 +63,67 @@
     <h1 class="page-title">Spots</h1>
   </div>
 
-  <div class="spots-intro">
-    <p class="text-muted">
-      Browse training spots. In a future update, spots will be powered by the
-      <strong>parkour.spot</strong> API — search real locations, filter by tags, and
-      get suggested spots for your goals.
-    </p>
-  </div>
+  <section class="my-spots-section">
+    <div class="section-header">
+      <h2 class="section-title">Your Action Spots</h2>
+    </div>
+    {#if actionSpots.length === 0}
+      <p class="text-muted">No spot-linked goals yet. Add a goal to a spot and it will appear here.</p>
+    {:else}
+      <div class="grid-cards my-spots-grid">
+        {#each actionSpots as spot}
+          <div class="my-spot-wrap">
+            <SpotCard {spot} showActions>
+              <SpotActions slot="actions" {spot} {lists} goals={allGoals} />
+            </SpotCard>
+            <p class="text-muted text-sm my-spot-meta">
+              {actionSpotCounts.get(spot.id)} goal{actionSpotCounts.get(spot.id) === 1 ? '' : 's'} tied to this spot
+            </p>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </section>
 
-  <div class="search-bar">
+  <div class="section-divider" aria-hidden="true"></div>
+
+  {#if data.error === 'missing_api_key'}
+    <div class="spots-error">
+      Add <code>PARKOUR_SPOT_API_KEY</code> to your env file to enable parkour.spot search.
+    </div>
+  {:else if data.error === 'api_error'}
+    <div class="spots-error">
+      Could not reach <strong>parkour.spot</strong>. Check your API key and try again.
+    </div>
+  {/if}
+
+  <form class="search-bar" method="GET">
     <input
       type="text"
       bind:value={query}
+      name="q"
       placeholder="Search by name, city, or tag…"
       class="search-input"
     />
-  </div>
+    <button class="btn btn-ghost search-btn" type="submit">
+      <img
+        src="https://parkour.spot/favicon.ico"
+        alt="parkour.spot"
+        class="parkour-spot-logo"
+        width="16"
+        height="16"
+      />
+      <span>Search parkour.spot</span>
+    </button>
+  </form>
 
-  {#if filtered.length === 0}
+  {#if !data.query && !data.error}
+    <EmptyState
+      icon="🔍"
+      title="Search for spots"
+      message="Type a name, city, or tag above and hit Search."
+    />
+  {:else if filtered.length === 0 && !data.error}
     <EmptyState
       icon="🗺️"
       title="No spots found"
@@ -50,23 +132,63 @@
   {:else}
     <div class="grid-cards">
       {#each filtered as spot}
-        <SpotCard {spot} />
+        <SpotCard {spot} showActions>
+          <SpotActions slot="actions" {spot} {lists} goals={allGoals} />
+        </SpotCard>
       {/each}
     </div>
   {/if}
 </div>
 
 <style>
-  .spots-intro {
+  .my-spots-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header {
+    margin-bottom: 0.8rem;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  .my-spots-grid {
+    margin-bottom: 0.5rem;
+  }
+
+  .my-spot-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .my-spot-meta {
+    padding-inline: 0.15rem;
+  }
+
+  .section-divider {
+    border-top: 1px solid var(--color-border);
+    margin: 0.5rem 0 1.5rem;
+  }
+
+  .spots-error {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
+    color: var(--color-text-muted);
     font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
   }
 
   .search-bar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
     margin-bottom: 1.5rem;
   }
 
@@ -81,6 +203,18 @@
     width: 100%;
     max-width: 400px;
     transition: border-color 0.15s;
+  }
+
+  .search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .parkour-spot-logo {
+    border-radius: 3px;
+    flex-shrink: 0;
   }
 
   .search-input:focus {

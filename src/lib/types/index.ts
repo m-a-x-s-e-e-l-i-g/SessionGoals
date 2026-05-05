@@ -1,6 +1,14 @@
 // ─── Goal types ──────────────────────────────────────────────────────────────
 
-export type GoalType = 'move' | 'spot' | 'challenge' | 'inspiration';
+/**
+ * move        — a specific technique or movement skill (kong, precision, wall-run…)
+ *               May optionally be pinned to a spot where you want to practice it.
+ * spot        — a goal tied to one specific spot: a run, a line, a sequence to do there.
+ * inspiration — reference material: a video, a concept, an athlete's clip to study.
+ *
+ * Challenges (multi-spot, multi-goal objectives) are a separate entity — see Challenge below.
+ */
+export type GoalType = 'move' | 'spot' | 'inspiration';
 
 export type GoalStatus =
   | 'idea'
@@ -14,6 +22,20 @@ export interface Tag {
   id: string;
   name: string;
   category?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  role: 'athlete' | 'teacher' | 'athlete_teacher';
+  teacherId?: string;
+  coachingNeeds?: string[];
+  bio?: string;
+  city?: string;
+  country?: string;
+  isPublic: boolean;
+  joinedAt: string;
 }
 
 export interface GoalLink {
@@ -43,6 +65,7 @@ export interface Goal {
 // ─── Goal list types ──────────────────────────────────────────────────────────
 
 export type GoalListType = 'training_plan' | 'competition' | 'wishlist' | 'general';
+export type GoalListVisibility = 'public' | 'private';
 
 export interface GoalListItem {
   listId: string;
@@ -57,6 +80,7 @@ export interface GoalList {
   name: string;
   description?: string;
   type: GoalListType;
+  visibility: GoalListVisibility;
   items: GoalListItem[];
   createdAt: string;
   updatedAt: string;
@@ -99,4 +123,53 @@ export interface CreateGoalListInput {
   name: string;
   description?: string;
   type: GoalListType;
+  visibility?: GoalListVisibility;
+}
+
+export interface ListProgressItem {
+  goalId: string;
+  done: boolean;
+  completedAt?: string;
+}
+
+export interface ListProgress {
+  id: string;
+  userId: string;
+  sourceListId: string;
+  items: ListProgressItem[];
+  startedAt: string;
+  updatedAt: string;
+}
+
+// ─── Challenge types ──────────────────────────────────────────────────────────
+//
+// A Challenge is a compound, multi-spot / multi-goal objective.
+// Examples: "land 10 different vaults in one session across 3 spots",
+//           "complete the city-centre link-up run".
+// It references goals (atomic moves / spot-runs) and spots by ID,
+// so the same goal or spot can belong to multiple challenges.
+
+export interface Challenge {
+  id: string;
+  userId?: string;
+  title: string;
+  description?: string;
+  status: GoalStatus;
+  difficulty?: number; // 1–5
+  spotIds: string[];   // spots involved in the challenge
+  goalIds: string[];   // component goals / moves that make up the challenge
+  tags: Tag[];
+  links: GoalLink[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateChallengeInput {
+  title: string;
+  description?: string;
+  status: GoalStatus;
+  difficulty?: number;
+  spotIds?: string[];
+  goalIds?: string[];
+  tagIds?: string[];
 }

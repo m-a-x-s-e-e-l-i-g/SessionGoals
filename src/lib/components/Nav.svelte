@@ -5,19 +5,28 @@
     { href: '/', label: 'Dashboard' },
     { href: '/goals', label: 'Goals' },
     { href: '/lists', label: 'Lists' },
+    { href: '/people', label: 'People' },
     { href: '/inspiration', label: 'Inspiration' },
     { href: '/spots', label: 'Spots' },
   ];
+
+  let mobileOpen = false;
+
+  function toggleMobile() {
+    mobileOpen = !mobileOpen;
+  }
+
+  // Close mobile menu on route change
+  $: $page.url.pathname, (mobileOpen = false);
 </script>
 
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-brand">
-      <span class="nav-logo">⚡</span>
       <span class="nav-name">SessionGoals</span>
     </a>
 
-    <ul class="nav-links">
+    <ul class="nav-links" class:open={mobileOpen} aria-hidden={!mobileOpen ? 'true' : undefined}>
       {#each links as link}
         <li>
           <a
@@ -30,9 +39,23 @@
           </a>
         </li>
       {/each}
+      <li class="nav-cta-mobile">
+        <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
+      </li>
     </ul>
 
-    <a href="/goals/new" class="btn btn-primary nav-cta">+ New Goal</a>
+    <a href="/goals/new" class="btn btn-primary nav-cta-desktop">+ New Goal</a>
+
+    <button
+      class="nav-hamburger"
+      on:click={toggleMobile}
+      aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+      aria-expanded={mobileOpen}
+    >
+      <span class="bar" class:open={mobileOpen}></span>
+      <span class="bar" class:open={mobileOpen}></span>
+      <span class="bar" class:open={mobileOpen}></span>
+    </button>
   </div>
 </nav>
 
@@ -50,6 +73,7 @@
     align-items: center;
     gap: 2rem;
     height: 60px;
+    position: relative;
   }
 
   .nav-brand {
@@ -58,13 +82,16 @@
     gap: 0.5rem;
     text-decoration: none;
     color: var(--color-text);
+    font-family: var(--font-display);
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
+    letter-spacing: 0.02em;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  .nav-logo {
-    font-size: 1.3rem;
+  .nav-brand:hover {
+    text-decoration: none;
   }
 
   .nav-links {
@@ -75,8 +102,12 @@
   }
 
   .nav-link {
+    display: block;
     color: var(--color-text-muted);
-    padding: 0.4rem 0.75rem;
+    padding: 0.65rem 0.8rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     font-weight: 500;
@@ -95,8 +126,77 @@
     background: var(--color-surface-2);
   }
 
-  .nav-cta {
+  .nav-cta-desktop {
     margin-left: auto;
     white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .nav-cta-mobile {
+    display: none;
+  }
+
+  /* Hamburger */
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    min-height: 44px;
+    width: 44px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--color-text);
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .nav-inner {
+      flex-wrap: wrap;
+      height: auto;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .nav-links {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      gap: 0.25rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .nav-links.open {
+      display: flex;
+    }
+
+    .nav-link {
+      padding: 0.75rem 0.8rem;
+    }
+
+    .nav-cta-desktop {
+      display: none;
+    }
+
+    .nav-cta-mobile {
+      display: flex;
+      padding: 0.5rem 0;
+    }
+
+    .nav-hamburger {
+      display: flex;
+      margin-left: auto;
+    }
   }
 </style>

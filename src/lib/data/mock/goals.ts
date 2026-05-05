@@ -3,6 +3,7 @@ import type { Goal } from '$lib/types';
 export const mockGoals: Goal[] = [
   {
     id: 'goal-1',
+    userId: 'user-me',
     type: 'move',
     title: 'Kong precision',
     description: 'Run, kong vault over an obstacle, land in a precision on the far side.',
@@ -27,6 +28,7 @@ export const mockGoals: Goal[] = [
   },
   {
     id: 'goal-2',
+    userId: 'user-me',
     type: 'spot',
     title: 'Rail line at Harbor Rail Garden',
     description: 'String together the three rails in sequence without stopping.',
@@ -43,6 +45,7 @@ export const mockGoals: Goal[] = [
   },
   {
     id: 'goal-3',
+    userId: 'user-me',
     type: 'inspiration',
     title: 'Pasha run through Lisbon',
     description: 'Urban flow line through old city streets. Want to study the running precision technique.',
@@ -66,14 +69,17 @@ export const mockGoals: Goal[] = [
   },
   {
     id: 'goal-4',
-    type: 'challenge',
-    title: '10 different vaults in one session',
-    description: 'Land speed vault, kong, dash, lazy, reverse, safety, thief, turn, palm, and crane in one session.',
+    userId: 'user-lena',
+    type: 'spot',
+    title: 'City Plaza precision line',
+    description: 'String together the three precision jumps on the main plaza steps without stopping — approach from the east side.',
     status: 'want_to_try',
-    difficulty: 4,
+    difficulty: 3,
+    spotId: 'spot-1',
     tags: [
-      { id: 'tag-2', name: 'vault' },
-      { id: 'tag-12', name: 'competition' },
+      { id: 'tag-1', name: 'precision' },
+      { id: 'tag-4', name: 'gap' },
+      { id: 'tag-8', name: 'flow' },
     ],
     links: [],
     createdAt: '2024-04-12T10:00:00Z',
@@ -81,6 +87,7 @@ export const mockGoals: Goal[] = [
   },
   {
     id: 'goal-5',
+    userId: 'user-lena',
     type: 'move',
     title: 'Cat to cat leap',
     description: 'Hang from one wall, jump and catch on the opposite wall.',

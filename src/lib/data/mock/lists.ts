@@ -4,9 +4,11 @@ import { mockGoals } from './goals';
 export const mockLists: GoalList[] = [
   {
     id: 'list-1',
+    userId: 'user-me',
     name: 'Summer Session Goals',
     description: 'Moves and challenges to land before autumn.',
     type: 'training_plan',
+    visibility: 'private',
     items: [
       { listId: 'list-1', goalId: 'goal-1', position: 1, goal: mockGoals[0] },
       { listId: 'list-1', goalId: 'goal-4', position: 2, goal: mockGoals[3] },
@@ -17,9 +19,11 @@ export const mockLists: GoalList[] = [
   },
   {
     id: 'list-2',
+    userId: 'user-lena',
     name: 'Amsterdam Jam Prep',
     description: 'Challenge list for the Amsterdam summer jam.',
     type: 'competition',
+    visibility: 'public',
     items: [
       { listId: 'list-2', goalId: 'goal-1', position: 1, goal: mockGoals[0] },
       { listId: 'list-2', goalId: 'goal-4', position: 2, goal: mockGoals[3] },
@@ -29,9 +33,11 @@ export const mockLists: GoalList[] = [
   },
   {
     id: 'list-3',
+    userId: 'user-lena',
     name: 'Spot Wishlist',
     description: 'Spots and lines I want to visit.',
     type: 'wishlist',
+    visibility: 'public',
     items: [
       { listId: 'list-3', goalId: 'goal-2', position: 1, goal: mockGoals[1] },
     ],

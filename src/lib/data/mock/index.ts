@@ -5,3 +5,5 @@ export { mockGoals } from './goals';
 export { mockLists } from './lists';
 export { mockSpots } from './spots';
 export { mockTags } from './tags';
+export { mockChallenges } from './challenges';
+export { mockUsers } from './users';

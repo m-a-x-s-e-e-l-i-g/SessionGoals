@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { getGoals } from '$lib/data/goals';
+  import { getMyGoals } from '$lib/data/goals';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
 
-  const inspirations = getGoals().filter((g) => g.type === 'inspiration');
+  const inspirations = getMyGoals().filter((g) => g.type === 'inspiration');
 </script>
 
 <svelte:head>

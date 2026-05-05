@@ -3,6 +3,7 @@
   import TagBadge from './TagBadge.svelte';
 
   export let spot: Spot;
+  export let showActions = false;
 </script>
 
 <div class="spot-card card">
@@ -27,6 +28,10 @@
         <TagBadge {tag} />
       {/each}
     </div>
+  {/if}
+
+  {#if showActions}
+    <slot name="actions" />
   {/if}
 </div>
 

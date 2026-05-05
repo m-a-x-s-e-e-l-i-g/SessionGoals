@@ -47,13 +47,13 @@
     gap: 0.6rem;
     text-decoration: none;
     color: var(--color-text);
-    transition: border-color 0.15s, transform 0.15s;
+    transition: border-color 0.18s, transform 0.18s;
     cursor: pointer;
   }
 
   .goal-card:hover {
     border-color: var(--color-primary);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     text-decoration: none;
   }
 

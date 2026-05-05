@@ -2,8 +2,9 @@
   import { goto } from '$app/navigation';
   import { getTags } from '$lib/data/tags';
   import { createGoal } from '$lib/data/goals';
+  import { upsertSpot } from '$lib/data/spots';
   import GoalForm from '$lib/components/GoalForm.svelte';
-  import type { CreateGoalInput, GoalType, GoalStatus } from '$lib/types';
+  import type { CreateGoalInput, GoalType, GoalStatus, Spot } from '$lib/types';
 
   const tags = getTags();
   let submitting = false;
@@ -30,11 +31,19 @@
       description: (data.get('description') as string)?.trim() || undefined,
       status: (data.get('status') as GoalStatus) ?? 'want_to_try',
       difficulty: data.get('difficulty') ? Number(data.get('difficulty')) : undefined,
+      spotId: (data.get('spotId') as string)?.trim() || undefined,
       sourceUrl: (data.get('sourceUrl') as string)?.trim() || undefined,
       tagIds: data.getAll('tags') as string[],
     };
 
+    const spotPayload = (data.get('spotPayload') as string)?.trim();
+
     try {
+      if (spotPayload) {
+        const spot = JSON.parse(spotPayload) as Spot;
+        upsertSpot(spot);
+      }
+
       const goal = createGoal(input);
       goto(`/goals/${goal.id}`);
     } catch (e) {
