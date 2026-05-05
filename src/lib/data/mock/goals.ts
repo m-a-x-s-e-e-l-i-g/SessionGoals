@@ -1,0 +1,97 @@
+import type { Goal } from '$lib/types';
+
+export const mockGoals: Goal[] = [
+  {
+    id: 'goal-1',
+    type: 'move',
+    title: 'Kong precision',
+    description: 'Run, kong vault over an obstacle, land in a precision on the far side.',
+    status: 'training',
+    difficulty: 3,
+    tags: [
+      { id: 'tag-3', name: 'kong' },
+      { id: 'tag-1', name: 'precision' },
+      { id: 'tag-4', name: 'gap' },
+    ],
+    links: [
+      {
+        id: 'link-1',
+        goalId: 'goal-1',
+        url: 'https://www.youtube.com/watch?v=example1',
+        platform: 'youtube',
+        title: 'Kong Pre Tutorial',
+      },
+    ],
+    createdAt: '2024-04-01T10:00:00Z',
+    updatedAt: '2024-04-10T12:00:00Z',
+  },
+  {
+    id: 'goal-2',
+    type: 'spot',
+    title: 'Rail line at Harbor Rail Garden',
+    description: 'String together the three rails in sequence without stopping.',
+    status: 'want_to_try',
+    difficulty: 2,
+    spotId: 'spot-2',
+    tags: [
+      { id: 'tag-6', name: 'rail' },
+      { id: 'tag-8', name: 'flow' },
+    ],
+    links: [],
+    createdAt: '2024-04-05T10:00:00Z',
+    updatedAt: '2024-04-05T10:00:00Z',
+  },
+  {
+    id: 'goal-3',
+    type: 'inspiration',
+    title: 'Pasha run through Lisbon',
+    description: 'Urban flow line through old city streets. Want to study the running precision technique.',
+    status: 'idea',
+    sourceUrl: 'https://www.youtube.com/watch?v=example2',
+    tags: [
+      { id: 'tag-11', name: 'inspiration' },
+      { id: 'tag-9', name: 'speed' },
+    ],
+    links: [
+      {
+        id: 'link-2',
+        goalId: 'goal-3',
+        url: 'https://www.youtube.com/watch?v=example2',
+        platform: 'youtube',
+        title: 'Urban flow Lisbon',
+      },
+    ],
+    createdAt: '2024-04-08T10:00:00Z',
+    updatedAt: '2024-04-08T10:00:00Z',
+  },
+  {
+    id: 'goal-4',
+    type: 'challenge',
+    title: '10 different vaults in one session',
+    description: 'Land speed vault, kong, dash, lazy, reverse, safety, thief, turn, palm, and crane in one session.',
+    status: 'want_to_try',
+    difficulty: 4,
+    tags: [
+      { id: 'tag-2', name: 'vault' },
+      { id: 'tag-12', name: 'competition' },
+    ],
+    links: [],
+    createdAt: '2024-04-12T10:00:00Z',
+    updatedAt: '2024-04-12T10:00:00Z',
+  },
+  {
+    id: 'goal-5',
+    type: 'move',
+    title: 'Cat to cat leap',
+    description: 'Hang from one wall, jump and catch on the opposite wall.',
+    status: 'landed',
+    difficulty: 2,
+    tags: [
+      { id: 'tag-5', name: 'wall' },
+      { id: 'tag-7', name: 'climb' },
+    ],
+    links: [],
+    createdAt: '2024-03-15T10:00:00Z',
+    updatedAt: '2024-04-20T10:00:00Z',
+  },
+];
