@@ -37,6 +37,16 @@ export function getStudentsForTeacher(teacherId: string): UserProfile[] {
   return store.filter((u) => u.teacherId === teacherId);
 }
 
+export function updateUserProfile(
+  userId: string,
+  updates: Partial<Pick<UserProfile, 'displayName' | 'bio' | 'city' | 'country' | 'isPublic' | 'role'>>,
+): UserProfile | undefined {
+  const idx = store.findIndex((u) => u.id === userId);
+  if (idx === -1) return undefined;
+  store[idx] = { ...store[idx], ...updates };
+  return store[idx];
+}
+
 export function getStudentTrackingSummary(studentId: string): {
   goalsDone: number;
   goalsTotal: number;

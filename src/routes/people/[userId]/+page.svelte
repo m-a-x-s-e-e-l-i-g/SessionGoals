@@ -6,6 +6,7 @@
     getTeacherForStudent,
     getStudentsForTeacher,
     getStudentTrackingSummary,
+    updateUserProfile,
     isTeacher,
   } from '$lib/data/users';
   import { getGoals } from '$lib/data/goals';
@@ -13,6 +14,7 @@
   import GoalCard from '$lib/components/GoalCard.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import type { UserProfile } from '$lib/types';
 
   $: userId = $page.params.userId;
   $: profile = getUserById(userId);
@@ -20,6 +22,44 @@
   $: profileTeacher = getTeacherForStudent(userId);
   $: teacherStudents = getStudentsForTeacher(userId);
   $: teacherViewEnabled = !!profile && isTeacher(profile) && (isOwnProfile || profile.isPublic);
+
+  // ── Edit mode ──────────────────────────────────────────────────────────────
+  let editing = false;
+  let editDisplayName = '';
+  let editBio = '';
+  let editCity = '';
+  let editCountry = '';
+  let editIsPublic = true;
+  let editRole: UserProfile['role'] = 'athlete';
+
+  function startEdit() {
+    if (!profile) return;
+    editDisplayName = profile.displayName;
+    editBio = profile.bio ?? '';
+    editCity = profile.city ?? '';
+    editCountry = profile.country ?? '';
+    editIsPublic = profile.isPublic;
+    editRole = profile.role;
+    editing = true;
+  }
+
+  function cancelEdit() {
+    editing = false;
+  }
+
+  function saveEdit() {
+    updateUserProfile(userId, {
+      displayName: editDisplayName.trim() || profile?.displayName,
+      bio: editBio.trim() || undefined,
+      city: editCity.trim() || undefined,
+      country: editCountry.trim() || undefined,
+      isPublic: editIsPublic,
+      role: editRole,
+    });
+    // re-read updated profile
+    profile = getUserById(userId);
+    editing = false;
+  }
 
   $: visibleGoals = getGoals().filter((g) => {
     if (g.userId !== userId) return false;
@@ -65,18 +105,76 @@
           {/if}
         </div>
         {#if isOwnProfile}
-          <span class="badge">Your Profile</span>
+          <div class="own-profile-actions">
+            <span class="badge">Your Profile</span>
+            {#if !editing}
+              <button class="btn btn-ghost btn-sm" on:click={startEdit}>Edit Profile</button>
+            {/if}
+          </div>
         {/if}
       </div>
-      {#if profile.bio}
-        <p class="profile-bio">{profile.bio}</p>
+
+      {#if isOwnProfile && editing}
+        <form class="edit-form" on:submit|preventDefault={saveEdit}>
+          <div class="form-row">
+            <label class="form-label" for="edit-displayname">Display name</label>
+            <input
+              id="edit-displayname"
+              class="form-input"
+              type="text"
+              bind:value={editDisplayName}
+              required
+              maxlength="60"
+            />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="edit-bio">Bio</label>
+            <textarea
+              id="edit-bio"
+              class="form-input form-textarea"
+              bind:value={editBio}
+              rows="3"
+              maxlength="300"
+            ></textarea>
+          </div>
+          <div class="form-row-group">
+            <div class="form-row">
+              <label class="form-label" for="edit-city">City</label>
+              <input id="edit-city" class="form-input" type="text" bind:value={editCity} maxlength="60" />
+            </div>
+            <div class="form-row">
+              <label class="form-label" for="edit-country">Country</label>
+              <input id="edit-country" class="form-input" type="text" bind:value={editCountry} maxlength="60" />
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="edit-role">Role</label>
+            <select id="edit-role" class="form-input form-select" bind:value={editRole}>
+              <option value="athlete">Athlete</option>
+              <option value="teacher">Teacher</option>
+              <option value="athlete_teacher">Athlete + Teacher</option>
+            </select>
+          </div>
+          <div class="form-row form-row-check">
+            <input id="edit-public" type="checkbox" bind:checked={editIsPublic} />
+            <label for="edit-public" class="form-label-inline">Public profile</label>
+          </div>
+          <div class="edit-actions">
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <button type="button" class="btn btn-ghost btn-sm" on:click={cancelEdit}>Cancel</button>
+          </div>
+        </form>
+      {:else}
+        {#if profile.bio}
+          <p class="profile-bio">{profile.bio}</p>
+        {/if}
+        <div class="profile-meta text-muted text-sm">
+          {#if profile.city || profile.country}
+            <span>{profile.city}{profile.city && profile.country ? ', ' : ''}{profile.country}</span>
+          {/if}
+          <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
+        </div>
       {/if}
-      <div class="profile-meta text-muted text-sm">
-        {#if profile.city || profile.country}
-          <span>{profile.city}{profile.city && profile.country ? ', ' : ''}{profile.country}</span>
-        {/if}
-        <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
-      </div>
     </div>
 
     {#if teacherViewEnabled}
@@ -274,5 +372,89 @@
     margin: 0;
     padding-left: 1.1rem;
     color: var(--color-text);
+  }
+
+  /* ── Edit profile ─────────────────────────────────────────────────────────── */
+  .own-profile-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-top: 0.65rem;
+  }
+
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .form-row-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .form-row-check {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .form-label-inline {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .form-input {
+    background: var(--color-surface, #1a1a1a);
+    border: 1px solid var(--color-border, #333);
+    border-radius: var(--radius-sm, 6px);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.45rem 0.65rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--color-primary, #6366f1);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 72px;
+  }
+
+  .form-select {
+    cursor: pointer;
+  }
+
+  .edit-actions {
+    display: flex;
+    gap: 0.55rem;
+    margin-top: 0.25rem;
+  }
+
+  .btn-sm {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
   }
 </style>
