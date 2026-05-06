@@ -1,11 +1,50 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import { getGoals, getMyGoals } from '$lib/data/goals';
-  import { getMyLists, getExplorableLists, getListById } from '$lib/data/lists';
+  import { getMyLists, getExplorableLists, getListById, getPublicLists } from '$lib/data/lists';
   import { getTrackedProgress } from '$lib/data/listProgress';
   import { getSpots } from '$lib/data/spots';
   import { getActivityForDate, getActivityStats } from '$lib/data/activities';
+  import { getPublicUsers, getUserById } from '$lib/data/users';
   import type { Goal, Spot } from '$lib/types';
   import GoalCard from '$lib/components/GoalCard.svelte';
+
+  $: isAuthenticated = !!$page.data.user;
+  $: pageTitle = isAuthenticated ? 'SessionGoals — Dashboard' : 'SessionGoals — Explore';
+  const publicUsers = getPublicUsers();
+  const publicUserIds = new Set(publicUsers.map((user) => user.id));
+  const publicPeople = publicUsers.slice(0, 6);
+  const publicListsAll = getPublicLists();
+  const publicLists = [...publicListsAll]
+    .sort((a, b) => b.items.length - a.items.length)
+    .slice(0, 8);
+  const publicSpots = getSpots().slice(0, 6);
+  const publicGoals = getGoals().filter((goal) => !!goal.userId && publicUserIds.has(goal.userId));
+  const publicActivityStats = publicUsers.map((user) => ({
+    user,
+    stats: getActivityStats(7, user.id)
+  }));
+
+  const mostActiveAthletes = [...publicActivityStats]
+    .sort((left, right) => right.stats.activeDays - left.stats.activeDays)
+    .slice(0, 3);
+
+  const communityStats = {
+    athletes: publicUsers.length,
+    lists: publicListsAll.length,
+    listGoals: publicListsAll.reduce((sum, list) => sum + list.items.length, 0),
+    sessionsWeek: publicActivityStats.reduce((sum, entry) => sum + entry.stats.activeDays, 0),
+    minutesWeek: publicActivityStats.reduce((sum, entry) => sum + entry.stats.totalDuration, 0),
+    publicGoals: publicGoals.length
+  };
+
+  function formatListOwner(userId?: string) {
+    if (!userId) {
+      return 'Unknown athlete';
+    }
+
+    return getUserById(userId)?.displayName ?? 'Unknown athlete';
+  }
 
   const myGoals = getMyGoals();
   const recentGoals = myGoals.slice(0, 4);
@@ -61,10 +100,130 @@
 </script>
 
 <svelte:head>
-  <title>SessionGoals — Dashboard</title>
+  <title>{pageTitle}</title>
 </svelte:head>
 
-<div class="container page">
+{#if !isAuthenticated}
+  <div class="container page explore-page">
+    <section class="explore-hero card">
+      <p class="explore-kicker">Community mode</p>
+      <h1 class="explore-title">Explore what others are doing. Then sign in when you are ready to track your own.</h1>
+      <p class="explore-copy">
+        As a guest, this app is about patterns from other athletes: which public lists they run, how active they are,
+        and where they train.
+      </p>
+      <div class="hero-actions">
+        <a href="/auth/login" class="btn btn-primary">Sign in with Google</a>
+        <a href="/privacy" class="btn btn-ghost">Privacy Policy</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Community Snapshot</h2>
+      </div>
+      <div class="community-stats-grid">
+        <article class="card stat-chip">
+          <p class="stat-chip-value">{communityStats.athletes}</p>
+          <p class="text-muted text-sm">Public athletes</p>
+        </article>
+        <article class="card stat-chip">
+          <p class="stat-chip-value">{communityStats.lists}</p>
+          <p class="text-muted text-sm">Public lists</p>
+        </article>
+        <article class="card stat-chip">
+          <p class="stat-chip-value">{communityStats.listGoals}</p>
+          <p class="text-muted text-sm">Goals across public lists</p>
+        </article>
+        <article class="card stat-chip">
+          <p class="stat-chip-value">{communityStats.sessionsWeek}</p>
+          <p class="text-muted text-sm">Sessions logged this week</p>
+        </article>
+        <article class="card stat-chip">
+          <p class="stat-chip-value">{communityStats.minutesWeek}</p>
+          <p class="text-muted text-sm">Minutes logged this week</p>
+        </article>
+        <article class="card stat-chip">
+          <p class="stat-chip-value">{communityStats.publicGoals}</p>
+          <p class="text-muted text-sm">Public goals</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Public Lists To Explore</h2>
+      </div>
+      <div class="grid-cards">
+        {#each publicLists as list}
+          <a href="/lists/{list.id}" class="card public-card public-link-card">
+            <h3 class="public-card-title">{list.name}</h3>
+            <p class="text-muted text-sm">By {formatListOwner(list.userId)}</p>
+            {#if list.description}
+              <p class="text-muted text-sm">{list.description}</p>
+            {/if}
+            <p class="public-list-count">{list.items.length} goals</p>
+          </a>
+        {/each}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Most Active Public Athletes (7d)</h2>
+      </div>
+      <div class="grid-cards">
+        {#each mostActiveAthletes as entry}
+          <a href="/people/{entry.user.id}" class="card public-card public-link-card">
+            <h3 class="public-card-title">{entry.user.displayName}</h3>
+            <p class="text-muted text-sm">@{entry.user.username}</p>
+            <p class="public-athlete-stat">{entry.stats.activeDays} sessions in 7 days</p>
+            <p class="text-sm text-muted">{entry.stats.totalDuration} minutes this week</p>
+            {#if entry.user.city || entry.user.country}
+              <p class="text-sm text-muted">
+                {entry.user.city}{entry.user.city && entry.user.country ? ', ' : ''}{entry.user.country}
+              </p>
+            {/if}
+          </a>
+        {/each}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Popular Spots</h2>
+      </div>
+      <div class="spots-compact">
+        {#each publicSpots as spot}
+          <a href="/spots?q={encodeURIComponent(spot.name)}" class="spot-compact spot-compact-link">
+            <span class="spot-compact-name">{spot.name}</span>
+            {#if spot.city}
+              <span class="spot-compact-city text-muted text-sm">{spot.city}</span>
+            {/if}
+          </a>
+        {/each}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">More Public Athletes</h2>
+      </div>
+      <div class="grid-cards">
+        {#each publicPeople as user}
+          <a href="/people/{user.id}" class="card public-card public-link-card">
+            <h3 class="public-card-title">{user.displayName}</h3>
+            <p class="text-muted text-sm">@{user.username}</p>
+            {#if user.bio}
+              <p class="text-muted text-sm">{user.bio}</p>
+            {/if}
+          </a>
+        {/each}
+      </div>
+    </section>
+  </div>
+{:else}
+  <div class="container page">
   <section class="hero">
     <h1 class="hero-title">
       Train what's next.
@@ -184,8 +343,102 @@
     </section>
   </div>
 </div>
+{/if}
 
 <style>
+  .explore-page {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .explore-hero {
+    display: grid;
+    gap: 1rem;
+    background:
+      radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 14%, transparent), transparent 52%),
+      var(--color-surface);
+  }
+
+  .explore-kicker {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .explore-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 6vw, 3.3rem);
+    line-height: 1;
+    max-width: 18ch;
+  }
+
+  .explore-copy {
+    color: var(--color-text-muted);
+    max-width: 58ch;
+  }
+
+  .public-card {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .public-link-card {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .public-link-card:hover {
+    border-color: var(--color-primary);
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+
+  .public-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .community-stats-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .stat-chip {
+    display: grid;
+    gap: 0.25rem;
+    align-content: start;
+  }
+
+  .stat-chip-value {
+    font-family: var(--font-display);
+    font-size: 2.15rem;
+    line-height: 1;
+    color: var(--color-primary);
+  }
+
+  .public-list-count,
+  .public-athlete-stat {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: color-mix(in oklch, var(--color-primary) 65%, var(--color-text));
+  }
+
+  .spot-compact-link {
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .spot-compact-link:hover {
+    text-decoration: none;
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+
   .hero {
     padding: 3.5rem 0 3rem;
     border-bottom: 1px solid var(--color-border);

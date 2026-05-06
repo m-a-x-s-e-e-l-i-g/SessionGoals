@@ -9,10 +9,12 @@ Tagline: Train what's next. Plan your session.
 ## What is implemented
 
 - Dashboard with recent goals, lists, activity summary, and action spots
+- Authentication via Supabase Auth (Google sign-in only)
 - Goals flow: browse, filter by status, search, create, and view goal detail pages
 - Lists flow: browse lists, follow/explore, create lists, and view list detail pages
 - Activity flow: log sessions, view streak and weekly stats, review recent session history, and inspect a heatmap
 - People and inspiration views for discovery and profile-level browsing
+- Public legal pages for Terms of Use and Privacy Policy
 - Spots flow:
 - Your action spots section from goals tied to spots
 - parkour.spot-backed search (when API key is configured)
@@ -70,7 +72,7 @@ PowerShell:
 Copy-Item .env.example .env
 ```
 
-If you skip environment variables, the app still runs with mock data, but external spot search will be unavailable.
+Supabase auth env vars are required to sign in.
 
 ### Run development server
 
@@ -94,8 +96,8 @@ Defined in `.env.example`:
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `PUBLIC_SUPABASE_URL` | No (for current MVP) | Supabase project URL for future/auth integration |
-| `PUBLIC_SUPABASE_ANON_KEY` | No (for current MVP) | Supabase anon key |
+| `PUBLIC_SUPABASE_URL` | Yes | Supabase project URL used by auth |
+| `PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key used by auth |
 | `PARKOUR_SPOT_API_URL` | No | Base URL for parkour.spot API (defaults to `https://parkour.spot/api/v1`) |
 | `PARKOUR_SPOT_API_KEY` | Yes (for spot search) | API key used by server-side spot search |
 | `PARKOUR_SPOT_BEARER_TOKEN` | No (future callback use) | Bearer token for verifying parkour.spot callbacks |
@@ -111,7 +113,18 @@ Defined in `.env.example`:
 
 - Data in `src/lib/data` is in-memory mock data.
 - Writes are not persisted across server restarts/reloads.
-- Supabase adapter code exists, but persistence is not fully wired as the default data source.
+- Authentication is required for app routes (except login + legal pages).
+- Only Google OAuth is enabled as a sign-in method.
+- Supabase-backed persistence is not yet the default data source.
+
+## Supabase auth setup (Google only)
+
+1. Create a Supabase project.
+2. In Supabase dashboard, enable Google provider under Authentication > Providers.
+3. Configure Google OAuth credentials in Supabase.
+4. Add your local callback URL in Supabase Auth settings:
+	- `http://localhost:5173/auth/callback`
+5. Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` in `.env`.
 
 ## Quality checks
 

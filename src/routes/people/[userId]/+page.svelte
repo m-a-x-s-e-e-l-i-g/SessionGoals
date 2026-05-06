@@ -18,9 +18,10 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import type { UserProfile } from '$lib/types';
 
+  $: isAuthenticated = !!$page.data.user;
   $: userId = $page.params.userId ?? '';
   $: profile = userId ? getUserById(userId) : undefined;
-  $: isOwnProfile = userId === CURRENT_USER_ID;
+  $: isOwnProfile = isAuthenticated && userId === CURRENT_USER_ID;
   $: profileTeacher = userId ? getTeacherForStudent(userId) : undefined;
   $: teacherStudents = userId ? getStudentsForTeacher(userId) : [];
   $: teacherViewEnabled = !!profile && isTeacher(profile) && (isOwnProfile || profile.isPublic);

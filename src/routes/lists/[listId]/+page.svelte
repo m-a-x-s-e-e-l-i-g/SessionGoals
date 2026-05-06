@@ -15,20 +15,23 @@
   } from '$lib/data/listProgress';
   import type { ListProgress, UserProfile } from '$lib/types';
 
+  $: isAuthenticated = !!$page.data.user;
   $: listId = $page.params.listId ?? '';
   $: list = listId ? getListById(listId) : undefined;
-  $: isOwnList = list?.userId === CURRENT_USER_ID;
+  $: isOwnList = isAuthenticated && list?.userId === CURRENT_USER_ID;
   $: canViewList = !!list && (isOwnList || list.visibility === 'public');
-  $: canTrackList = !!list && !isOwnList && list.visibility === 'public';
+  $: canTrackList = isAuthenticated && !!list && !isOwnList && list.visibility === 'public';
   const currentUser = getUserById(CURRENT_USER_ID);
-  $: canEnrollStudents = !!list && list.visibility === 'public' && isTeacher(currentUser);
+  $: canEnrollStudents = isAuthenticated && !!list && list.visibility === 'public' && isTeacher(currentUser);
   $: teacherStudents = canEnrollStudents ? getStudentsForTeacher(CURRENT_USER_ID) : [];
 
   let progress: ListProgress | undefined = undefined;
   let enrollmentNotice = '';
 
-  $: if (list) {
+  $: if (list && isAuthenticated) {
     progress = getProgressForList(list.id, CURRENT_USER_ID);
+  } else {
+    progress = undefined;
   }
 
   $: doneCount = progress ? progress.items.filter((item) => item.done).length : 0;
@@ -118,6 +121,8 @@
           <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
         {:else if canTrackList && !progress}
           <button class="btn btn-primary" on:click={handleStartTracking}>Track This List</button>
+        {:else if !isAuthenticated}
+          <a class="btn btn-primary" href="/auth/login?next=/lists/{list.id}">Sign in to Track</a>
         {/if}
       </div>
     </div>

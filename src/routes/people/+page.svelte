@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import { searchPeople, getTeacherForStudent, getStudentsForTeacher, getStudentTrackingSummary } from '$lib/data/users';
   import { CURRENT_USER_ID } from '$lib/data/session';
   import { getGoals } from '$lib/data/goals';
@@ -10,6 +11,7 @@
     query = '';
   }
 
+  $: isAuthenticated = !!$page.data.user;
   $: users = searchPeople(query);
   const myStudents = getStudentsForTeacher(CURRENT_USER_ID);
 
@@ -32,7 +34,7 @@
 
   <p class="text-muted intro">Search athletes, open profiles, and discover public goals, inspiration, and lists.</p>
 
-  {#if myStudents.length > 0}
+  {#if isAuthenticated && myStudents.length > 0}
     <section class="students-focus" aria-label="Your students">
       <div class="students-focus-header">
         <h2 class="students-focus-title">Your Students</h2>

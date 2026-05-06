@@ -1,5 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import type { User } from '@supabase/supabase-js';
+
+  export let user: User | null = null;
 
   const links = [
     { href: '/', label: 'Dashboard' },
@@ -27,25 +30,49 @@
       <span class="nav-name">SessionGoals</span>
     </a>
 
-    <ul class="nav-links" class:open={mobileOpen} aria-label="Main navigation">
-      {#each links as link}
-        <li>
-          <a
-            href={link.href}
-            class="nav-link"
-            class:active={$page.url.pathname === link.href ||
-              (link.href !== '/' && $page.url.pathname.startsWith(link.href))}
-          >
-            {link.label}
-          </a>
+    {#if user}
+      <ul class="nav-links" class:open={mobileOpen} aria-label="Main navigation">
+        {#each links as link}
+          <li>
+            <a
+              href={link.href}
+              class="nav-link"
+              class:active={$page.url.pathname === link.href ||
+                (link.href !== '/' && $page.url.pathname.startsWith(link.href))}
+            >
+              {link.label}
+            </a>
+          </li>
+        {/each}
+        <li class="nav-cta-mobile">
+          <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
         </li>
-      {/each}
-      <li class="nav-cta-mobile">
-        <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
-      </li>
-    </ul>
+        <li class="nav-cta-mobile">
+          <form method="POST" action="/auth/signout">
+            <button type="submit" class="btn btn-ghost nav-signout">Sign out</button>
+          </form>
+        </li>
+      </ul>
 
-    <a href="/goals/new" class="btn btn-primary nav-cta-desktop">+ New Goal</a>
+      <div class="nav-actions nav-cta-desktop">
+        <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
+        <form method="POST" action="/auth/signout">
+          <button type="submit" class="btn btn-ghost nav-signout">Sign out</button>
+        </form>
+      </div>
+    {:else}
+      <ul class="nav-links nav-links-public" class:open={mobileOpen} aria-label="Public navigation">
+        <li><a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Explore</a></li>
+        <li><a href="/lists" class="nav-link" class:active={$page.url.pathname.startsWith('/lists')}>Lists</a></li>
+        <li><a href="/people" class="nav-link" class:active={$page.url.pathname.startsWith('/people')}>People</a></li>
+        <li><a href="/spots" class="nav-link" class:active={$page.url.pathname.startsWith('/spots')}>Spots</a></li>
+        <li class="nav-cta-mobile">
+          <a href="/auth/login" class="btn btn-primary">Sign in with Google</a>
+        </li>
+      </ul>
+
+      <a href="/auth/login" class="btn btn-primary nav-cta-desktop">Sign in with Google</a>
+    {/if}
 
     <button
       class="nav-hamburger"
@@ -131,6 +158,20 @@
     margin-left: auto;
     white-space: nowrap;
     flex-shrink: 0;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .nav-signout {
+    min-height: 40px;
+  }
+
+  .nav-links-public {
+    justify-content: flex-end;
   }
 
   .nav-cta-mobile {

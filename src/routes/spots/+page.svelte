@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import type { Spot } from '$lib/types';
   import SpotCard from '$lib/components/SpotCard.svelte';
   import SpotActions from '$lib/components/SpotActions.svelte';
@@ -15,6 +16,7 @@
     query: string;
   };
 
+  $: isAuthenticated = !!$page.data.user;
   $: spots = data.spots;
   let query = data.query ?? '';
   const lists = getLists();
@@ -63,29 +65,31 @@
     <h1 class="page-title">Spots</h1>
   </div>
 
-  <section class="my-spots-section">
-    <div class="section-header">
-      <h2 class="section-title">Your Action Spots</h2>
-    </div>
-    {#if actionSpots.length === 0}
-      <p class="text-muted">No spot-linked goals yet. Add a goal to a spot and it will appear here.</p>
-    {:else}
-      <div class="grid-cards my-spots-grid">
-        {#each actionSpots as spot}
-          <div class="my-spot-wrap">
-            <SpotCard {spot} showActions>
-              <SpotActions slot="actions" {spot} {lists} goals={allGoals} />
-            </SpotCard>
-            <p class="text-muted text-sm my-spot-meta">
-              {actionSpotCounts.get(spot.id)} goal{actionSpotCounts.get(spot.id) === 1 ? '' : 's'} tied to this spot
-            </p>
-          </div>
-        {/each}
+  {#if isAuthenticated}
+    <section class="my-spots-section">
+      <div class="section-header">
+        <h2 class="section-title">Your Action Spots</h2>
       </div>
-    {/if}
-  </section>
+      {#if actionSpots.length === 0}
+        <p class="text-muted">No spot-linked goals yet. Add a goal to a spot and it will appear here.</p>
+      {:else}
+        <div class="grid-cards my-spots-grid">
+          {#each actionSpots as spot}
+            <div class="my-spot-wrap">
+              <SpotCard {spot} showActions>
+                <SpotActions slot="actions" {spot} {lists} goals={allGoals} />
+              </SpotCard>
+              <p class="text-muted text-sm my-spot-meta">
+                {actionSpotCounts.get(spot.id)} goal{actionSpotCounts.get(spot.id) === 1 ? '' : 's'} tied to this spot
+              </p>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
 
-  <div class="section-divider" aria-hidden="true"></div>
+    <div class="section-divider" aria-hidden="true"></div>
+  {/if}
 
   {#if data.error === 'missing_api_key'}
     <div class="spots-error">
@@ -133,9 +137,13 @@
   {:else}
     <div class="grid-cards">
       {#each filtered as spot}
-        <SpotCard {spot} showActions>
-          <SpotActions slot="actions" {spot} {lists} goals={allGoals} />
-        </SpotCard>
+        {#if isAuthenticated}
+          <SpotCard {spot} showActions>
+            <SpotActions slot="actions" {spot} {lists} goals={allGoals} />
+          </SpotCard>
+        {:else}
+          <SpotCard {spot} />
+        {/if}
       {/each}
     </div>
   {/if}
