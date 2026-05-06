@@ -12,7 +12,7 @@ Tagline: Train what's next. Plan your session.
 - Authentication via Supabase Auth (Google sign-in only)
 - Goals flow: browse, filter by status, search, create, and view goal detail pages
 - Lists flow: browse lists, follow/explore, create lists, and view list detail pages
-- Activity flow: log sessions, view streak and weekly stats, review recent session history, and inspect a heatmap
+- Activity flow: log parkour and support training types, view streak and weekly stats, review recent session history, and inspect a heatmap
 - People and inspiration views for discovery and profile-level browsing
 - Public legal pages for Terms of Use and Privacy Policy
 - Spots flow:
@@ -122,6 +122,7 @@ This repository includes:
 
 - `supabase/migrations/20260506120000_initial_schema.sql`: core schema + RLS policies
 - `supabase/migrations/20260506121000_auth_profile_sync.sql`: auth user -> profile sync trigger + base tags seed
+- `supabase/migrations/20260506143000_add_activity_types.sql`: activity categories for parkour and support training logs
 
 ## Current MVP constraints
 

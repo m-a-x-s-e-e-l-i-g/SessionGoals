@@ -22,6 +22,7 @@
       <div class="site-footer-links">
         <a href="/terms" class="text-sm">Terms of Use</a>
         <a href="/privacy" class="text-sm">Privacy Policy</a>
+        <a href="https://github.com/m-a-x-s-e-e-l-i-g/SessionGoals" class="text-sm" target="_blank" rel="noopener noreferrer">GitHub</a>
       </div>
     </div>
   </footer>

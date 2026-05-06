@@ -14,6 +14,7 @@ import type {
   Tag,
   UserProfile,
 } from '$lib/types';
+import { normalizeActivityType } from '$lib/types';
 
 function toIsoString(value: string | null | undefined): string {
   return value ?? new Date().toISOString();
@@ -227,6 +228,7 @@ export async function loadAppStateForRequest(
     id: row.id,
     userId: row.user_id,
     date: row.date,
+    activityType: normalizeActivityType(row.activity_type),
     duration: row.duration ?? undefined,
     notes: row.notes ?? undefined,
     linkedGoalId: row.linked_goal_id ?? undefined,

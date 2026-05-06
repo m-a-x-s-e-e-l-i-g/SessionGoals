@@ -15,19 +15,32 @@
   ];
 
   let mobileOpen = false;
+  let userMenuOpen = false;
+
+  $: profileHref = user ? `/people/${user.id}` : '/people';
+  $: accountLabel = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Account';
 
   function toggleMobile() {
     mobileOpen = !mobileOpen;
   }
 
+  function toggleUserMenu() {
+    userMenuOpen = !userMenuOpen;
+  }
+
+  function closeUserMenu() {
+    userMenuOpen = false;
+  }
+
   // Close mobile menu on route change
   $: $page.url.pathname, (mobileOpen = false);
+  $: $page.url.pathname, (userMenuOpen = false);
 </script>
 
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-brand">
-      <span class="nav-name">SessionGoals</span>
+      <span class="nav-name">SessionGoals <span class="nav-preview">[preview]</span></span>
     </a>
 
     {#if user}
@@ -47,18 +60,65 @@
         <li class="nav-cta-mobile">
           <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
         </li>
-        <li class="nav-cta-mobile">
-          <form method="POST" action="/auth/signout">
-            <button type="submit" class="btn btn-ghost nav-signout">Sign out</button>
-          </form>
+        <li class="nav-user-mobile">
+          <button
+            type="button"
+            class="nav-user-trigger nav-user-trigger-mobile"
+            on:click={toggleUserMenu}
+            aria-haspopup="menu"
+            aria-expanded={userMenuOpen}
+          >
+            <span class="nav-user-avatar" aria-hidden="true">{accountLabel.slice(0, 1).toUpperCase()}</span>
+            <span class="nav-user-copy">
+              <span class="nav-user-name">{accountLabel}</span>
+              <span class="nav-user-meta">Account</span>
+            </span>
+            <span class="nav-user-caret" class:open={userMenuOpen} aria-hidden="true">▾</span>
+          </button>
+
+          {#if userMenuOpen}
+            <div class="nav-user-menu nav-user-menu-mobile" role="menu" aria-label="User menu">
+              <a href={profileHref} class="nav-user-menu-item" role="menuitem" on:click={closeUserMenu}>
+                View profile
+              </a>
+              <form method="POST" action="/auth/signout" class="nav-user-menu-form">
+                <button type="submit" class="nav-user-menu-item nav-user-menu-item-button" role="menuitem">
+                  Sign out
+                </button>
+              </form>
+            </div>
+          {/if}
         </li>
       </ul>
 
       <div class="nav-actions nav-cta-desktop">
         <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
-        <form method="POST" action="/auth/signout">
-          <button type="submit" class="btn btn-ghost nav-signout">Sign out</button>
-        </form>
+        <div class="nav-user-menu-wrap">
+          <button
+            type="button"
+            class="nav-user-trigger"
+            on:click={toggleUserMenu}
+            aria-haspopup="menu"
+            aria-expanded={userMenuOpen}
+          >
+            <span class="nav-user-avatar" aria-hidden="true">{accountLabel.slice(0, 1).toUpperCase()}</span>
+            <span class="nav-user-name">{accountLabel}</span>
+            <span class="nav-user-caret" class:open={userMenuOpen} aria-hidden="true">▾</span>
+          </button>
+
+          {#if userMenuOpen}
+            <div class="nav-user-menu" role="menu" aria-label="User menu">
+              <a href={profileHref} class="nav-user-menu-item" role="menuitem" on:click={closeUserMenu}>
+                View profile
+              </a>
+              <form method="POST" action="/auth/signout" class="nav-user-menu-form">
+                <button type="submit" class="nav-user-menu-item nav-user-menu-item-button" role="menuitem">
+                  Sign out
+                </button>
+              </form>
+            </div>
+          {/if}
+        </div>
       </div>
     {:else}
       <ul class="nav-links nav-links-public" class:open={mobileOpen} aria-label="Public navigation">
@@ -122,6 +182,19 @@
     text-decoration: none;
   }
 
+  .nav-name {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .nav-preview {
+    font-size: 0.72em;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0.01em;
+  }
+
   .nav-links {
     display: flex;
     list-style: none;
@@ -166,8 +239,138 @@
     gap: 0.5rem;
   }
 
-  .nav-signout {
+  .nav-user-menu-wrap {
+    position: relative;
+  }
+
+  .nav-user-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
     min-height: 40px;
+    padding: 0.35rem 0.7rem 0.35rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .nav-user-trigger:hover {
+    background: var(--color-surface-2);
+    border-color: color-mix(in oklch, var(--color-primary) 28%, var(--color-border));
+  }
+
+  .nav-user-trigger-mobile {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: var(--radius-sm);
+    min-height: 48px;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .nav-user-avatar {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-primary) 18%, var(--color-surface));
+    color: var(--color-primary);
+    font-size: 0.82rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .nav-user-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .nav-user-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nav-user-meta {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .nav-user-caret {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    transition: transform 0.15s;
+  }
+
+  .nav-user-caret.open {
+    transform: rotate(180deg);
+  }
+
+  .nav-user-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    min-width: 12rem;
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: 0 18px 40px color-mix(in oklch, var(--color-text) 14%, transparent);
+    z-index: 120;
+  }
+
+  .nav-user-menu-mobile {
+    position: static;
+    margin-top: 0.4rem;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .nav-user-menu-form {
+    margin: 0;
+  }
+
+  .nav-user-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 40px;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .nav-user-menu-item:hover {
+    background: var(--color-surface-2);
+    text-decoration: none;
+  }
+
+  .nav-user-menu-item-button {
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
   }
 
   .nav-links-public {
@@ -176,6 +379,12 @@
 
   .nav-cta-mobile {
     display: none;
+  }
+
+  .nav-user-mobile {
+    display: none;
+    list-style: none;
+    width: 100%;
   }
 
   /* Hamburger */
@@ -234,6 +443,11 @@
     .nav-cta-mobile {
       display: flex;
       padding: 0.5rem 0;
+    }
+
+    .nav-user-mobile {
+      display: block;
+      padding: 0.25rem 0 0.5rem;
     }
 
     .nav-hamburger {

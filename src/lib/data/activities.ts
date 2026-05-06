@@ -1,4 +1,4 @@
-import type { Activity } from '../types';
+import { isActivityType, type Activity } from '../types';
 import { runDataAction } from './api';
 import { getAppState, getCurrentUserIdFromState, updateAppState } from './state';
 
@@ -60,6 +60,10 @@ export async function addActivity(activity: Omit<Activity, 'id' | 'createdAt'>):
     && (!Number.isFinite(activity.duration) || activity.duration < 5 || activity.duration > 480)
   ) {
     throw new Error('Duration must be between 5 and 480 minutes.');
+  }
+
+  if (!isActivityType(activity.activityType)) {
+    throw new Error('Choose a valid training type.');
   }
 
   const nextActivity = await runDataAction<Activity>('addActivity', { activity });

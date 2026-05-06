@@ -3,6 +3,7 @@
   import { getGoalById } from '$lib/data/goals';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import ActivityForm from '$lib/components/ActivityForm.svelte';
+  import { formatActivityType } from '$lib/utils/format';
 
   let activities = getActivities();
   let recentActivities = getRecentActivities(10);
@@ -59,7 +60,7 @@
       <h1 class="page-title activity-title">Your sessions should feel earned on the page too.</h1>
     </div>
     <p class="page-deck">
-      Track the sessions that move you forward, spot the gaps before they turn into weeks,
+      Track parkour and support work together, spot the gaps before they turn into weeks,
       and keep enough context that tomorrow's training starts with intent.
     </p>
   </div>
@@ -125,10 +126,11 @@
           <div class="activity-item card">
             <div class="activity-date-block">
               <p class="activity-date-label">{formatDate(activity.date)}</p>
-              <p class="activity-date-note">Logged training</p>
+              <p class="activity-date-note">{formatActivityType(activity.activityType)} session</p>
             </div>
             <div class="activity-details">
               <div class="activity-meta">
+                <span class="activity-type-badge">{formatActivityType(activity.activityType)}</span>
                 {#if activity.duration}
                   <span class="activity-duration">{activity.duration} min</span>
                 {/if}
@@ -301,8 +303,8 @@
 
   .activity-main-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.35fr);
-    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
     align-items: start;
     margin-bottom: 2.5rem;
   }
@@ -380,6 +382,20 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
+  }
+
+  .activity-type-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-surface));
+    color: var(--color-accent);
+    border: 1px solid color-mix(in oklch, var(--color-accent) 28%, var(--color-border));
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
   }
 
   .activity-duration,

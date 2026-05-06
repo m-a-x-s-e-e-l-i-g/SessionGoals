@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type {
+  Activity,
+  ActivityType,
   Challenge,
   CreateChallengeInput,
   CreateGoalInput,
@@ -14,6 +16,7 @@ import type {
   UserProfile,
 } from '$lib/types';
 import type { EnrollStudentResult } from '$lib/data/coaching';
+import { normalizeActivityType } from '$lib/types';
 import { loadAppStateForRequest } from '$lib/server/appState';
 
 interface ActionBody {
@@ -72,14 +75,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       await ensureCurrentUserProfile(locals);
 
       const input = payload.input as CreateGoalInput | undefined;
-      if (!input?.title?.trim()) return badRequest('Goal title is required.');
+      if (!input?.type) return badRequest('Goal type is required.');
+      const normalizedTitle = input.title?.trim() || (input.type === 'spot' ? 'Spot visit' : 'Untitled goal');
 
       const { data: goalRow, error: goalError } = await locals.supabase
         .from('goals')
         .insert({
           user_id: locals.user.id,
           type: input.type,
-          title: input.title.trim(),
+          title: normalizedTitle,
           description: input.description ?? null,
           status: input.status,
           difficulty: input.difficulty ?? null,
@@ -379,9 +383,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     if (action === 'addActivity') {
       if (!locals.user) return unauthorized();
-      const activity = payload.activity as Omit<Goal, 'id'> & {
+      const activity = payload.activity as Omit<Activity, 'id' | 'createdAt'> & {
         userId?: string;
         date?: string;
+        activityType?: ActivityType;
         duration?: number;
         notes?: string;
         linkedGoalId?: string;
@@ -395,6 +400,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         .insert({
           user_id: locals.user.id,
           date: activity.date,
+          activity_type: normalizeActivityType(activity.activityType),
           duration: activity.duration ?? null,
           notes: activity.notes ?? null,
           linked_goal_id: activity.linkedGoalId ?? null,

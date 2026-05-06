@@ -3,11 +3,18 @@
   import { page } from '$app/stores';
   import { addActivity } from '$lib/data/activities';
   import { getMyGoals } from '$lib/data/goals';
-  import type { Activity } from '$lib/types';
+  import { ACTIVITY_TYPES, type Activity } from '$lib/types';
+  import { formatActivityType } from '$lib/utils/format';
 
   const dispatch = createEventDispatcher<{ logged: { activity: Activity } }>();
 
   const today = new Date().toISOString().split('T')[0];
+  const activityTypes = ACTIVITY_TYPES.map((value) => ({
+    value,
+    label: formatActivityType(value),
+  }));
+
+  let activityType: Activity['activityType'] = 'parkour';
   let duration = '';
   let activityDate = today;
   let notes = '';
@@ -69,6 +76,7 @@
       const activity = await addActivity({
         userId: currentUserId,
         date: activityDate,
+        activityType,
         duration: duration ? Number.parseInt(duration, 10) : undefined,
         notes: notes.trim() || undefined,
         linkedGoalId: linkedGoalId || undefined,
@@ -79,6 +87,7 @@
           ? 'Session logged. Your streak and heatmap are up to date.'
           : `Session added for ${formatLoggedDate(activityDate)}.`;
 
+      activityType = 'parkour';
       duration = '';
       notes = '';
       linkedGoalId = '';
@@ -105,7 +114,7 @@
   </div>
 
   <p class="form-subtitle text-muted text-sm">
-    Backfill a missed day, attach the session to a goal, and leave a note for the next training block.
+    Log parkour or support work like running, gym, bouldering, and calisthenics. Any training type keeps the streak alive.
   </p>
 
   {#if successMessage}
@@ -117,6 +126,15 @@
   {/if}
 
   <div class="form-row">
+    <div class="form-group">
+      <label for="activityType">Training Type</label>
+      <select id="activityType" bind:value={activityType} disabled={isSubmitting}>
+        {#each activityTypes as option}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
+    </div>
+
     <div class="form-group">
       <label for="activityDate">Session Date</label>
       <input id="activityDate" type="date" bind:value={activityDate} max={today} disabled={isSubmitting} />
@@ -237,7 +255,7 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
   }
 

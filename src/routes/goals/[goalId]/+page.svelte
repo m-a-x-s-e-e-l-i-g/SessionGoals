@@ -5,11 +5,15 @@
   import { getSpotById } from '$lib/data/spots';
   import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
   import TagBadge from '$lib/components/TagBadge.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { GoalStatus } from '$lib/types';
 
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
+
+  let showDeleteDialog = false;
+  let isDeleting = false;
 
   async function handleStatusChange(e: Event) {
     if (!goalId) return;
@@ -21,9 +25,17 @@
 
   async function handleDelete() {
     if (!goalId) return;
-    if (confirm('Delete this goal?')) {
+    showDeleteDialog = true;
+  }
+
+  async function confirmDelete() {
+    if (!goalId) return;
+    isDeleting = true;
+    try {
       await deleteGoal(goalId);
       goto('/goals');
+    } finally {
+      isDeleting = false;
     }
   }
 </script>
@@ -31,6 +43,18 @@
 <svelte:head>
   <title>{goal?.title ?? 'Goal'} — SessionGoals</title>
 </svelte:head>
+
+<ConfirmDialog
+  isOpen={showDeleteDialog}
+  title="Delete goal?"
+  message="This goal will be permanently deleted. You can't undo this action."
+  confirmLabel="Delete goal"
+  cancelLabel="Cancel"
+  isDangerous={true}
+  isLoading={isDeleting}
+  on:confirm={confirmDelete}
+  on:cancel={() => (showDeleteDialog = false)}
+/>
 
 <div class="container page">
   {#if !goal}

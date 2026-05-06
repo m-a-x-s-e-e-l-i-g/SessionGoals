@@ -16,6 +16,7 @@
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import type { UserProfile } from '$lib/types';
+  import { formatActivityType } from '$lib/utils/format';
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
@@ -255,10 +256,11 @@
                 <li class="activity-item text-sm">
                   <div class="activity-item-date">
                     <span class="activity-date">{formatActivityDate(activity.date)}</span>
-                    <span class="activity-date-meta">Logged session</span>
+                    <span class="activity-date-meta">{formatActivityType(activity.activityType)} session</span>
                   </div>
                   <div class="activity-item-body">
                     <div class="activity-item-meta">
+                      <span class="activity-duration activity-type-badge">{formatActivityType(activity.activityType)}</span>
                       {#if activity.duration}
                         <span class="activity-duration">{activity.duration} min</span>
                       {/if}
@@ -725,6 +727,14 @@
     font-weight: 600;
     font-size: 0.75rem;
     border: 1px solid color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
+  }
+
+  .activity-type-badge {
+    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-surface));
+    color: var(--color-accent);
+    border-color: color-mix(in oklch, var(--color-accent) 28%, var(--color-border));
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
   .activity-notes {

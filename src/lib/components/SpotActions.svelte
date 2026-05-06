@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import type { Spot, GoalList, Goal } from '$lib/types';
   import { createGoal } from '$lib/data/goals';
-  import { addGoalToList } from '$lib/data/lists';
+  import { addGoalToList, createList } from '$lib/data/lists';
+  import { upsertSpot } from '$lib/data/spots';
   import { formatStatus } from '$lib/utils/format';
 
   export let spot: Spot;
@@ -19,41 +20,81 @@
 
   let mode: 'idle' | 'new-goal' | 'add-to-list' = 'idle';
   let addedToList: string | null = null;
+  let newListName = '';
 
   // Inline goal form state
   let goalTitle = '';
-  let goalType: 'move' | 'spot' | 'inspiration' = 'spot';
   let goalDescription = '';
 
   function openNewGoal() {
     goalTitle = '';
-    goalType = 'spot';
     goalDescription = '';
     mode = 'new-goal';
   }
 
+  function openListPicker() {
+    newListName = '';
+    mode = 'add-to-list';
+  }
+
+  function handleListAction() {
+    openListPicker();
+  }
+
+  async function handleCreateNewList() {
+    if (!newListName.trim()) return;
+    const list = await createList({
+      name: newListName.trim(),
+      description: undefined,
+      type: 'general',
+      visibility: 'private',
+    });
+    newListName = '';
+    await handleQuickAddToList(list.id);
+  }
+
   async function submitNewGoal() {
-    if (!goalTitle.trim()) return;
+    // Ensure the spot exists in the database before creating a goal
+    const savedSpot = await upsertSpot(spot);
     const goal = await createGoal({
-      type: goalType,
-      title: goalTitle.trim(),
+      type: 'spot',
+      title: goalTitle.trim() || 'Spot visit',
       description: goalDescription.trim() || undefined,
       status: 'want_to_try',
-      spotId: spot.id,
+      spotId: savedSpot.id,
       sourceUrl: undefined,
       tagIds: spot.tags.map((t) => t.id),
     });
     goto(`/goals/${goal.id}`);
   }
 
-  async function handleAddToList(listId: string) {
-    if (!goalTitle.trim()) return;
+  async function handleQuickAddToList(listId: string) {
+    // Quick add from +List: create a spot-visit goal and attach it immediately.
+    const savedSpot = await upsertSpot(spot);
     const goal = await createGoal({
-      type: goalType,
-      title: goalTitle.trim(),
+      type: 'spot',
+      title: 'Spot visit',
+      description: undefined,
+      status: 'want_to_try',
+      spotId: savedSpot.id,
+      sourceUrl: undefined,
+      tagIds: spot.tags.map((t) => t.id),
+    });
+    await addGoalToList(listId, goal);
+    addedToList = listId;
+    mode = 'idle';
+    await invalidateAll();
+  }
+
+  async function handleAddToList(listId: string) {
+    // Ensure the spot exists in the database before creating a goal
+    const savedSpot = await upsertSpot(spot);
+    const goal = await createGoal({
+      type: 'spot',
+      title: goalTitle.trim() || 'Spot visit',
       description: goalDescription.trim() || undefined,
       status: 'want_to_try',
-      spotId: spot.id,
+      spotId: savedSpot.id,
       sourceUrl: undefined,
       tagIds: spot.tags.map((t) => t.id),
     });
@@ -62,6 +103,7 @@
     goalTitle = '';
     goalDescription = '';
     mode = 'idle';
+    await invalidateAll();
   }
 </script>
 
@@ -98,9 +140,8 @@
       </button>
       <button
         class="action-btn action-btn--secondary"
-        on:click={openNewGoal}
-        title="Describe a goal then add to a list"
-        disabled={lists.length === 0}
+        on:click={handleListAction}
+        title="Pick a list or create a new one"
       >
         + List
       </button>
@@ -116,18 +157,15 @@
         class="goal-input"
         type="text"
         bind:value={goalTitle}
-        placeholder="What do you want to do here?"
+        placeholder="What do you want to do here? (optional)"
         maxlength={120}
         autofocus
-        required
       />
       <div class="goal-form-row">
-        <select class="goal-type-select" bind:value={goalType}>
-          <option value="spot">Spot visit</option>
-          <option value="move">Move</option>
-          <option value="inspiration">Inspiration</option>
-        </select>
-        <button type="submit" class="action-btn" disabled={!goalTitle.trim()}>Save Goal</button>
+        <p class="spot-visit-label">Spot visit</p>
+        <button type="submit" class="action-btn">
+          Save Goal
+        </button>
       </div>
       <textarea
         class="goal-notes"
@@ -152,14 +190,27 @@
 
   {:else if mode === 'add-to-list'}
     <div class="list-picker">
-      <p class="list-picker-label">Add to list:</p>
+      <p class="list-picker-label">Pick a list to add to:</p>
       <div class="list-picker-options">
         {#each lists as list}
-          <button class="list-option" on:click={() => handleAddToList(list.id)}>
+          <button class="list-option" on:click={() => handleQuickAddToList(list.id)}>
             {list.name}
           </button>
         {/each}
       </div>
+      <div class="list-picker-divider">or</div>
+      <form class="list-creator-form" on:submit|preventDefault={handleCreateNewList}>
+        <input
+          type="text"
+          bind:value={newListName}
+          placeholder="Create a new list…"
+          class="list-creator-input"
+          maxlength={100}
+        />
+        <button type="submit" class="action-btn action-btn--sm" disabled={!newListName.trim()}>
+          Create
+        </button>
+      </form>
       <button class="cancel-btn" on:click={() => (mode = 'idle')}>Cancel</button>
     </div>
   {/if}
@@ -287,17 +338,18 @@
     align-items: center;
   }
 
-  .goal-type-select {
+  .spot-visit-label {
     flex: 1;
     font-size: 0.82rem;
+    font-weight: 600;
     padding: 0.35rem 0.55rem;
     min-height: 36px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface-2);
     color: var(--color-text);
-    font-family: inherit;
-    width: auto;
+    display: flex;
+    align-items: center;
   }
 
   .goal-notes {
@@ -438,6 +490,44 @@
     padding: 0.2rem 0;
     cursor: pointer;
     min-height: unset;
+  }
+
+  .list-picker-divider {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0.5rem 0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .list-creator-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .list-creator-input {
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.65rem;
+    min-height: 40px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-family: inherit;
+  }
+
+  .list-creator-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .action-btn--sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    min-height: 36px;
   }
 
   .cancel-btn:hover {

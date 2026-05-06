@@ -1,4 +1,4 @@
-import type { GoalStatus, GoalType, GoalListType, GoalListVisibility } from '$lib/types';
+import type { ActivityType, GoalStatus, GoalType, GoalListType, GoalListVisibility } from '$lib/types';
 
 export function formatStatus(status: GoalStatus): string {
   const map: Record<GoalStatus, string> = {
@@ -37,6 +37,19 @@ export function formatListVisibility(visibility: GoalListVisibility): string {
     private: 'Private',
   };
   return map[visibility] ?? visibility;
+}
+
+export function formatActivityType(activityType: ActivityType): string {
+  const map: Record<ActivityType, string> = {
+    parkour: 'Parkour',
+    running: 'Running',
+    gym: 'Gym',
+    bouldering: 'Bouldering',
+    calisthenics: 'Calisthenics',
+    mobility: 'Mobility',
+    other: 'Other training',
+  };
+  return map[activityType] ?? activityType;
 }
 
 export function statusColor(status: GoalStatus): string {

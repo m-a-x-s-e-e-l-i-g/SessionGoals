@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import { formatListType, formatListVisibility } from '$lib/utils/format';
   import { getUserDisplayName } from '$lib/data/session';
   import { enrollStudentToPublicList } from '$lib/data/coaching';
@@ -28,6 +29,8 @@
 
   let progress: ListProgress | undefined = undefined;
   let enrollmentNotice = '';
+  let showDeleteDialog = false;
+  let isDeleting = false;
 
   $: if (list && isAuthenticated) {
     progress = getProgressForList(list.id, currentUserId);
@@ -41,9 +44,17 @@
 
   async function handleDelete() {
     if (!listId) return;
-    if (confirm('Delete this list?')) {
+    showDeleteDialog = true;
+  }
+
+  async function confirmDelete() {
+    if (!listId) return;
+    isDeleting = true;
+    try {
       await deleteList(listId);
       goto('/lists');
+    } finally {
+      isDeleting = false;
     }
   }
 
@@ -89,6 +100,18 @@
     enrollmentNotice = `${newlyEnrolled} student${newlyEnrolled === 1 ? '' : 's'} enrolled successfully.`;
   }
 </script>
+
+<ConfirmDialog
+  isOpen={showDeleteDialog}
+  title="Delete list?"
+  message="This list and all of its goals will be permanently deleted. You can't undo this action."
+  confirmLabel="Delete list"
+  cancelLabel="Cancel"
+  isDangerous={true}
+  isLoading={isDeleting}
+  on:confirm={confirmDelete}
+  on:cancel={() => (showDeleteDialog = false)}
+/>
 
 <svelte:head>
   <title>{list?.name ?? 'List'} — SessionGoals</title>
