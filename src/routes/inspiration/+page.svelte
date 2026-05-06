@@ -13,7 +13,7 @@
 <div class="container page">
   <div class="page-header">
     <h1 class="page-title">Inspiration</h1>
-    <a href="/goals/new" class="btn btn-primary">+ Save Inspiration</a>
+    <a href="/goals/new?type=inspiration" class="btn btn-primary">+ Save Inspiration</a>
   </div>
 
   <p class="intro text-muted">
@@ -25,7 +25,7 @@
       icon="💡"
       title="No inspiration saved yet"
       message="Paste a YouTube link, Instagram reel, or any URL you want to revisit."
-      actionHref="/goals/new"
+      actionHref="/goals/new?type=inspiration"
       actionLabel="Save Inspiration"
     />
   {:else}

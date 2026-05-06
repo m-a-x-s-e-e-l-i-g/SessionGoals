@@ -3,6 +3,7 @@
   import { getMyLists, getExplorableLists, getListById } from '$lib/data/lists';
   import { getTrackedProgress } from '$lib/data/listProgress';
   import { getSpots } from '$lib/data/spots';
+  import { getActivityForDate, getActivityStats } from '$lib/data/activities';
   import type { Goal, Spot } from '$lib/types';
   import GoalCard from '$lib/components/GoalCard.svelte';
 
@@ -37,6 +38,26 @@
     .map((spotId) => spotById.get(spotId))
     .filter((spot): spot is Spot => !!spot)
     .slice(0, 6);
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayActivity = getActivityForDate(today);
+  const activityStats = getActivityStats(7);
+
+  function getStreakMessage(streak: number) {
+    if (streak >= 30) return 'This week is part of a real training run now.';
+    if (streak >= 14) return 'Two clean weeks. Keep the pressure on.';
+    if (streak >= 7) return 'A full week locked in.';
+    if (streak >= 3) return 'Rhythm is starting to build.';
+    if (streak >= 1) return 'Fresh streak. Protect tomorrow.';
+    return 'No streak yet. One session changes the board.';
+  }
+
+  function getCadenceLabel(activeDays: number) {
+    if (activeDays >= 5) return 'High cadence week';
+    if (activeDays >= 3) return 'Solid session rhythm';
+    if (activeDays >= 1) return 'Momentum building';
+    return 'No sessions this week';
+  }
 </script>
 
 <svelte:head>
@@ -55,6 +76,46 @@
     <div class="hero-actions">
       <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
       <a href="/goals" class="btn btn-ghost">Browse Goals</a>
+    </div>
+  </section>
+
+  <section class="activity-highlight">
+    <div class="activity-highlight-copy">
+      <p class="activity-eyebrow">Activity</p>
+      <div class="activity-status">
+        <div class="activity-stat activity-stat--hero">
+          <p class="stat-value">{activityStats.streak}</p>
+          <div>
+            <p class="stat-label">Day streak</p>
+            <p class="activity-story">{getStreakMessage(activityStats.streak)}</p>
+          </div>
+        </div>
+        <div class="activity-stat-grid">
+          <div class="activity-stat">
+            <p class="stat-value">{activityStats.activeDays}</p>
+            <p class="stat-label">Sessions in 7 days</p>
+          </div>
+          <div class="activity-stat">
+            <p class="stat-value">{activityStats.totalDuration}</p>
+            <p class="stat-label">Minutes this week</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="activity-badges">
+        <span class="activity-badge">{getCadenceLabel(activityStats.activeDays)}</span>
+        <span class="activity-badge activity-badge--muted">Avg {activityStats.averageDuration} min</span>
+      </div>
+    </div>
+
+    <div class="activity-cta-block">
+      {#if todayActivity}
+        <p class="activity-logged">Logged today{#if todayActivity.duration} · {todayActivity.duration} min{/if}</p>
+      {:else}
+        <p class="activity-prompt">No session logged today yet.</p>
+      {/if}
+      <a href="/activity" class="activity-link">Open activity board →</a>
+      <p class="activity-caption">Quick log, heatmap, and recent sessions in one place.</p>
     </div>
   </section>
 
@@ -160,6 +221,191 @@
     flex-wrap: wrap;
   }
 
+  /* Activity highlight */
+  .activity-highlight {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 20%, transparent), transparent 48%),
+      linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--color-surface) 90%, var(--color-primary) 10%),
+        var(--color-surface)
+      );
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.6rem;
+    margin-bottom: 2.5rem;
+    display: grid;
+    grid-template-columns: 1.4fr minmax(220px, 0.75fr);
+    gap: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .activity-highlight::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 4px;
+    background: color-mix(in oklch, var(--color-accent) 60%, transparent);
+  }
+
+  .activity-highlight-copy {
+    display: grid;
+    gap: 0.95rem;
+  }
+
+  .activity-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .activity-status {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(210px, 0.8fr);
+    gap: 1rem;
+  }
+
+  .activity-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem 0.95rem;
+    background: color-mix(in oklch, var(--color-surface) 86%, var(--color-primary) 14%);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+    border-radius: var(--radius-sm);
+  }
+
+  .activity-stat--hero {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: end;
+    gap: 0.9rem;
+    background: color-mix(in oklch, var(--color-surface) 72%, var(--color-primary) 28%);
+  }
+
+  .activity-stat-grid {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .activity-stat .stat-value {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 0.92;
+  }
+
+  .activity-stat--hero .stat-value {
+    font-size: clamp(3.8rem, 7vw, 5.8rem);
+  }
+
+  .activity-stat .stat-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+  }
+
+  .activity-story {
+    margin-top: 0.35rem;
+    max-width: 28ch;
+    color: color-mix(in oklch, var(--color-text) 78%, var(--color-primary));
+    font-size: 0.92rem;
+  }
+
+  .activity-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .activity-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklch, var(--color-primary) 30%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 12%, var(--color-surface));
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .activity-badge--muted {
+    background: color-mix(in oklch, var(--color-accent) 10%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 24%, var(--color-border));
+  }
+
+  .activity-cta-block {
+    display: grid;
+    align-content: start;
+    gap: 0.65rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+  }
+
+  .activity-logged,
+  .activity-prompt {
+    font-size: 1rem;
+    color: var(--color-text);
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .activity-logged {
+    color: color-mix(in oklch, var(--color-success) 72%, var(--color-text));
+  }
+
+  .activity-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .activity-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  .activity-caption {
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
+    max-width: 24ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .activity-highlight {
+      background:
+        radial-gradient(
+          circle at top left,
+          color-mix(in oklch, var(--color-primary) 14%, transparent),
+          transparent 50%
+        ),
+        linear-gradient(
+          135deg,
+          color-mix(in oklch, var(--color-surface) 92%, var(--color-primary) 8%),
+          var(--color-surface)
+        );
+    }
+
+    .activity-stat {
+      background: color-mix(in oklch, var(--color-surface) 94%, var(--color-primary) 6%);
+      border-color: color-mix(in oklch, var(--color-primary) 14%, var(--color-border));
+    }
+
+    .activity-stat--hero {
+      background: color-mix(in oklch, var(--color-surface) 86%, var(--color-primary) 14%);
+    }
+  }
+
   .section {
     margin-bottom: 2.5rem;
   }
@@ -190,8 +436,18 @@
   }
 
   @media (max-width: 640px) {
+    .activity-highlight,
     .secondary-grid {
       grid-template-columns: 1fr;
+    }
+
+    .activity-status {
+      grid-template-columns: 1fr;
+    }
+
+    .activity-cta-block {
+      border-left: 0;
+      padding-left: 0;
     }
   }
 

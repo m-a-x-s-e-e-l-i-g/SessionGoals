@@ -7,44 +7,44 @@
 }
 
 :root {
-  /* Colors — light theme, neutrals tinted warm toward hue 80 */
-  --color-bg:           oklch(96.5% 0.007 80);
-  --color-surface:      oklch(99.5% 0.003 80);
-  --color-surface-2:    oklch(93.5% 0.009 80);
-  --color-border:       oklch(87% 0.009 80);
-  --color-text:         oklch(16% 0.01 80);
-  --color-text-muted:   oklch(50% 0.012 80);
-  --color-primary:      oklch(61% 0.22 140);
-  --color-primary-hover: oklch(55% 0.24 140);
-  --color-accent:       oklch(66% 0.2 25);
-  --color-success:      oklch(52% 0.18 155);
-  --color-warning:      oklch(58% 0.16 75);
-  --color-danger:       oklch(52% 0.2 20);
-  --color-on-primary:   oklch(99% 0.005 80);
+  /* Colors — light theme, mineral neutrals + cobalt primary + amber accent */
+  --color-bg:            oklch(97.2% 0.008 228);
+  --color-surface:       oklch(99.2% 0.004 228);
+  --color-surface-2:     oklch(94.4% 0.012 228);
+  --color-border:        oklch(86.8% 0.014 228);
+  --color-text:          oklch(21% 0.014 244);
+  --color-text-muted:    oklch(50% 0.015 236);
+  --color-primary:       oklch(57% 0.175 252);
+  --color-primary-hover: oklch(51% 0.19 252);
+  --color-accent:        oklch(72% 0.16 72);
+  --color-success:       oklch(58% 0.15 158);
+  --color-warning:       oklch(74% 0.14 84);
+  --color-danger:        oklch(60% 0.18 26);
+  --color-on-primary:    oklch(98.5% 0.01 248);
 
   /* Status badge tokens — dark text on tinted light backgrounds, 4.5:1+ contrast */
-  --badge-idea-bg:          oklch(91% 0.008 80);
-  --badge-idea-text:        oklch(36% 0.01 80);
-  --badge-want-bg:          oklch(89% 0.04 240);
-  --badge-want-text:        oklch(30% 0.12 240);
-  --badge-training-bg:      oklch(88% 0.07 155);
-  --badge-training-text:    oklch(27% 0.1 155);
-  --badge-landed-bg:        oklch(87% 0.09 145);
-  --badge-landed-text:      oklch(24% 0.12 145);
-  --badge-done-bg:          oklch(90% 0.07 80);
-  --badge-done-text:        oklch(30% 0.1 75);
-  --badge-archived-bg:      oklch(90% 0.04 20);
-  --badge-archived-text:    oklch(33% 0.1 20);
+  --badge-idea-bg:          oklch(92.5% 0.01 232);
+  --badge-idea-text:        oklch(38% 0.03 236);
+  --badge-want-bg:          oklch(90% 0.05 252);
+  --badge-want-text:        oklch(35% 0.13 252);
+  --badge-training-bg:      oklch(89% 0.06 165);
+  --badge-training-text:    oklch(30% 0.11 165);
+  --badge-landed-bg:        oklch(88% 0.07 185);
+  --badge-landed-text:      oklch(29% 0.11 185);
+  --badge-done-bg:          oklch(90.5% 0.08 84);
+  --badge-done-text:        oklch(35% 0.12 84);
+  --badge-archived-bg:      oklch(90.5% 0.03 18);
+  --badge-archived-text:    oklch(38% 0.09 18);
 
   /* Type badge tokens */
-  --badge-move-bg:          oklch(90% 0.05 295);
-  --badge-move-text:        oklch(28% 0.1 295);
-  --badge-spot-bg:          oklch(89% 0.04 240);
-  --badge-spot-text:        oklch(29% 0.1 240);
-  --badge-challenge-bg:     oklch(90% 0.07 55);
-  --badge-challenge-text:   oklch(28% 0.12 55);
-  --badge-inspiration-bg:   oklch(90% 0.06 85);
-  --badge-inspiration-text: oklch(30% 0.1 85);
+  --badge-move-bg:          oklch(90.5% 0.06 300);
+  --badge-move-text:        oklch(35% 0.11 300);
+  --badge-spot-bg:          oklch(90% 0.05 245);
+  --badge-spot-text:        oklch(34% 0.11 245);
+  --badge-challenge-bg:     oklch(91% 0.08 56);
+  --badge-challenge-text:   oklch(35% 0.13 56);
+  --badge-inspiration-bg:   oklch(91% 0.06 96);
+  --badge-inspiration-text: oklch(37% 0.1 96);
 
   /* Spacing scale (4pt) */
   --space-xs:  4px;
@@ -69,6 +69,44 @@ html {
   color: var(--color-text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Dark mode (system preference) ────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg:            oklch(17% 0.012 236);
+    --color-surface:       oklch(21% 0.012 236);
+    --color-surface-2:     oklch(26% 0.014 236);
+    --color-border:        oklch(34% 0.016 236);
+    --color-text:          oklch(92.5% 0.01 240);
+    --color-text-muted:    oklch(70% 0.012 236);
+    --color-primary:       oklch(72% 0.17 252);
+    --color-primary-hover: oklch(78% 0.15 252);
+    --color-on-primary:    oklch(16% 0.012 236);
+
+    --badge-idea-bg:          oklch(30% 0.02 234);
+    --badge-idea-text:        oklch(80% 0.03 236);
+    --badge-want-bg:          oklch(30% 0.06 252);
+    --badge-want-text:        oklch(83% 0.12 252);
+    --badge-training-bg:      oklch(29% 0.07 165);
+    --badge-training-text:    oklch(84% 0.1 165);
+    --badge-landed-bg:        oklch(28% 0.08 185);
+    --badge-landed-text:      oklch(84% 0.11 185);
+    --badge-done-bg:          oklch(30% 0.09 84);
+    --badge-done-text:        oklch(86% 0.11 84);
+    --badge-archived-bg:      oklch(29% 0.04 18);
+    --badge-archived-text:    oklch(82% 0.08 18);
+
+    --badge-move-bg:          oklch(29% 0.07 300);
+    --badge-move-text:        oklch(83% 0.11 300);
+    --badge-spot-bg:          oklch(29% 0.06 245);
+    --badge-spot-text:        oklch(83% 0.11 245);
+    --badge-challenge-bg:     oklch(30% 0.1 56);
+    --badge-challenge-text:   oklch(86% 0.12 56);
+    --badge-inspiration-bg:   oklch(30% 0.08 96);
+    --badge-inspiration-text: oklch(86% 0.1 96);
+  }
 }
 
 body {

@@ -95,6 +95,7 @@
         type="number"
         min="1"
         max="5"
+        step="1"
         placeholder="3"
       />
     </div>

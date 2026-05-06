@@ -3,6 +3,7 @@
   import { CURRENT_USER_ID } from '$lib/data/session';
   import { getGoals } from '$lib/data/goals';
   import { getPublicLists } from '$lib/data/lists';
+  import { getActivityStats } from '$lib/data/activities';
 
   let query = '';
   function clearQuery() {
@@ -40,6 +41,7 @@
       <div class="students-focus-grid">
         {#each myStudents as student}
           {@const summary = getStudentTrackingSummary(student.id)}
+          {@const activityStats = getActivityStats(7, student.id)}
           <a href="/people/{student.id}" class="student-pill card">
             <div class="student-pill-head">
               <strong>{student.displayName}</strong>
@@ -50,6 +52,18 @@
               <span class="badge">Tracked {summary.trackedDone}/{summary.trackedTotal}</span>
               <span class="badge">Needs {summary.needs.length}</span>
             </div>
+            {#if activityStats.streak > 0 || activityStats.activeDays > 0}
+              <div class="student-activity">
+                <span class="activity-stat">
+                  <span class="activity-icon">🔥</span>
+                  <span class="activity-value">{activityStats.streak}</span>
+                </span>
+                <span class="activity-stat">
+                  <span class="activity-icon">📅</span>
+                  <span class="activity-value">{activityStats.activeDays}</span>
+                </span>
+              </div>
+            {/if}
           </a>
         {/each}
       </div>
@@ -131,7 +145,11 @@
     padding: 0.75rem 0.85rem;
     border: 1px solid color-mix(in oklch, var(--color-primary) 35%, var(--color-border));
     border-radius: var(--radius-md);
-    background: color-mix(in oklch, var(--color-primary) 5%, white);
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--color-surface) 92%, var(--color-primary) 8%),
+      var(--color-surface)
+    );
   }
 
   .students-focus-header {
@@ -182,159 +200,124 @@
     gap: 0.3rem;
   }
 
-    .search-shell {
-      max-width: 640px;
-      margin-bottom: 1.35rem;
-      padding: 0.9rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      background:
-        linear-gradient(
-          180deg,
-          color-mix(in oklch, var(--color-primary) 5%, white),
-          var(--color-surface)
-        );
-    }
-
-    .search-label {
-      display: block;
-      margin-bottom: 0.45rem;
-      font-weight: 700;
-      font-size: 0.82rem;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: color-mix(in oklch, var(--color-primary) 70%, black);
-    }
-
-    .search-field-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.45rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-surface);
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-
-    .search-field-wrap:focus-within {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 14%, transparent);
-    }
-
-    .search-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-muted);
-      margin-left: 0.15rem;
-      flex-shrink: 0;
-    }
-
-    .people-search-input {
-      flex: 1;
-      min-width: 0;
-      border: none;
-      background: transparent;
-      padding: 0.45rem 0.2rem;
-      font-size: 0.95rem;
-      color: var(--color-text);
-    }
-
-    .people-search-input:focus {
-      outline: none;
-    }
-
-    .clear-search {
-      border: 1px solid var(--color-border);
-      background: var(--color-surface-2);
-      color: var(--color-text-muted);
-      border-radius: 999px;
-      padding: 0.2rem 0.55rem;
-      min-height: 30px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .clear-search:hover {
-      color: var(--color-text);
-      border-color: var(--color-primary);
-    }
-
-    .search-help {
-      margin-top: 0.45rem;
-      margin-bottom: 0;
-      font-size: 0.78rem;
+  .search-shell {
+    max-width: 720px;
+    margin-bottom: 1.35rem;
+    padding: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background:
+      radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 12%, transparent), transparent 48%),
+      linear-gradient(
+        180deg,
+        color-mix(in oklch, var(--color-surface) 90%, var(--color-primary) 10%),
+        var(--color-surface)
+      );
   }
 
   .search-label {
     display: inline-block;
-    font-family: var(--font-display);
-    font-size: 0.95rem;
+    margin-bottom: 0.45rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    letter-spacing: 0.01em;
-    margin-bottom: 0.4rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in oklch, var(--color-accent) 75%, var(--color-text));
   }
 
-  .search-shell {
+  .search-field-wrap {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--color-surface) 82%, white),
-      var(--color-surface)
-    );
-    padding: 0.45rem 0.55rem;
+    gap: 0.5rem;
+    padding: 0.4rem 0.45rem;
+    border: 1px solid color-mix(in oklch, var(--color-border) 82%, var(--color-primary));
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklch, var(--color-surface) 86%, var(--color-surface-2));
     transition: border-color 0.15s, box-shadow 0.15s;
   }
 
-  .search-shell:focus-within {
+  .search-field-wrap:focus-within {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 18%, transparent);
   }
 
   .search-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: var(--color-text-muted);
-    font-size: 1.05rem;
-    width: 1.4rem;
-    text-align: center;
+    margin-left: 0.15rem;
+    flex-shrink: 0;
   }
 
-  .search-input {
+  .people-search-input {
     flex: 1;
     min-width: 0;
     border: none;
-    outline: none;
     background: transparent;
-    color: var(--color-text);
+    padding: 0.45rem 0.2rem;
     font-size: 0.95rem;
-    padding: 0.2rem 0;
-    font-family: inherit;
+    color: var(--color-text);
   }
 
-  .search-input::placeholder {
-    color: color-mix(in oklch, var(--color-text-muted) 88%, white);
+  .people-search-input:focus {
+    outline: none;
   }
 
-  .search-clear {
+  .people-search-input::placeholder {
+    color: color-mix(in oklch, var(--color-text-muted) 88%, var(--color-surface));
+  }
+
+  .clear-search {
     border: 1px solid var(--color-border);
-    background: var(--color-surface-2);
+    background: color-mix(in oklch, var(--color-surface-2) 92%, var(--color-primary) 8%);
     color: var(--color-text-muted);
     border-radius: 999px;
-    padding: 0.25rem 0.65rem;
-    min-height: 32px;
+    padding: 0.2rem 0.6rem;
+    min-height: 30px;
     font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
+    cursor: pointer;
   }
 
-  .search-clear:hover {
-    border-color: var(--color-primary);
+  .clear-search:hover {
     color: var(--color-text);
+    border-color: var(--color-primary);
+  }
+
+  .search-help {
+    margin-top: 0.45rem;
+    margin-bottom: 0;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .students-focus {
+      border-color: color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
+      background:
+        radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent 52%),
+        linear-gradient(
+          180deg,
+          color-mix(in oklch, var(--color-surface) 95%, var(--color-primary) 5%),
+          var(--color-surface)
+        );
+    }
+
+    .search-shell {
+      background:
+        radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent 50%),
+        linear-gradient(
+          180deg,
+          color-mix(in oklch, var(--color-surface) 94%, var(--color-primary) 6%),
+          var(--color-surface)
+        );
+    }
+
+    .search-field-wrap {
+      background: color-mix(in oklch, var(--color-surface) 92%, var(--color-surface-2));
+    }
   }
 
   .person-card {
@@ -395,14 +378,38 @@
     gap: 0.35rem;
   }
 
-    @media (max-width: 520px) {
-      .search-shell {
-        padding: 0.75rem;
-      }
+  .student-activity {
+    display: flex;
+    gap: 0.6rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--color-border);
+  }
 
-      .search-field-wrap {
-        gap: 0.35rem;
-        padding: 0.3rem 0.35rem;
-      }
+  .activity-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .activity-icon {
+    font-size: 0.9rem;
+  }
+
+  .activity-value {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  @media (max-width: 520px) {
+    .search-shell {
+      padding: 0.75rem;
     }
+
+    .search-field-wrap {
+      gap: 0.35rem;
+      padding: 0.3rem 0.35rem;
+    }
+  }
 </style>

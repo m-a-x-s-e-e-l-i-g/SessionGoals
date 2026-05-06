@@ -7,11 +7,12 @@
   import TagBadge from '$lib/components/TagBadge.svelte';
   import type { GoalStatus } from '$lib/types';
 
-  $: goalId = $page.params.goalId;
-  $: goal = getGoalById(goalId);
+  $: goalId = $page.params.goalId ?? '';
+  $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
 
   function handleStatusChange(e: Event) {
+    if (!goalId) return;
     const select = e.target as HTMLSelectElement;
     updateGoalStatus(goalId, select.value as GoalStatus);
     // re-read to trigger reactivity
@@ -19,6 +20,7 @@
   }
 
   function handleDelete() {
+    if (!goalId) return;
     if (confirm('Delete this goal?')) {
       deleteGoal(goalId);
       goto('/goals');

@@ -3,6 +3,7 @@
 
   const links = [
     { href: '/', label: 'Dashboard' },
+    { href: '/activity', label: 'Activity' },
     { href: '/goals', label: 'Goals' },
     { href: '/lists', label: 'Lists' },
     { href: '/people', label: 'People' },
@@ -26,7 +27,7 @@
       <span class="nav-name">SessionGoals</span>
     </a>
 
-    <ul class="nav-links" class:open={mobileOpen} aria-hidden={!mobileOpen ? 'true' : undefined}>
+    <ul class="nav-links" class:open={mobileOpen} aria-label="Main navigation">
       {#each links as link}
         <li>
           <a

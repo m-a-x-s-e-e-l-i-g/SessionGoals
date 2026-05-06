@@ -4,7 +4,15 @@
   import { getUserDisplayName } from '$lib/data/session';
   import EmptyState from '$lib/components/EmptyState.svelte';
 
-  const tracked = getTrackedProgress()
+  type TrackedListCard = {
+    progress: ReturnType<typeof getTrackedProgress>[number];
+    list: NonNullable<ReturnType<typeof getListById>>;
+    done: number;
+    total: number;
+    percent: number;
+  };
+
+  const tracked: TrackedListCard[] = getTrackedProgress()
     .map((progress) => {
       const list = getListById(progress.sourceListId);
       if (!list) return undefined;
@@ -13,7 +21,7 @@
       const percent = total > 0 ? Math.round((done / total) * 100) : 0;
       return { progress, list, done, total, percent };
     })
-    .filter(Boolean);
+    .filter((item): item is TrackedListCard => !!item);
 </script>
 
 <svelte:head>
@@ -50,7 +58,7 @@
           <p class="text-muted text-sm">By {getUserDisplayName(item.list.userId)}</p>
 
           <div class="progress-track" role="img" aria-label={`Progress ${item.done} out of ${item.total}`}>
-            <div class="progress-fill" style={`width: ${item.percent}%`}></div>
+            <div class="progress-fill" style={`transform: scaleX(${item.percent / 100})`}></div>
           </div>
         </a>
       {/each}
@@ -104,6 +112,8 @@
       color-mix(in oklch, var(--color-primary) 65%, black),
       var(--color-primary)
     );
-    transition: width 0.2s;
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
   }
 </style>

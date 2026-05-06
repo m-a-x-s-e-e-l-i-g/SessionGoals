@@ -15,8 +15,8 @@
   } from '$lib/data/listProgress';
   import type { ListProgress, UserProfile } from '$lib/types';
 
-  $: listId = $page.params.listId;
-  $: list = getListById(listId);
+  $: listId = $page.params.listId ?? '';
+  $: list = listId ? getListById(listId) : undefined;
   $: isOwnList = list?.userId === CURRENT_USER_ID;
   $: canViewList = !!list && (isOwnList || list.visibility === 'public');
   $: canTrackList = !!list && !isOwnList && list.visibility === 'public';
@@ -36,6 +36,7 @@
   $: progressPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   function handleDelete() {
+    if (!listId) return;
     if (confirm('Delete this list?')) {
       deleteList(listId);
       goto('/lists');
@@ -184,7 +185,7 @@
           </div>
         </div>
         <div class="progress-bar" role="img" aria-label={`Completed ${doneCount} of ${totalCount} goals`}>
-          <div class="progress-bar-fill" style={`width: ${progressPercent}%`}></div>
+          <div class="progress-bar-fill" style={`transform: scaleX(${progressPercent / 100})`}></div>
         </div>
         <div class="progress-items">
           {#each list.items.sort((a, b) => a.position - b.position) as item}
@@ -447,7 +448,9 @@
       color-mix(in oklch, var(--color-primary) 65%, black),
       var(--color-primary)
     );
-    transition: width 0.2s ease;
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
   }
 
   .progress-items {

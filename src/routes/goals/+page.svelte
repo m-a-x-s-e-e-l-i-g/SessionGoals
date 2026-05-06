@@ -11,6 +11,20 @@
 
   const isCompleted = (status: GoalStatus): boolean => status === 'landed' || status === 'done';
 
+  const PIPELINE: { status: GoalStatus; label: string }[] = [
+    { status: 'idea',        label: 'Idea' },
+    { status: 'want_to_try', label: 'Want to try' },
+    { status: 'training',    label: 'Training' },
+    { status: 'landed',      label: 'Landed' },
+    { status: 'done',        label: 'Done' },
+    { status: 'archived',    label: 'Archived' },
+  ];
+
+  $: pipelineCounts = PIPELINE.map((s) => ({
+    ...s,
+    count: goals.filter((g) => g.status === s.status).length,
+  }));
+
   $: moveTotal = goals.filter((g) => g.type === 'move').length;
   $: spotTotal = goals.filter((g) => g.type === 'spot').length;
   $: inspirationTotal = goals.filter((g) => g.type === 'inspiration').length;
@@ -46,23 +60,33 @@
     <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
   </div>
 
-  <section class="stats-grid" aria-label="Goals progress summary">
-    <article class="stat-card card">
-      <p class="stat-label">Moves</p>
-      <p class="stat-value">{moveDone}<span class="stat-divider">/</span>{moveTotal}</p>
-    </article>
-    <article class="stat-card card">
-      <p class="stat-label">Spots</p>
-      <p class="stat-value">{spotDone}<span class="stat-divider">/</span>{spotTotal}</p>
-    </article>
-    <article class="stat-card card">
-      <p class="stat-label">Inspiration</p>
-      <p class="stat-value">{inspirationDone}<span class="stat-divider">/</span>{inspirationTotal}</p>
-    </article>
-    <article class="stat-card card stat-card--total">
-      <p class="stat-label">Overall</p>
-      <p class="stat-value">{totalDone}<span class="stat-divider">/</span>{goals.length}</p>
-    </article>
+  <!-- Pipeline progress visualization -->
+  <section class="pipeline" aria-label="Goals progress pipeline">
+    <div class="pipeline-header">
+      <span class="pipeline-label">Progress</span>
+      <span class="pipeline-total text-muted text-sm">{totalDone}/{goals.length} completed · {moveDone}/{moveTotal} moves · {spotDone}/{spotTotal} spots</span>
+    </div>
+    <div class="pipeline-track" role="img" aria-label="Goal status distribution">
+      {#each pipelineCounts as stage}
+        {#if stage.count > 0}
+          <div
+            class="pipeline-seg pipeline-seg--{stage.status}"
+            style="flex: {stage.count}"
+            title="{stage.label}: {stage.count}"
+          ></div>
+        {/if}
+      {/each}
+    </div>
+    <div class="pipeline-legend" aria-hidden="true">
+      {#each pipelineCounts as stage}
+        {#if stage.count > 0}
+          <span class="pipeline-legend-item">
+            <span class="pipeline-legend-dot pipeline-seg--{stage.status}"></span>
+            {stage.label} <strong>{stage.count}</strong>
+          </span>
+        {/if}
+      {/each}
+    </div>
   </section>
 
   <div class="filters">
@@ -77,23 +101,28 @@
         type="search"
         bind:value={searchQuery}
         class="search-input"
-        placeholder="Search goals by title, notes, or tags"
+        placeholder="Search goals…"
         aria-label="Search goals"
       />
       {#if searchQuery}
         <button type="button" class="clear-search" on:click={() => (searchQuery = '')}>Clear</button>
       {/if}
     </div>
-    <div class="form-group" style="margin:0">
-      <select bind:value={filterStatus}>
-        <option value="all">All statuses</option>
-        <option value="idea">Idea</option>
-        <option value="want_to_try">Want to try</option>
-        <option value="training">Training</option>
-        <option value="landed">Landed</option>
-        <option value="done">Done</option>
-        <option value="archived">Archived</option>
-      </select>
+    <div class="filter-chips" role="group" aria-label="Filter by status">
+      <button
+        type="button"
+        class="filter-chip"
+        class:active={filterStatus === 'all'}
+        on:click={() => (filterStatus = 'all')}
+      >All <span class="chip-count">{goals.length}</span></button>
+      {#each pipelineCounts as stage}
+        <button
+          type="button"
+          class="filter-chip filter-chip--{stage.status}"
+          class:active={filterStatus === stage.status}
+          on:click={() => (filterStatus = stage.status)}
+        >{stage.label} <span class="chip-count">{stage.count}</span></button>
+      {/each}
     </div>
   </div>
 
@@ -147,55 +176,89 @@
 </div>
 
 <style>
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+  /* ─── Pipeline ─────────────────────────────────────────────────────── */
+  .pipeline {
+    margin-bottom: 1.5rem;
   }
 
-  .stat-card {
-    padding: 0.85rem 1rem;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in oklch, var(--color-primary) 5%, white),
-        var(--color-surface)
-      );
+  .pipeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
-  .stat-card--total {
-    border-color: color-mix(in oklch, var(--color-primary) 42%, var(--color-border));
-  }
-
-  .stat-label {
-    font-size: 0.75rem;
+  .pipeline-label {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.07em;
     color: var(--color-text-muted);
-    margin-bottom: 0.2rem;
+  }
+
+  .pipeline-track {
+    display: flex;
+    height: 14px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    gap: 2px;
+  }
+
+  .pipeline-seg {
+    min-width: 6px;
+    border-radius: 2px;
+    transition: opacity 0.15s;
+  }
+
+  .pipeline-seg:hover {
+    opacity: 0.8;
+  }
+
+  .pipeline-seg--idea        { background: var(--badge-idea-text); opacity: 0.45; }
+  .pipeline-seg--want_to_try { background: var(--badge-want-text); opacity: 0.55; }
+  .pipeline-seg--training    { background: var(--badge-training-text); opacity: 0.75; }
+  .pipeline-seg--landed      { background: var(--badge-landed-text); }
+  .pipeline-seg--done        { background: var(--color-primary); }
+  .pipeline-seg--archived    { background: var(--color-text-muted); opacity: 0.35; }
+
+  .pipeline-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin-top: 0.5rem;
+  }
+
+  .pipeline-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  .pipeline-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .pipeline-legend-item strong {
+    color: var(--color-text);
     font-weight: 700;
   }
 
-  .stat-value {
-    font-family: var(--font-display);
-    font-size: clamp(1.45rem, 2.4vw, 1.9rem);
-    font-weight: 800;
-    color: var(--color-text);
-    line-height: 1;
-  }
-
-  .stat-divider {
-    color: var(--color-text-muted);
-    opacity: 0.8;
-    margin: 0 0.2rem;
-  }
-
+  /* ─── Filters ──────────────────────────────────────────────────────── */
   .filters {
     display: flex;
     gap: 1rem;
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
+    align-items: flex-start;
   }
 
   .search-shell {
@@ -206,7 +269,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface);
-    min-width: min(100%, 420px);
+    min-width: min(100%, 320px);
     flex: 1;
   }
 
@@ -249,17 +312,64 @@
     cursor: pointer;
   }
 
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .filter-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    min-height: 32px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+
+  .filter-chip:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+
+  .filter-chip.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  .filter-chip--idea.active       { background: var(--badge-idea-bg);     border-color: var(--badge-idea-text);     color: var(--badge-idea-text); }
+  .filter-chip--want_to_try.active{ background: var(--badge-want-bg);     border-color: var(--badge-want-text);     color: var(--badge-want-text); }
+  .filter-chip--training.active   { background: var(--badge-training-bg); border-color: var(--badge-training-text); color: var(--badge-training-text); }
+  .filter-chip--landed.active     { background: var(--badge-landed-bg);   border-color: var(--badge-landed-text);   color: var(--badge-landed-text); }
+  .filter-chip--done.active       { background: var(--badge-done-bg);     border-color: var(--badge-done-text);     color: var(--badge-done-text); }
+  .filter-chip--archived.active   { background: var(--badge-archived-bg); border-color: var(--badge-archived-text); color: var(--badge-archived-text); }
+
+  .chip-count {
+    font-weight: 700;
+    opacity: 0.75;
+  }
+
+  .filter-chip.active .chip-count {
+    opacity: 1;
+  }
+
+  /* ─── Goal sections ────────────────────────────────────────────────── */
+  .goal-section {
+    margin-bottom: 2.25rem;
+  }
+
   .clear-search:hover {
     color: var(--color-text);
     border-color: var(--color-primary);
-  }
-
-  .filters .form-group {
-    min-width: 160px;
-  }
-
-  .goal-section {
-    margin-bottom: 2rem;
   }
 
   .section-title {
@@ -269,15 +379,19 @@
     margin-bottom: 0.8rem;
   }
 
-  @media (max-width: 900px) {
-    .stats-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+  @media (max-width: 640px) {
+    .pipeline-header {
+      flex-direction: column;
+      align-items: flex-start;
     }
-  }
 
-  @media (max-width: 520px) {
-    .stats-grid {
-      grid-template-columns: 1fr;
+    .filter-chips {
+      width: 100%;
+    }
+
+    .filter-chip {
+      flex: 1 1 auto;
+      justify-content: center;
     }
   }
 </style>

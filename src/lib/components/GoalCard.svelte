@@ -32,7 +32,7 @@
   {/if}
 
   {#if goal.difficulty}
-    <div class="goal-difficulty mt-1">
+    <div class="goal-difficulty mt-1" title="Difficulty: {goal.difficulty} out of 5" aria-label="Difficulty {goal.difficulty} out of 5">
       {#each Array(5) as _, i}
         <span class="dot" class:filled={i < (goal.difficulty ?? 0)}>●</span>
       {/each}

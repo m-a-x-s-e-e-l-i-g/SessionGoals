@@ -89,11 +89,12 @@
 
   {#if data.error === 'missing_api_key'}
     <div class="spots-error">
-      Add <code>PARKOUR_SPOT_API_KEY</code> to your env file to enable parkour.spot search.
+      Spot search isn't set up yet — parkour.spot isn't connected.
     </div>
   {:else if data.error === 'api_error'}
-    <div class="spots-error">
-      Could not reach <strong>parkour.spot</strong>. Check your API key and try again.
+    <div class="spots-error spots-error--retry">
+      <span>Couldn't reach parkour.spot right now.</span>
+      <a href="/spots" class="btn btn-ghost spots-retry-btn">Try again</a>
     </div>
   {/if}
 
@@ -182,6 +183,21 @@
     font-size: 0.9rem;
     margin-bottom: 1.5rem;
     padding: 1rem 1.25rem;
+  }
+
+  .spots-error--retry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .spots-retry-btn {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.9rem;
+    min-height: 36px;
   }
 
   .search-bar {
