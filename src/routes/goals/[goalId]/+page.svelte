@@ -11,18 +11,18 @@
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
 
-  function handleStatusChange(e: Event) {
+  async function handleStatusChange(e: Event) {
     if (!goalId) return;
     const select = e.target as HTMLSelectElement;
-    updateGoalStatus(goalId, select.value as GoalStatus);
+    await updateGoalStatus(goalId, select.value as GoalStatus);
     // re-read to trigger reactivity
     goal = getGoalById(goalId);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!goalId) return;
     if (confirm('Delete this goal?')) {
-      deleteGoal(goalId);
+      await deleteGoal(goalId);
       goto('/goals');
     }
   }

@@ -6,7 +6,7 @@
   let submitting = false;
   let error: string | undefined;
 
-  function handleSubmit(event: SubmitEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     submitting = true;
     error = undefined;
@@ -29,7 +29,7 @@
     };
 
     try {
-      const list = createList(input);
+      const list = await createList(input);
       goto(`/lists/${list.id}`);
     } catch (e) {
       error = 'Failed to create list.';

@@ -1,40 +1,38 @@
-// Spots data service.
-// In the future this will proxy parkour.spot API queries.
-// See src/lib/server/parkourspot.ts for the server-side adapter.
-
 import type { Spot } from '$lib/types';
-import { mockSpots } from './mock';
-
-let store: Spot[] = [...mockSpots];
+import { runDataAction } from './api';
+import { getAppState, updateAppState } from './state';
 
 export function getSpots(): Spot[] {
-  return store;
+  return getAppState().spots;
 }
 
 export function getSpotById(id: string): Spot | undefined {
-  return store.find((s) => s.id === id);
+  return getAppState().spots.find((spot) => spot.id === id);
 }
 
-export function upsertSpot(spot: Spot): Spot {
-  const existingIndex = store.findIndex(
-    (entry) => entry.id === spot.id || (!!entry.externalId && entry.externalId === spot.externalId)
-  );
+export async function upsertSpot(spot: Spot): Promise<Spot> {
+  const nextSpot = await runDataAction<Spot>('upsertSpot', { spot });
+  updateAppState((state) => {
+    const existingIndex = state.spots.findIndex(
+      (entry) => entry.id === nextSpot.id || (!!entry.externalId && entry.externalId === nextSpot.externalId),
+    );
 
-  if (existingIndex >= 0) {
-    const existing = store[existingIndex];
-    const next = { ...existing, ...spot };
-    store = store.map((entry, index) => (index === existingIndex ? next : entry));
-    return next;
-  }
+    if (existingIndex >= 0) {
+      return {
+        ...state,
+        spots: state.spots.map((entry, index) => (index === existingIndex ? nextSpot : entry)),
+      };
+    }
 
-  store = [spot, ...store];
-  return spot;
+    return {
+      ...state,
+      spots: [nextSpot, ...state.spots],
+    };
+  });
+
+  return nextSpot;
 }
 
 export function getSuggestedSpotsForGoal(goalTagNames: string[]): Spot[] {
-  // Simple tag-matching recommendation.
-  // TODO: Replace with parkour.spot API search + scoring.
-  return store.filter((spot) =>
-    spot.tags.some((tag) => goalTagNames.includes(tag.name))
-  );
+  return getAppState().spots.filter((spot) => spot.tags.some((tag) => goalTagNames.includes(tag.name)));
 }

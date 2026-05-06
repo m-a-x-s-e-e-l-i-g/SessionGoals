@@ -2,7 +2,7 @@
 
 SessionGoals is a SvelteKit app for planning parkour and freerunning progression.
 
-Create personal goals, explore and track list-based challenges, log daily activity, and search parkour spots. The current MVP focuses on a fast product loop with a typed mock data layer and server-side integration points.
+Create personal goals, explore and track list-based challenges, log daily activity, and search parkour spots. The app now uses Supabase for persistence and auth-backed data ownership.
 
 Tagline: Train what's next. Plan your session.
 
@@ -28,7 +28,7 @@ Tagline: Train what's next. Plan your session.
 | Language | TypeScript 5 |
 | Build tool | Vite 5 |
 | UI | Svelte components + custom CSS tokens |
-| Data (MVP) | In-memory typed mock modules under `src/lib/data` |
+| Data | Supabase (Postgres + RLS) |
 | Server integration | SvelteKit server routes |
 | External APIs | parkour.spot (optional, env-gated) |
 | Planned persistence | Supabase |
@@ -39,9 +39,10 @@ Key areas:
 
 - `src/routes`: pages and API endpoints
 - `src/routes/api/parkour-spot/spots/+server.ts`: server endpoint for spot search
-- `src/lib/data`: in-memory data access modules
+- `src/lib/data`: client data modules backed by server API + Supabase
 - `src/lib/components`: reusable UI components
 - `src/lib/server`: server-only integration helpers (parkour.spot, Supabase)
+- `supabase/migrations`: SQL schema and auth/profile sync migrations
 
 ## Getting started
 
@@ -109,13 +110,24 @@ Defined in `.env.example`:
 - If configured, searches call parkour.spot via server code in `src/lib/server/parkourspot.ts`.
 - API route `GET /api/parkour-spot/spots` proxies queries and sets cache headers.
 
+## Database migrations
+
+Apply migrations in your Supabase project using the Supabase CLI:
+
+```bash
+supabase db push
+```
+
+This repository includes:
+
+- `supabase/migrations/20260506120000_initial_schema.sql`: core schema + RLS policies
+- `supabase/migrations/20260506121000_auth_profile_sync.sql`: auth user -> profile sync trigger + base tags seed
+
 ## Current MVP constraints
 
-- Data in `src/lib/data` is in-memory mock data.
-- Writes are not persisted across server restarts/reloads.
 - Authentication is required for app routes (except login + legal pages).
 - Only Google OAuth is enabled as a sign-in method.
-- Supabase-backed persistence is not yet the default data source.
+- parkour.spot search still depends on `PARKOUR_SPOT_API_KEY`.
 
 ## Supabase auth setup (Google only)
 
@@ -138,7 +150,6 @@ This validates Svelte + TypeScript types across routes and components.
 
 ## Roadmap ideas
 
-- Switch primary data layer from mock modules to Supabase-backed repositories
 - Add authentication and per-user data ownership
 - Add richer spot ingestion/sync workflows
 - Add tests for data modules and critical routes

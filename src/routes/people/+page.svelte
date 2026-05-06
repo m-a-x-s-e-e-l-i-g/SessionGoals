@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { searchPeople, getTeacherForStudent, getStudentsForTeacher, getStudentTrackingSummary } from '$lib/data/users';
-  import { CURRENT_USER_ID } from '$lib/data/session';
   import { getGoals } from '$lib/data/goals';
   import { getPublicLists } from '$lib/data/lists';
   import { getActivityStats } from '$lib/data/activities';
@@ -12,8 +11,9 @@
   }
 
   $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id;
   $: users = searchPeople(query);
-  const myStudents = getStudentsForTeacher(CURRENT_USER_ID);
+  $: myStudents = currentUserId ? getStudentsForTeacher(currentUserId) : [];
 
   function profileStats(userId: string): { goals: number; inspiration: number; publicLists: number } {
     const goals = getGoals().filter((g) => g.userId === userId && g.type !== 'inspiration').length;

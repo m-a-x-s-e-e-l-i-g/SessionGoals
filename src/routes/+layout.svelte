@@ -1,9 +1,12 @@
 <script lang="ts">
   import '../app.css';
   import Nav from '$lib/components/Nav.svelte';
+  import { initializeAppState } from '$lib/data/state';
   import type { LayoutData } from './$types';
 
   export let data: LayoutData;
+
+  $: initializeAppState(data.appState);
 </script>
 
 <div class="app-shell">

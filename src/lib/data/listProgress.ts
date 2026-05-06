@@ -1,69 +1,74 @@
 import type { GoalList, ListProgress } from '$lib/types';
-import { CURRENT_USER_ID } from './session';
+import { runDataAction } from './api';
+import { getAppState, getCurrentUserIdFromState, updateAppState } from './state';
 
-let store: ListProgress[] = [];
-
-function nowIso(): string {
-  return new Date().toISOString();
+export function getProgressForList(sourceListId: string, userId?: string): ListProgress | undefined {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) return undefined;
+  return getAppState().progress.find(
+    (entry) => entry.sourceListId === sourceListId && entry.userId === effectiveUserId,
+  );
 }
 
-export function getProgressForList(sourceListId: string, userId: string = CURRENT_USER_ID): ListProgress | undefined {
-  return store.find((p) => p.sourceListId === sourceListId && p.userId === userId);
-}
-
-export function isTrackingList(sourceListId: string, userId: string = CURRENT_USER_ID): boolean {
+export function isTrackingList(sourceListId: string, userId?: string): boolean {
   return !!getProgressForList(sourceListId, userId);
 }
 
-export function startTrackingList(list: GoalList, userId: string = CURRENT_USER_ID): ListProgress {
-  const existing = getProgressForList(list.id, userId);
+export async function startTrackingList(list: GoalList, userId?: string): Promise<ListProgress> {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) {
+    throw new Error('Sign in to track lists.');
+  }
+
+  const existing = getProgressForList(list.id, effectiveUserId);
   if (existing) return existing;
 
-  const timestamp = nowIso();
-  const progress: ListProgress = {
-    id: `progress-${Date.now()}`,
-    userId,
+  const progress = await runDataAction<ListProgress>('startTrackingList', {
     sourceListId: list.id,
-    items: list.items.map((item) => ({ goalId: item.goalId, done: false })),
-    startedAt: timestamp,
-    updatedAt: timestamp,
-  };
+    userId: effectiveUserId,
+  });
 
-  store = [progress, ...store];
+  updateAppState((state) => ({
+    ...state,
+    progress: [progress, ...state.progress],
+  }));
+
   return progress;
 }
 
-export function toggleListItemProgress(sourceListId: string, goalId: string, userId: string = CURRENT_USER_ID): ListProgress | undefined {
-  const progress = getProgressForList(sourceListId, userId);
-  if (!progress) return undefined;
+export async function toggleListItemProgress(
+  sourceListId: string,
+  goalId: string,
+  userId?: string,
+): Promise<ListProgress | undefined> {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) {
+    throw new Error('Sign in to update progress.');
+  }
 
-  const updatedItems = progress.items.map((item) => {
-    if (item.goalId !== goalId) return item;
-    const done = !item.done;
-    return {
-      ...item,
-      done,
-      completedAt: done ? nowIso() : undefined,
-    };
+  const progress = await runDataAction<ListProgress>('toggleListItemProgress', {
+    sourceListId,
+    goalId,
+    userId: effectiveUserId,
   });
 
-  const updated: ListProgress = {
-    ...progress,
-    items: updatedItems,
-    updatedAt: nowIso(),
-  };
+  updateAppState((state) => ({
+    ...state,
+    progress: state.progress.map((entry) => (entry.id === progress.id ? progress : entry)),
+  }));
 
-  store = store.map((p) => (p.id === updated.id ? updated : p));
-  return updated;
+  return progress;
 }
 
-export function getProgressStats(sourceListId: string, userId: string = CURRENT_USER_ID): { done: number; total: number } {
+export function getProgressStats(sourceListId: string, userId?: string): { done: number; total: number } {
   const progress = getProgressForList(sourceListId, userId);
   if (!progress) return { done: 0, total: 0 };
   const done = progress.items.filter((item) => item.done).length;
   return { done, total: progress.items.length };
 }
 
-export function getTrackedProgress(userId: string = CURRENT_USER_ID): ListProgress[] {
-  return store.filter((p) => p.userId === userId);
+export function getTrackedProgress(userId?: string): ListProgress[] {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) return [];
+  return getAppState().progress.filter((entry) => entry.userId === effectiveUserId);
 }

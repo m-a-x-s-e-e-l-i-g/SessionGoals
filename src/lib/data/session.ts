@@ -1,12 +1,9 @@
-export const CURRENT_USER_ID = 'user-me';
+import { getAppState } from './state';
 
-const userNames: Record<string, string> = {
-  'user-me': 'You',
-  'user-lena': 'Lena Hartmann',
-  'user-milo': 'Milo K.',
-};
+export const CURRENT_USER_ID = '';
 
 export function getUserDisplayName(userId?: string): string {
   if (!userId) return 'Unknown';
-  return userNames[userId] ?? userId;
+  const user = getAppState().users.find((entry) => entry.id === userId);
+  return user?.displayName ?? userId;
 }

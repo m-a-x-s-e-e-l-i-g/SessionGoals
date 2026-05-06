@@ -1,68 +1,57 @@
-// Goal lists data service.
-// Currently backed by the in-memory mock store.
-
 import type { GoalList, CreateGoalListInput, Goal } from '$lib/types';
-import { mockLists } from './mock';
-import { CURRENT_USER_ID } from './session';
-
-let store: GoalList[] = [...mockLists];
+import { runDataAction } from './api';
+import { getAppState, getCurrentUserIdFromState, updateAppState } from './state';
 
 export function getLists(): GoalList[] {
-  return store;
+  return getAppState().lists;
 }
 
-export function getListsByUser(userId: string = CURRENT_USER_ID): GoalList[] {
-  return store.filter((l) => l.userId === userId);
+export function getListsByUser(userId?: string): GoalList[] {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) return [];
+  return getAppState().lists.filter((list) => list.userId === effectiveUserId);
 }
 
 export function getMyLists(): GoalList[] {
-  return getListsByUser(CURRENT_USER_ID);
+  return getListsByUser();
 }
 
 export function getPublicLists(): GoalList[] {
-  return store.filter((l) => l.visibility === 'public');
+  return getAppState().lists.filter((list) => list.visibility === 'public');
 }
 
-export function getExplorableLists(userId: string = CURRENT_USER_ID): GoalList[] {
-  return store.filter((l) => l.visibility === 'public' && l.userId !== userId);
+export function getExplorableLists(userId?: string): GoalList[] {
+  const currentUserId = userId ?? getCurrentUserIdFromState();
+  return getPublicLists().filter((list) => list.userId !== currentUserId);
 }
 
 export function getListById(id: string): GoalList | undefined {
-  return store.find((l) => l.id === id);
+  return getAppState().lists.find((list) => list.id === id);
 }
 
-export function createList(input: CreateGoalListInput): GoalList {
-  const now = new Date().toISOString();
-  const list: GoalList = {
-    id: `list-${Date.now()}`,
-    userId: CURRENT_USER_ID,
-    name: input.name,
-    description: input.description,
-    type: input.type,
-    visibility: input.visibility ?? 'private',
-    items: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-  store = [list, ...store];
+export async function createList(input: CreateGoalListInput): Promise<GoalList> {
+  const list = await runDataAction<GoalList>('createList', { input });
+  updateAppState((state) => ({
+    ...state,
+    lists: [list, ...state.lists],
+  }));
   return list;
 }
 
-export function addGoalToList(listId: string, goal: Goal): GoalList | undefined {
-  store = store.map((l) => {
-    if (l.id !== listId) return l;
-    const alreadyIn = l.items.some((item) => item.goalId === goal.id);
-    if (alreadyIn) return l;
-    const position = l.items.length + 1;
-    return {
-      ...l,
-      items: [...l.items, { listId, goalId: goal.id, position, goal }],
-      updatedAt: new Date().toISOString(),
-    };
-  });
-  return store.find((l) => l.id === listId);
+export async function addGoalToList(listId: string, goal: Goal): Promise<GoalList | undefined> {
+  const list = await runDataAction<GoalList>('addGoalToList', { listId, goalId: goal.id });
+  updateAppState((state) => ({
+    ...state,
+    lists: state.lists.map((entry) => (entry.id === list.id ? list : entry)),
+  }));
+  return list;
 }
 
-export function deleteList(id: string): void {
-  store = store.filter((l) => l.id !== id);
+export async function deleteList(id: string): Promise<void> {
+  await runDataAction<{ id: string }>('deleteList', { id });
+  updateAppState((state) => ({
+    ...state,
+    lists: state.lists.filter((list) => list.id !== id),
+    progress: state.progress.filter((entry) => entry.sourceListId !== id),
+  }));
 }

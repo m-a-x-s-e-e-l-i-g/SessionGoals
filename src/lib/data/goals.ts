@@ -1,58 +1,56 @@
-// Goals data service.
-// Currently backed by the in-memory mock store.
-// Replace the implementation with Supabase queries when ready.
-
 import type { Goal, CreateGoalInput } from '$lib/types';
-import { mockGoals } from './mock';
-import { mockTags } from './mock';
-import { CURRENT_USER_ID } from './session';
-
-// In-memory store (resets on page reload — replace with Supabase persistence)
-let store: Goal[] = [...mockGoals];
+import { runDataAction } from './api';
+import { getAppState, getCurrentUserIdFromState, updateAppState } from './state';
 
 export function getGoals(): Goal[] {
-  return store;
+  return getAppState().goals;
 }
 
-export function getGoalsByUser(userId: string = CURRENT_USER_ID): Goal[] {
-  return store.filter((g) => g.userId === userId);
+export function getGoalsByUser(userId?: string): Goal[] {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) return [];
+  return getAppState().goals.filter((goal) => goal.userId === effectiveUserId);
 }
 
 export function getMyGoals(): Goal[] {
-  return getGoalsByUser(CURRENT_USER_ID);
+  return getGoalsByUser();
 }
 
 export function getGoalById(id: string): Goal | undefined {
-  return store.find((g) => g.id === id);
+  return getAppState().goals.find((goal) => goal.id === id);
 }
 
-export function createGoal(input: CreateGoalInput): Goal {
-  const now = new Date().toISOString();
-  const tags = mockTags.filter((t) => input.tagIds.includes(t.id));
-  const goal: Goal = {
-    id: `goal-${Date.now()}`,
-    userId: CURRENT_USER_ID,
-    type: input.type,
-    title: input.title,
-    description: input.description,
-    status: input.status,
-    difficulty: input.difficulty,
-    spotId: input.spotId,
-    sourceUrl: input.sourceUrl,
-    tags,
-    links: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-  store = [goal, ...store];
+export async function createGoal(input: CreateGoalInput): Promise<Goal> {
+  const goal = await runDataAction<Goal>('createGoal', { input });
+  updateAppState((state) => ({
+    ...state,
+    goals: [goal, ...state.goals],
+  }));
   return goal;
 }
 
-export function updateGoalStatus(id: string, status: Goal['status']): Goal | undefined {
-  store = store.map((g) => (g.id === id ? { ...g, status, updatedAt: new Date().toISOString() } : g));
-  return store.find((g) => g.id === id);
+export async function updateGoalStatus(id: string, status: Goal['status']): Promise<Goal | undefined> {
+  const goal = await runDataAction<Goal>('updateGoalStatus', { id, status });
+  updateAppState((state) => ({
+    ...state,
+    goals: state.goals.map((entry) => (entry.id === id ? goal : entry)),
+  }));
+  return goal;
 }
 
-export function deleteGoal(id: string): void {
-  store = store.filter((g) => g.id !== id);
+export async function deleteGoal(id: string): Promise<void> {
+  await runDataAction<{ id: string }>('deleteGoal', { id });
+  updateAppState((state) => ({
+    ...state,
+    goals: state.goals.filter((goal) => goal.id !== id),
+    lists: state.lists.map((list) => ({
+      ...list,
+      items: list.items.filter((item) => item.goalId !== id),
+    })),
+    progress: state.progress.map((entry) => ({
+      ...entry,
+      items: entry.items.filter((item) => item.goalId !== id),
+    })),
+    activities: state.activities.filter((activity) => activity.linkedGoalId !== id),
+  }));
 }

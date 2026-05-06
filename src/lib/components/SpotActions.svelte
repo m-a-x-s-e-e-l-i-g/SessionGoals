@@ -32,9 +32,9 @@
     mode = 'new-goal';
   }
 
-  function submitNewGoal() {
+  async function submitNewGoal() {
     if (!goalTitle.trim()) return;
-    const goal = createGoal({
+    const goal = await createGoal({
       type: goalType,
       title: goalTitle.trim(),
       description: goalDescription.trim() || undefined,
@@ -46,9 +46,9 @@
     goto(`/goals/${goal.id}`);
   }
 
-  function handleAddToList(listId: string) {
+  async function handleAddToList(listId: string) {
     if (!goalTitle.trim()) return;
-    const goal = createGoal({
+    const goal = await createGoal({
       type: goalType,
       title: goalTitle.trim(),
       description: goalDescription.trim() || undefined,
@@ -57,7 +57,7 @@
       sourceUrl: undefined,
       tagIds: spot.tags.map((t) => t.id),
     });
-    addGoalToList(listId, goal);
+    await addGoalToList(listId, goal);
     addedToList = listId;
     goalTitle = '';
     goalDescription = '';

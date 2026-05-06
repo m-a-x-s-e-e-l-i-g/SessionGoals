@@ -1,25 +1,24 @@
 import type { UserProfile } from '$lib/types';
-import { mockUsers } from './mock';
-import { CURRENT_USER_ID } from './session';
 import { getGoalsByUser } from './goals';
 import { getTrackedProgress } from './listProgress';
-
-let store: UserProfile[] = [...mockUsers];
+import { runDataAction } from './api';
+import { getAppState, getCurrentUserIdFromState, updateAppState } from './state';
 
 export function getUsers(): UserProfile[] {
-  return store;
+  return getAppState().users;
 }
 
 export function getPublicUsers(): UserProfile[] {
-  return store.filter((u) => u.isPublic);
+  return getAppState().users.filter((user) => user.isPublic);
 }
 
 export function getUserById(userId: string): UserProfile | undefined {
-  return store.find((u) => u.id === userId);
+  return getAppState().users.find((user) => user.id === userId);
 }
 
 export function getCurrentUserProfile(): UserProfile | undefined {
-  return getUserById(CURRENT_USER_ID);
+  const currentUserId = getCurrentUserIdFromState();
+  return currentUserId ? getUserById(currentUserId) : undefined;
 }
 
 export function isTeacher(user?: UserProfile): boolean {
@@ -34,17 +33,19 @@ export function getTeacherForStudent(studentId: string): UserProfile | undefined
 }
 
 export function getStudentsForTeacher(teacherId: string): UserProfile[] {
-  return store.filter((u) => u.teacherId === teacherId);
+  return getAppState().users.filter((user) => user.teacherId === teacherId);
 }
 
-export function updateUserProfile(
+export async function updateUserProfile(
   userId: string,
   updates: Partial<Pick<UserProfile, 'displayName' | 'bio' | 'city' | 'country' | 'isPublic' | 'role'>>,
-): UserProfile | undefined {
-  const idx = store.findIndex((u) => u.id === userId);
-  if (idx === -1) return undefined;
-  store[idx] = { ...store[idx], ...updates };
-  return store[idx];
+): Promise<UserProfile | undefined> {
+  const profile = await runDataAction<UserProfile>('updateUserProfile', { userId, updates });
+  updateAppState((state) => ({
+    ...state,
+    users: state.users.map((entry) => (entry.id === userId ? profile : entry)),
+  }));
+  return profile;
 }
 
 export function getStudentTrackingSummary(studentId: string): {
@@ -55,11 +56,11 @@ export function getStudentTrackingSummary(studentId: string): {
   needs: string[];
 } {
   const goals = getGoalsByUser(studentId);
-  const goalsDone = goals.filter((g) => g.status === 'landed' || g.status === 'done').length;
+  const goalsDone = goals.filter((goal) => goal.status === 'landed' || goal.status === 'done').length;
 
   const tracked = getTrackedProgress(studentId);
-  const trackedTotal = tracked.reduce((acc, p) => acc + p.items.length, 0);
-  const trackedDone = tracked.reduce((acc, p) => acc + p.items.filter((i) => i.done).length, 0);
+  const trackedTotal = tracked.reduce((acc, progress) => acc + progress.items.length, 0);
+  const trackedDone = tracked.reduce((acc, progress) => acc + progress.items.filter((item) => item.done).length, 0);
 
   const student = getUserById(studentId);
   return {
@@ -72,16 +73,28 @@ export function getStudentTrackingSummary(studentId: string): {
 }
 
 export function searchPeople(query: string): UserProfile[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return getPublicUsers();
+  const currentUserId = getCurrentUserIdFromState();
+  const currentUser = currentUserId ? getUserById(currentUserId) : undefined;
+  const teacherId = currentUser?.teacherId;
 
-  return getPublicUsers().filter((u) => {
+  const visible = getUsers().filter((user) => {
+    if (user.isPublic) return true;
+    if (currentUserId && user.id === currentUserId) return true;
+    if (currentUserId && user.teacherId === currentUserId) return true;
+    if (teacherId && user.id === teacherId) return true;
+    return false;
+  });
+
+  const q = query.trim().toLowerCase();
+  if (!q) return visible;
+
+  return visible.filter((user) => {
     return (
-      u.displayName.toLowerCase().includes(q) ||
-      u.username.toLowerCase().includes(q) ||
-      u.role.toLowerCase().includes(q) ||
-      (u.city ?? '').toLowerCase().includes(q) ||
-      (u.country ?? '').toLowerCase().includes(q)
+      user.displayName.toLowerCase().includes(q)
+      || user.username.toLowerCase().includes(q)
+      || user.role.toLowerCase().includes(q)
+      || (user.city ?? '').toLowerCase().includes(q)
+      || (user.country ?? '').toLowerCase().includes(q)
     );
   });
 }

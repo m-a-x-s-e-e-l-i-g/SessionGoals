@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
+import type { AppStateSnapshot } from '$lib/types/appState';
 
 declare global {
   namespace App {
@@ -9,6 +10,7 @@ declare global {
 
     interface PageData {
       user: User | null;
+      appState: AppStateSnapshot;
     }
   }
 }

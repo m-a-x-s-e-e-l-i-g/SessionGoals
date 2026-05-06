@@ -10,7 +10,7 @@
   let submitting = false;
   let error: string | undefined;
 
-  function handleSubmit(event: SubmitEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     submitting = true;
     error = undefined;
@@ -41,10 +41,10 @@
     try {
       if (spotPayload) {
         const spot = JSON.parse(spotPayload) as Spot;
-        upsertSpot(spot);
+        await upsertSpot(spot);
       }
 
-      const goal = createGoal(input);
+      const goal = await createGoal(input);
       goto(`/goals/${goal.id}`);
     } catch (e) {
       error = 'Failed to create goal. Please try again.';

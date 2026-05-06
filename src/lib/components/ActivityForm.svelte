@@ -1,8 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { page } from '$app/stores';
   import { addActivity } from '$lib/data/activities';
   import { getMyGoals } from '$lib/data/goals';
-  import { CURRENT_USER_ID } from '$lib/data/session';
   import type { Activity } from '$lib/types';
 
   const dispatch = createEventDispatcher<{ logged: { activity: Activity } }>();
@@ -61,8 +61,13 @@
     try {
       await Promise.resolve();
 
-      const activity = addActivity({
-        userId: CURRENT_USER_ID,
+      const currentUserId = $page.data.user?.id;
+      if (!currentUserId) {
+        throw new Error('Sign in to log activity.');
+      }
+
+      const activity = await addActivity({
+        userId: currentUserId,
         date: activityDate,
         duration: duration ? Number.parseInt(duration, 10) : undefined,
         notes: notes.trim() || undefined,

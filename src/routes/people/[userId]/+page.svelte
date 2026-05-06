@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { CURRENT_USER_ID } from '$lib/data/session';
   import {
     getUserById,
     getTeacherForStudent,
@@ -19,9 +18,10 @@
   import type { UserProfile } from '$lib/types';
 
   $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id;
   $: userId = $page.params.userId ?? '';
   $: profile = userId ? getUserById(userId) : undefined;
-  $: isOwnProfile = isAuthenticated && userId === CURRENT_USER_ID;
+  $: isOwnProfile = isAuthenticated && !!currentUserId && userId === currentUserId;
   $: profileTeacher = userId ? getTeacherForStudent(userId) : undefined;
   $: teacherStudents = userId ? getStudentsForTeacher(userId) : [];
   $: teacherViewEnabled = !!profile && isTeacher(profile) && (isOwnProfile || profile.isPublic);
@@ -50,9 +50,9 @@
     editing = false;
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (!userId) return;
-    updateUserProfile(userId, {
+    await updateUserProfile(userId, {
       displayName: editDisplayName.trim() || profile?.displayName,
       bio: editBio.trim() || undefined,
       city: editCity.trim() || undefined,

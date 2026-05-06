@@ -5,7 +5,7 @@
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { formatListType, formatListVisibility } from '$lib/utils/format';
-  import { CURRENT_USER_ID, getUserDisplayName } from '$lib/data/session';
+  import { getUserDisplayName } from '$lib/data/session';
   import { enrollStudentToPublicList } from '$lib/data/coaching';
   import { getStudentsForTeacher, getUserById, isTeacher } from '$lib/data/users';
   import {
@@ -16,20 +16,21 @@
   import type { ListProgress, UserProfile } from '$lib/types';
 
   $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id;
   $: listId = $page.params.listId ?? '';
   $: list = listId ? getListById(listId) : undefined;
-  $: isOwnList = isAuthenticated && list?.userId === CURRENT_USER_ID;
+  $: isOwnList = isAuthenticated && !!currentUserId && list?.userId === currentUserId;
   $: canViewList = !!list && (isOwnList || list.visibility === 'public');
   $: canTrackList = isAuthenticated && !!list && !isOwnList && list.visibility === 'public';
-  const currentUser = getUserById(CURRENT_USER_ID);
+  $: currentUser = currentUserId ? getUserById(currentUserId) : undefined;
   $: canEnrollStudents = isAuthenticated && !!list && list.visibility === 'public' && isTeacher(currentUser);
-  $: teacherStudents = canEnrollStudents ? getStudentsForTeacher(CURRENT_USER_ID) : [];
+  $: teacherStudents = canEnrollStudents && currentUserId ? getStudentsForTeacher(currentUserId) : [];
 
   let progress: ListProgress | undefined = undefined;
   let enrollmentNotice = '';
 
   $: if (list && isAuthenticated) {
-    progress = getProgressForList(list.id, CURRENT_USER_ID);
+    progress = getProgressForList(list.id, currentUserId);
   } else {
     progress = undefined;
   }
@@ -38,22 +39,22 @@
   $: totalCount = progress ? progress.items.length : 0;
   $: progressPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!listId) return;
     if (confirm('Delete this list?')) {
-      deleteList(listId);
+      await deleteList(listId);
       goto('/lists');
     }
   }
 
-  function handleStartTracking() {
-    if (!list) return;
-    progress = startTrackingList(list, CURRENT_USER_ID);
+  async function handleStartTracking() {
+    if (!list || !currentUserId) return;
+    progress = await startTrackingList(list, currentUserId);
   }
 
-  function handleToggleProgress(goalId: string) {
-    if (!list) return;
-    const updated = toggleListItemProgress(list.id, goalId, CURRENT_USER_ID);
+  async function handleToggleProgress(goalId: string) {
+    if (!list || !currentUserId) return;
+    const updated = await toggleListItemProgress(list.id, goalId, currentUserId);
     if (updated) progress = updated;
   }
 
@@ -62,9 +63,9 @@
     return !!getProgressForList(list.id, studentId);
   }
 
-  function handleEnrollStudent(studentId: string, studentName: string) {
-    if (!list) return;
-    const result = enrollStudentToPublicList(CURRENT_USER_ID, studentId, list.id);
+  async function handleEnrollStudent(studentId: string, studentName: string) {
+    if (!list || !currentUserId) return;
+    const result = await enrollStudentToPublicList(currentUserId, studentId, list.id);
     if (!result.ok) {
       enrollmentNotice = `Could not enroll ${studentName}.`;
       return;
@@ -74,11 +75,11 @@
       : `${studentName} is now following this list.`;
   }
 
-  function handleEnrollAll(students: UserProfile[]) {
-    if (!list) return;
+  async function handleEnrollAll(students: UserProfile[]) {
+    if (!list || !currentUserId) return;
     let newlyEnrolled = 0;
     for (const student of students) {
-      const result = enrollStudentToPublicList(CURRENT_USER_ID, student.id, list.id);
+      const result = await enrollStudentToPublicList(currentUserId, student.id, list.id);
       if (result.ok && !result.alreadyEnrolled) newlyEnrolled += 1;
     }
     if (newlyEnrolled === 0) {

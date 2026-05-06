@@ -1,6 +1,6 @@
-import { mockTags } from './mock';
 import type { Tag } from '$lib/types';
+import { getAppState } from './state';
 
 export function getTags(): Tag[] {
-  return mockTags;
+  return getAppState().tags;
 }
