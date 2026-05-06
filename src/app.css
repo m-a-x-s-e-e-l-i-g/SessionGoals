@@ -1,0 +1,325 @@
+/* ─── Reset & base ─────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Colors — light theme, mineral neutrals + cobalt primary + amber accent */
+  --color-bg:            oklch(97.2% 0.008 228);
+  --color-surface:       oklch(99.2% 0.004 228);
+  --color-surface-2:     oklch(94.4% 0.012 228);
+  --color-border:        oklch(86.8% 0.014 228);
+  --color-text:          oklch(21% 0.014 244);
+  --color-text-muted:    oklch(50% 0.015 236);
+  --color-primary:       oklch(57% 0.175 252);
+  --color-primary-hover: oklch(51% 0.19 252);
+  --color-accent:        oklch(72% 0.16 72);
+  --color-success:       oklch(58% 0.15 158);
+  --color-warning:       oklch(74% 0.14 84);
+  --color-danger:        oklch(60% 0.18 26);
+  --color-on-primary:    oklch(98.5% 0.01 248);
+
+  /* Status badge tokens — dark text on tinted light backgrounds, 4.5:1+ contrast */
+  --badge-idea-bg:          oklch(92.5% 0.01 232);
+  --badge-idea-text:        oklch(38% 0.03 236);
+  --badge-want-bg:          oklch(90% 0.05 252);
+  --badge-want-text:        oklch(35% 0.13 252);
+  --badge-training-bg:      oklch(89% 0.06 165);
+  --badge-training-text:    oklch(30% 0.11 165);
+  --badge-landed-bg:        oklch(88% 0.07 185);
+  --badge-landed-text:      oklch(29% 0.11 185);
+  --badge-done-bg:          oklch(90.5% 0.08 84);
+  --badge-done-text:        oklch(35% 0.12 84);
+  --badge-archived-bg:      oklch(90.5% 0.03 18);
+  --badge-archived-text:    oklch(38% 0.09 18);
+
+  /* Type badge tokens */
+  --badge-move-bg:          oklch(90.5% 0.06 300);
+  --badge-move-text:        oklch(35% 0.11 300);
+  --badge-spot-bg:          oklch(90% 0.05 245);
+  --badge-spot-text:        oklch(34% 0.11 245);
+  --badge-challenge-bg:     oklch(91% 0.08 56);
+  --badge-challenge-text:   oklch(35% 0.13 56);
+  --badge-inspiration-bg:   oklch(91% 0.06 96);
+  --badge-inspiration-text: oklch(37% 0.1 96);
+
+  /* Spacing scale (4pt) */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body:    'Hanken Grotesk', sans-serif;
+}
+
+html {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Dark mode (system preference) ────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg:            oklch(17% 0.012 236);
+    --color-surface:       oklch(21% 0.012 236);
+    --color-surface-2:     oklch(26% 0.014 236);
+    --color-border:        oklch(34% 0.016 236);
+    --color-text:          oklch(92.5% 0.01 240);
+    --color-text-muted:    oklch(70% 0.012 236);
+    --color-primary:       oklch(72% 0.17 252);
+    --color-primary-hover: oklch(78% 0.15 252);
+    --color-on-primary:    oklch(16% 0.012 236);
+
+    --badge-idea-bg:          oklch(30% 0.02 234);
+    --badge-idea-text:        oklch(80% 0.03 236);
+    --badge-want-bg:          oklch(30% 0.06 252);
+    --badge-want-text:        oklch(83% 0.12 252);
+    --badge-training-bg:      oklch(29% 0.07 165);
+    --badge-training-text:    oklch(84% 0.1 165);
+    --badge-landed-bg:        oklch(28% 0.08 185);
+    --badge-landed-text:      oklch(84% 0.11 185);
+    --badge-done-bg:          oklch(30% 0.09 84);
+    --badge-done-text:        oklch(86% 0.11 84);
+    --badge-archived-bg:      oklch(29% 0.04 18);
+    --badge-archived-text:    oklch(82% 0.08 18);
+
+    --badge-move-bg:          oklch(29% 0.07 300);
+    --badge-move-text:        oklch(83% 0.11 300);
+    --badge-spot-bg:          oklch(29% 0.06 245);
+    --badge-spot-text:        oklch(83% 0.11 245);
+    --badge-challenge-bg:     oklch(30% 0.1 56);
+    --badge-challenge-text:   oklch(86% 0.12 56);
+    --badge-inspiration-bg:   oklch(30% 0.08 96);
+    --badge-inspiration-text: oklch(86% 0.1 96);
+  }
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* ─── Skip link ─────────────────────────────────────────────────────────────── */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-md);
+  z-index: 200;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: top 0.1s;
+}
+
+.skip-link:focus {
+  top: var(--space-md);
+}
+
+/* ─── Focus ─────────────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button, .btn {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  min-height: 44px;
+  transition: background 0.15s, opacity 0.15s, border-color 0.15s;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-ghost:hover {
+  background: var(--color-surface-2);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: var(--color-on-primary);
+}
+
+/* ─── Layout helpers ────────────────────────────────────────────────────────── */
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.page {
+  padding: 2rem 0;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+/* ─── Card ──────────────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-md);
+}
+
+/* ─── Form ──────────────────────────────────────────────────────────────────── */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: var(--space-lg);
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+input[type='text'],
+input[type='url'],
+input[type='number'],
+textarea,
+select {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.65rem 0.9rem;
+  width: 100%;
+  min-height: 44px;
+  transition: border-color 0.15s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 18%, transparent);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+/* ─── Status badges ─────────────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
+}
+
+.status-idea       { background: var(--badge-idea-bg);          color: var(--badge-idea-text); }
+.status-want       { background: var(--badge-want-bg);          color: var(--badge-want-text); }
+.status-training   { background: var(--badge-training-bg);      color: var(--badge-training-text); }
+.status-landed     { background: var(--badge-landed-bg);        color: var(--badge-landed-text); }
+.status-done       { background: var(--badge-done-bg);          color: var(--badge-done-text); }
+.status-archived   { background: var(--badge-archived-bg);      color: var(--badge-archived-text); }
+
+.type-move        { background: var(--badge-move-bg);          color: var(--badge-move-text); }
+.type-spot        { background: var(--badge-spot-bg);          color: var(--badge-spot-text); }
+.type-challenge   { background: var(--badge-challenge-bg);     color: var(--badge-challenge-text); }
+.type-inspiration { background: var(--badge-inspiration-bg);   color: var(--badge-inspiration-text); }
+
+/* ─── Grid helpers ──────────────────────────────────────────────────────────── */
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+/* ─── Scrollable row ────────────────────────────────────────────────────────── */
+
+.row-scroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+/* ─── Misc ──────────────────────────────────────────────────────────────────── */
+
+.text-muted { color: var(--color-text-muted); }
+.text-sm    { font-size: 0.85rem; }
+.mt-1       { margin-top: 0.5rem; }
+.mt-2       { margin-top: 1rem; }
+.mt-3       { margin-top: 1.5rem; }
+.gap-1      { gap: 0.5rem; }
+.flex       { display: flex; }
+.flex-wrap  { flex-wrap: wrap; }
+.items-center { align-items: center; }
