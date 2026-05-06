@@ -196,7 +196,7 @@ button, .btn {
 }
 
 .page {
-  padding: 2rem 0;
+  padding-block: 2rem;
 }
 
 .page-header {
