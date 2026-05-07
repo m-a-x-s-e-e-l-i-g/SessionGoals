@@ -4,11 +4,10 @@
  * move        — a specific technique or movement skill (kong, precision, wall-run…)
  *               May optionally be pinned to a spot where you want to practice it.
  * spot        — a goal tied to one specific spot: a run, a line, a sequence to do there.
- * inspiration — reference material: a video, a concept, an athlete's clip to study.
  *
  * Challenges (multi-spot, multi-goal objectives) are a separate entity — see Challenge below.
  */
-export type GoalType = 'move' | 'spot' | 'inspiration';
+export type GoalType = 'move' | 'spot';
 
 export type GoalStatus = 'want_to_try' | 'done';
 

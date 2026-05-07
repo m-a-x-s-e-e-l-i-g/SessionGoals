@@ -24,6 +24,10 @@ function normalizeGoalStatus(value: string | null | undefined): 'want_to_try' | 
   return value === 'done' || value === 'landed' ? 'done' : 'want_to_try';
 }
 
+function normalizeGoalType(value: string | null | undefined): 'move' | 'spot' {
+  return value === 'spot' ? 'spot' : 'move';
+}
+
 type QueryResult<T> = { data: T[] | null; error: { message: string } | null };
 
 function must<T>(result: QueryResult<T>, table: string): T[] {
@@ -135,12 +139,11 @@ export async function loadAppStateForRequest(
     description: row.description ?? undefined,
     city: row.city ?? undefined,
     country: row.country ?? undefined,
-    coordinates:
-      typeof row.lat === 'number' && typeof row.lng === 'number'
-        ? { lat: row.lat, lng: row.lng }
-        : undefined,
+    // Coordinates are considered API-owned data and should be fetched live.
+    coordinates: undefined,
     tags: spotTagsBySpotId.get(row.id) ?? [],
-    imageUrl: row.image_url ?? undefined,
+    // Image URL is considered API-owned data and should be fetched live.
+    imageUrl: undefined,
     createdAt: toIsoString(row.created_at),
   }));
 
@@ -169,7 +172,7 @@ export async function loadAppStateForRequest(
   const goals: Goal[] = goalsRows.map((row: any) => ({
     id: row.id,
     userId: row.user_id,
-    type: row.type,
+    type: normalizeGoalType(row.type),
     title: row.title,
     description: row.description ?? undefined,
     status: normalizeGoalStatus(row.status),

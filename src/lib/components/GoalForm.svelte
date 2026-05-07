@@ -111,7 +111,6 @@
       <select id="type" name="type" bind:value={type} required>
         <option value="move">Move</option>
         <option value="spot">Spot</option>
-        <option value="inspiration">Inspiration</option>
       </select>
     </div>
 

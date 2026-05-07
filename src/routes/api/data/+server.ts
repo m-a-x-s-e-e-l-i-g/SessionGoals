@@ -528,9 +528,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           description: spot.description ?? null,
           city: spot.city ?? null,
           country: spot.country ?? null,
-          lat: spot.coordinates?.lat ?? null,
-          lng: spot.coordinates?.lng ?? null,
-          image_url: spot.imageUrl ?? null,
         },
         { onConflict: 'id' },
       );

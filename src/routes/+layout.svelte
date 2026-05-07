@@ -15,7 +15,7 @@
     { href: '/goals', label: 'Goals' },
     { href: '/lists', label: 'Lists' },
     { href: '/people', label: 'People' },
-    { href: '/inspiration', label: 'Inspiration' },
+    { href: '/inspiration', label: 'Library' },
     { href: '/spots', label: 'Spots' },
   ];
 

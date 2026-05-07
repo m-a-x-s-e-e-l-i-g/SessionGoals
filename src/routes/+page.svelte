@@ -239,7 +239,7 @@
       <span class="hero-accent">Plan your session.</span>
     </h1>
     <p class="hero-sub">
-      Your own goals, inspiration, and lists come first. Then explore public lists from others and track your own progress.
+      Your own goals and lists come first. Then explore public lists from others and track your own progress.
     </p>
     <div class="hero-actions">
       <a href="/goals/new" class="btn btn-primary">+ New Goal</a>

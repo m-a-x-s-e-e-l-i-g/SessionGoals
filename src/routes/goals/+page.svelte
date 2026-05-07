@@ -23,11 +23,9 @@
 
   $: moveTotal = goals.filter((g) => g.type === 'move').length;
   $: spotTotal = goals.filter((g) => g.type === 'spot').length;
-  $: inspirationTotal = goals.filter((g) => g.type === 'inspiration').length;
 
   $: moveDone = goals.filter((g) => g.type === 'move' && g.status === 'done').length;
   $: spotDone = goals.filter((g) => g.type === 'spot' && g.status === 'done').length;
-  $: inspirationDone = goals.filter((g) => g.type === 'inspiration' && g.status === 'done').length;
   $: totalDone = goals.filter((g) => g.status === 'done').length;
 
   $: normalizedQuery = searchQuery.trim().toLowerCase();
@@ -45,7 +43,6 @@
   });
   $: moveGoals = filteredByStatus.filter((g) => g.type === 'move');
   $: spotGoals = filteredByStatus.filter((g) => g.type === 'spot');
-  $: inspirationGoals = filteredByStatus.filter((g) => g.type === 'inspiration');
   $: openCount = goals.length - totalDone;
 
   async function handleToggleGoal(goalId: string) {
@@ -70,7 +67,7 @@
   <section class="pipeline" aria-label="Goals progress summary">
     <div class="pipeline-header">
       <span class="pipeline-label">Progress</span>
-      <span class="pipeline-total text-muted text-sm">{totalDone}/{goals.length} checked · {moveDone}/{moveTotal} moves · {spotDone}/{spotTotal} spots · {inspirationDone}/{inspirationTotal} inspiration</span>
+      <span class="pipeline-total text-muted text-sm">{totalDone}/{goals.length} checked · {moveDone}/{moveTotal} moves · {spotDone}/{spotTotal} spots</span>
     </div>
     <div class="pipeline-track" role="img" aria-label="Goal completion distribution">
       {#if goals.length > 0}
@@ -179,23 +176,6 @@
         <h2 class="section-title">📍 Spot</h2>
         <div class="grid-cards">
           {#each spotGoals as goal}
-            <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
-              <GoalCard
-                {goal}
-                spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
-                onToggle={handleToggleGoal}
-              />
-            </div>
-          {/each}
-        </div>
-      </section>
-    {/if}
-
-    {#if inspirationGoals.length > 0}
-      <section class="goal-section">
-        <h2 class="section-title">💡 Inspiration</h2>
-        <div class="grid-cards">
-          {#each inspirationGoals as goal}
             <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
               <GoalCard
                 {goal}

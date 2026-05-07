@@ -25,30 +25,16 @@
   function getGoogleMapsUrl(): string | null {
     const lat = spot.coordinates?.lat;
     const lng = spot.coordinates?.lng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    if (lat === 0 && lng === 0) return null;
+
+    const latLng = `${lat},${lng}`;
     const url = new URL('https://www.google.com/maps/search/');
     url.searchParams.set('api', '1');
-
-    if (
-      typeof lat === 'number' &&
-      typeof lng === 'number' &&
-      Number.isFinite(lat) &&
-      Number.isFinite(lng) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180 &&
-      !(lat === 0 && lng === 0)
-    ) {
-      const latLng = `${lat},${lng}`;
-      url.searchParams.set('query', latLng);
-      url.searchParams.set('center', latLng);
-      return url.toString();
-    }
-
-    const fallbackQuery = [spot.name, spot.city, spot.country].filter(Boolean).join(', ').trim();
-    if (!fallbackQuery) return null;
-
-    url.searchParams.set('query', fallbackQuery);
+    url.searchParams.set('query', latLng);
+    url.searchParams.set('center', latLng);
     return url.toString();
   }
 

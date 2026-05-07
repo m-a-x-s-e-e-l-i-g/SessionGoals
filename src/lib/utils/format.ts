@@ -12,7 +12,6 @@ export function formatGoalType(type: GoalType): string {
   const map: Record<GoalType, string> = {
     move: 'Move',
     spot: 'Spot',
-    inspiration: 'Inspiration',
   };
   return map[type] ?? type;
 }
@@ -60,7 +59,6 @@ export function typeIcon(type: GoalType): string {
   const map: Record<GoalType, string> = {
     move: '🤸',
     spot: '📍',
-    inspiration: '💡',
   };
   return map[type] ?? '•';
 }

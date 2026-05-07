@@ -15,11 +15,10 @@
   $: users = searchPeople(query);
   $: myStudents = currentUserId ? getStudentsForTeacher(currentUserId) : [];
 
-  function profileStats(userId: string): { goals: number; inspiration: number; publicLists: number } {
-    const goals = getGoals().filter((g) => g.userId === userId && g.type !== 'inspiration').length;
-    const inspiration = getGoals().filter((g) => g.userId === userId && g.type === 'inspiration').length;
+  function profileStats(userId: string): { goals: number; publicLists: number } {
+    const goals = getGoals().filter((g) => g.userId === userId).length;
     const publicLists = getPublicLists().filter((l) => l.userId === userId).length;
-    return { goals, inspiration, publicLists };
+    return { goals, publicLists };
   }
 </script>
 
@@ -32,7 +31,7 @@
     <h1 class="page-title">People</h1>
   </div>
 
-  <p class="text-muted intro">Search athletes, open profiles, and discover public goals, inspiration, and lists.</p>
+  <p class="text-muted intro">Search athletes, open profiles, and discover public goals and lists.</p>
 
   {#if isAuthenticated && myStudents.length > 0}
     <section class="students-focus" aria-label="Your students">
@@ -127,7 +126,6 @@
             {/if}
             <div class="stats-row">
               <span class="badge">{stats.goals} goals</span>
-              <span class="badge">{stats.inspiration} inspo</span>
               <span class="badge">{stats.publicLists} lists</span>
             </div>
           </div>

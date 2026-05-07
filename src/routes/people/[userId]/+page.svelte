@@ -71,9 +71,6 @@
     return isOwnProfile || profile?.isPublic;
   });
 
-  $: visibleInspiration = visibleGoals.filter((g) => g.type === 'inspiration');
-  $: visibleTrainingGoals = visibleGoals.filter((g) => g.type !== 'inspiration');
-
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
     return isOwnProfile || l.visibility === 'public';
@@ -322,7 +319,7 @@
       <div class="section-header">
         <h2 class="section-title">Goals</h2>
       </div>
-      {#if visibleTrainingGoals.length === 0}
+      {#if visibleGoals.length === 0}
         <EmptyState
           icon="🎯"
           title="No goals yet"
@@ -330,22 +327,7 @@
         />
       {:else}
         <div class="grid-cards">
-          {#each visibleTrainingGoals as goal}
-            <GoalCard {goal} />
-          {/each}
-        </div>
-      {/if}
-    </section>
-
-    <section class="section-block">
-      <div class="section-header">
-        <h2 class="section-title">Inspiration</h2>
-      </div>
-      {#if visibleInspiration.length === 0}
-        <p class="text-muted">No inspiration items yet.</p>
-      {:else}
-        <div class="grid-cards">
-          {#each visibleInspiration as goal}
+          {#each visibleGoals as goal}
             <GoalCard {goal} />
           {/each}
         </div>
