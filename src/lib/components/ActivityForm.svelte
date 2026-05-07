@@ -25,8 +25,10 @@
 
   const goals = getMyGoals().filter((g) => g.status !== 'done');
 
+  const dateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
   function formatLoggedDate(date: string) {
-    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(date + 'T00:00:00Z'));
+    return dateFormatter.format(new Date(date + 'T00:00:00Z'));
   }
 
   function validateForm(): string | null {
