@@ -48,6 +48,7 @@
 </script>
 
 {#if isOpen}
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div class="confirm-dialog-backdrop" on:click={handleBackdropClick} on:keydown={(e) => e.key === 'Escape' && !isLoading && handleCancel()} role="presentation">
     <div
       class="confirm-dialog"
