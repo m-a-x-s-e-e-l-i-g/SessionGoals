@@ -1,11 +1,14 @@
 <script lang="ts">
   import type { Goal } from '$lib/types';
   import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
+  import { getMovePreviewImageUrl } from '$lib/utils/media';
   import TagBadge from './TagBadge.svelte';
 
   export let goal: Goal;
   export let onToggle: ((id: string) => void) | undefined = undefined;
   export let spotName: string | undefined = undefined;
+
+  $: movePreviewImageUrl = getMovePreviewImageUrl(goal);
 </script>
 
 <div class="goal-card card">
@@ -14,6 +17,18 @@
     class="goal-card-overlay-link"
     aria-label="Open goal: {goal.title}"
   ></a>
+
+  {#if movePreviewImageUrl}
+    <img
+      class="move-preview"
+      src={movePreviewImageUrl}
+      alt="{goal.title} move preview"
+      loading="lazy"
+      on:error={(e) => {
+        (e.currentTarget as HTMLImageElement).style.display = 'none';
+      }}
+    />
+  {/if}
 
   <div class="goal-card-header">
     <span class="type-badge badge type-{goal.type}">
@@ -78,6 +93,16 @@
     gap: 0.6rem;
     color: var(--color-text);
     transition: border-color 0.18s, transform 0.18s;
+  }
+
+  .move-preview {
+    width: 100%;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: calc(var(--radius-md) - 2px);
+    position: relative;
+    z-index: 1;
+    background: var(--color-surface-2);
   }
 
   .goal-card-overlay-link {

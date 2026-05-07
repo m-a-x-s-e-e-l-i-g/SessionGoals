@@ -4,6 +4,7 @@
   import { getGoalById, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
+  import { getMovePreviewImageUrl } from '$lib/utils/media';
   import TagBadge from '$lib/components/TagBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { GoalStatus } from '$lib/types';
@@ -11,6 +12,10 @@
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
+  $: subgoals = (goal?.subgoalIds ?? [])
+    .map((id) => getGoalById(id))
+    .filter((entry): entry is NonNullable<typeof entry> => !!entry);
+  $: movePreviewImageUrl = goal ? getMovePreviewImageUrl(goal) : null;
   $: spotGoogleMapsUrl = getGoogleMapsUrl(
     spot?.coordinates?.lat,
     spot?.coordinates?.lng,
@@ -146,6 +151,20 @@
           <p class="checked-feedback">✓ Goal checked!</p>
         {/if}
 
+        {#if movePreviewImageUrl}
+          <div class="move-preview-wrap">
+            <img
+              src={movePreviewImageUrl}
+              alt="{goal.title} move preview"
+              class="move-preview-image"
+              loading="lazy"
+              on:error={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        {/if}
+
         {#if goal.description}
           <div class="description-section">
             <p class="goal-description">{goal.description}</p>
@@ -209,6 +228,22 @@
                 </a>
               {/if}
             </div>
+          </div>
+        {/if}
+
+        {#if subgoals.length > 0}
+          <div class="section">
+            <h3 class="section-label">Subgoals</h3>
+            <ul class="links-list">
+              {#each subgoals as subgoal}
+                <li>
+                  <a href="/goals/{subgoal.id}" class="link-item">
+                    {subgoal.title}
+                    <span class="text-muted text-sm">→</span>
+                  </a>
+                </li>
+              {/each}
+            </ul>
           </div>
         {/if}
 
@@ -354,6 +389,21 @@
 
   .description-section {
     margin-bottom: 2rem;
+  }
+
+  .move-preview-wrap {
+    margin-bottom: 1.25rem;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+  }
+
+  .move-preview-image {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    display: block;
   }
 
   .goal-description {

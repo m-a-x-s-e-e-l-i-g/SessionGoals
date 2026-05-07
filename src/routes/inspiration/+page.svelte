@@ -1,19 +1,14 @@
 <script lang="ts">
-  import { page } from '$app/stores';
   import { getGoals } from '$lib/data/goals';
-  import { getPublicUsers, getUserById } from '$lib/data/users';
+  import { getUserById } from '$lib/data/users';
   import { getSpotById } from '$lib/data/spots';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
 
   let query = '';
 
-  const publicUserIds = new Set(getPublicUsers().map((user) => user.id));
-  $: currentUserId = $page.data.user?.id ?? null;
-
   $: libraryMoves = getGoals()
-    .filter((goal) => goal.type === 'move' && !!goal.userId && publicUserIds.has(goal.userId))
-    .filter((goal) => !currentUserId || goal.userId !== currentUserId)
+    .filter((goal) => goal.type === 'move')
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 
   $: normalizedQuery = query.trim().toLowerCase();
@@ -48,7 +43,7 @@
   </div>
 
   <p class="intro text-muted">
-    Public move goals added by other athletes. Browse ideas, inspect details, and build your own progression.
+    Shared movement library with all moves. Browse ideas, inspect details, and build your own progression.
   </p>
 
   <div class="search-shell" role="search" aria-label="Search movement library">
@@ -66,8 +61,8 @@
   {#if libraryMoves.length === 0}
     <EmptyState
       icon="🤸"
-      title="No public moves yet"
-      message="As athletes publish move goals, they will appear here as a shared movement library."
+      title="No moves yet"
+      message="Moves from everyone will appear here in one shared library."
       actionHref="/goals/new?type=move"
       actionLabel="Add your first move"
     />

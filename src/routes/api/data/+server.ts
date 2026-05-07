@@ -55,6 +55,28 @@ async function snapshotFor(locals: App.Locals, userId: string | null) {
   return loadAppStateForRequest(locals.supabase, userId);
 }
 
+async function getOwnedSubgoalIds(
+  locals: App.Locals,
+  userId: string,
+  subgoalIds: string[] | undefined,
+  excludeGoalId?: string,
+): Promise<string[]> {
+  const uniqueIds = Array.from(new Set((subgoalIds ?? []).map((id) => id?.trim()).filter(Boolean) as string[]));
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await locals.supabase!
+    .from('goals')
+    .select('id')
+    .eq('user_id', userId)
+    .in('id', uniqueIds);
+
+  if (error) throw new Error(error.message);
+
+  const ownedIds = new Set((data ?? []).map((row) => row.id as string));
+  const sanitized = uniqueIds.filter((id) => ownedIds.has(id) && id !== excludeGoalId);
+  return sanitized;
+}
+
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.supabase) {
     return json({ ok: false, error: 'Supabase is not configured.' }, { status: 500 });
@@ -100,6 +122,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const links = input.tagIds.map((tagId) => ({ goal_id: goalRow.id, tag_id: tagId }));
         const { error: tagsError } = await locals.supabase.from('goal_tags').insert(links);
         if (tagsError) throw new Error(tagsError.message);
+      }
+
+      const subgoalIds =
+        input.type === 'move'
+          ? await getOwnedSubgoalIds(locals, locals.user.id, input.subgoalIds, goalRow.id)
+          : [];
+      if (subgoalIds.length > 0) {
+        const inserts = subgoalIds.map((childGoalId) => ({
+          parent_goal_id: goalRow.id,
+          child_goal_id: childGoalId,
+        }));
+        const { error: subgoalsError } = await locals.supabase.from('goal_subgoals').insert(inserts);
+        if (subgoalsError) throw new Error(subgoalsError.message);
       }
 
       const snapshot = await snapshotFor(locals, locals.user.id);
@@ -164,6 +199,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const links = input.tagIds.map((tagId) => ({ goal_id: id, tag_id: tagId }));
         const { error: insertTagsError } = await locals.supabase.from('goal_tags').insert(links);
         if (insertTagsError) throw new Error(insertTagsError.message);
+      }
+
+      const { error: deleteSubgoalsError } = await locals.supabase
+        .from('goal_subgoals')
+        .delete()
+        .eq('parent_goal_id', id);
+      if (deleteSubgoalsError) throw new Error(deleteSubgoalsError.message);
+
+      const subgoalIds =
+        input.type === 'move'
+          ? await getOwnedSubgoalIds(locals, locals.user.id, input.subgoalIds, id)
+          : [];
+      if (subgoalIds.length > 0) {
+        const inserts = subgoalIds.map((childGoalId) => ({
+          parent_goal_id: id,
+          child_goal_id: childGoalId,
+        }));
+        const { error: insertSubgoalsError } = await locals.supabase.from('goal_subgoals').insert(inserts);
+        if (insertSubgoalsError) throw new Error(insertSubgoalsError.message);
       }
 
       const snapshot = await snapshotFor(locals, locals.user.id);

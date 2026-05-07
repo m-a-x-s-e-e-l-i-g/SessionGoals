@@ -48,6 +48,7 @@ export interface Goal {
   status: GoalStatus;
   difficulty?: number; // 1–5
   spotId?: string;
+  subgoalIds?: string[];
   sourceUrl?: string;
   tags: Tag[];
   links: GoalLink[];
@@ -108,6 +109,7 @@ export interface CreateGoalInput {
   status: GoalStatus;
   difficulty?: number;
   spotId?: string;
+  subgoalIds?: string[];
   sourceUrl?: string;
   tagIds: string[];
 }
@@ -119,6 +121,7 @@ export interface UpdateGoalInput {
   status: GoalStatus;
   difficulty?: number;
   spotId?: string;
+  subgoalIds?: string[];
   sourceUrl?: string;
   tagIds: string[];
 }

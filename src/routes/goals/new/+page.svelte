@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { getTags } from '$lib/data/tags';
-  import { createGoal } from '$lib/data/goals';
+  import { createGoal, getMyGoals } from '$lib/data/goals';
   import { addGoalToList, getListById } from '$lib/data/lists';
   import { upsertSpot } from '$lib/data/spots';
   import GoalForm from '$lib/components/GoalForm.svelte';
@@ -11,6 +11,7 @@
   const tags = getTags();
   let submitting = false;
   let error: string | undefined;
+  const subgoalCandidates = getMyGoals().filter((goal) => goal.type === 'move');
 
   $: listId = $page.url.searchParams.get('listId') ?? undefined;
   $: sourceList = listId ? getListById(listId) : undefined;
@@ -37,6 +38,7 @@
       status: (data.get('status') as GoalStatus) ?? 'want_to_try',
       difficulty: data.get('difficulty') ? Number(data.get('difficulty')) : undefined,
       spotId: (data.get('spotId') as string)?.trim() || undefined,
+      subgoalIds: data.getAll('subgoalIds').map((value) => String(value)).filter(Boolean),
       sourceUrl: (data.get('sourceUrl') as string)?.trim() || undefined,
       tagIds: data.getAll('tags') as string[],
     };
@@ -83,7 +85,7 @@
 
   <div class="form-card card">
     <form on:submit={handleSubmit}>
-      <GoalForm {tags} {submitting} {error} />
+      <GoalForm {tags} {submitting} {error} availableSubgoals={subgoalCandidates} />
     </form>
   </div>
 </div>

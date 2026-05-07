@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GoalStatus, GoalType, Spot, Tag } from '$lib/types';
+  import type { Goal, GoalStatus, GoalType, Spot, Tag } from '$lib/types';
 
   export let tags: Tag[] = [];
   export let submitting = false;
@@ -23,6 +23,8 @@
   };
   export let initialTagIds: string[] = [];
   export let initialSpot: Spot | null = null;
+  export let availableSubgoals: Goal[] = [];
+  export let initialSubgoalIds: string[] = [];
 
   let type: GoalType = initial.type;
   let isDone = initial.status === 'done';
@@ -32,6 +34,7 @@
   let spotLoading = false;
   let spotError: string | undefined = undefined;
   let hiddenSpotImages = new Set<string>();
+  let selectedSubgoalIds: string[] = [...initialSubgoalIds];
 
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
     if (!imageUrl) return undefined;
@@ -155,6 +158,26 @@
       value={initial.sourceUrl ?? ''}
     />
   </div>
+
+  {#if type === 'move' && availableSubgoals.length > 0}
+    <div class="form-group">
+      <p class="form-section-label">Subgoals</p>
+      <p class="text-sm text-muted subgoal-help">Break this move down into smaller move goals.</p>
+      <div class="subgoals-grid">
+        {#each availableSubgoals as candidate}
+          <label class="tag-option">
+            <input
+              type="checkbox"
+              name="subgoalIds"
+              value={candidate.id}
+              bind:group={selectedSubgoalIds}
+            />
+            <span>{candidate.title}</span>
+          </label>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   {#if type === 'spot'}
     <div class="form-group">
@@ -289,6 +312,24 @@
     display: flex;
     gap: 0.75rem;
     align-items: center;
+  }
+
+  .subgoal-help {
+    margin-bottom: 0.45rem;
+  }
+
+  .form-section-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .subgoals-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
   }
 
   .spot-results {
