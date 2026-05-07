@@ -11,6 +11,9 @@
     hideImage = false;
   }
 
+  const googleMapsLogoUrl =
+    '/images/icons/google-map-icon.svg';
+
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
     if (!imageUrl) return undefined;
     if (imageUrl.startsWith('/api/image-proxy')) return imageUrl;
@@ -18,6 +21,18 @@
     const normalized = imageUrl.startsWith('/') ? `https://parkour.spot${imageUrl}` : imageUrl;
     return `/api/image-proxy?url=${encodeURIComponent(normalized)}`;
   }
+
+  function getGoogleMapsUrl(): string | null {
+    const lat = spot.coordinates?.lat;
+    const lng = spot.coordinates?.lng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  }
+
+  $: googleMapsUrl = getGoogleMapsUrl();
 </script>
 
 <div class="spot-card card">
@@ -56,15 +71,15 @@
 
   {#if spot.coordinates || spot.externalId}
     <div class="spot-ext-links">
-      {#if spot.coordinates}
+      {#if googleMapsUrl}
         <a
-          href="https://maps.google.com/?q={spot.coordinates.lat},{spot.coordinates.lng}"
+          href={googleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
           class="spot-ext-link"
           title="Open in Google Maps"
         >
-          <img src="https://maps.google.com/favicon.ico" alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
+          <img src={googleMapsLogoUrl} alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
           Google Maps
         </a>
       {/if}

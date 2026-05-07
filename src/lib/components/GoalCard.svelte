@@ -9,6 +9,12 @@
 </script>
 
 <div class="goal-card card">
+  <a
+    href="/goals/{goal.id}"
+    class="goal-card-overlay-link"
+    aria-label="Open goal: {goal.title}"
+  ></a>
+
   <div class="goal-card-header">
     <span class="type-badge badge type-{goal.type}">
       {typeIcon(goal.type)} {formatGoalType(goal.type)}
@@ -32,7 +38,7 @@
     </div>
   </div>
 
-  <a href="/goals/{goal.id}" class="goal-card-link">
+  <div class="goal-card-link">
     <h3 class="goal-title">{goal.title}</h3>
 
     {#if goal.description}
@@ -61,16 +67,29 @@
         {/each}
       </div>
     {/if}
-  </a>
+  </div>
 </div>
 
 <style>
   .goal-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     color: var(--color-text);
     transition: border-color 0.18s, transform 0.18s;
+  }
+
+  .goal-card-overlay-link {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .goal-card-overlay-link:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 
   .goal-card:hover,
@@ -80,6 +99,9 @@
   }
 
   .goal-card-header {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -94,6 +116,9 @@
   }
 
   .goal-card-link {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
@@ -125,6 +150,7 @@
   }
 
   .quick-check {
+    pointer-events: auto;
     min-width: 44px;
     min-height: 44px;
     width: 44px;

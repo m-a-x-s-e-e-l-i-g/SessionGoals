@@ -24,6 +24,55 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(asNumber) ? asNumber : null;
 }
 
+function pickCoordinatePair(raw: any): { lat: number; lng: number } | null {
+  const directLat =
+    toNumber(raw?.lat) ??
+    toNumber(raw?.latitude) ??
+    toNumber(raw?.location?.lat) ??
+    toNumber(raw?.location?.latitude) ??
+    toNumber(raw?.coordinates?.lat) ??
+    toNumber(raw?.coordinates?.latitude) ??
+    toNumber(raw?.location?.coordinates?.lat) ??
+    toNumber(raw?.location?.coordinates?.latitude) ??
+    toNumber(raw?.geometry?.location?.lat) ??
+    toNumber(raw?.geometry?.location?.latitude);
+  const directLng =
+    toNumber(raw?.lng) ??
+    toNumber(raw?.lon) ??
+    toNumber(raw?.longitude) ??
+    toNumber(raw?.location?.lng) ??
+    toNumber(raw?.location?.longitude) ??
+    toNumber(raw?.coordinates?.lng) ??
+    toNumber(raw?.coordinates?.lon) ??
+    toNumber(raw?.coordinates?.longitude) ??
+    toNumber(raw?.location?.coordinates?.lng) ??
+    toNumber(raw?.location?.coordinates?.lon) ??
+    toNumber(raw?.location?.coordinates?.longitude) ??
+    toNumber(raw?.geometry?.location?.lng) ??
+    toNumber(raw?.geometry?.location?.lon) ??
+    toNumber(raw?.geometry?.location?.longitude);
+
+  if (directLat !== null && directLng !== null) {
+    return { lat: directLat, lng: directLng };
+  }
+
+  const geoJsonCoords =
+    (Array.isArray(raw?.geometry?.coordinates) && raw.geometry.coordinates) ||
+    (Array.isArray(raw?.location?.coordinates) && raw.location.coordinates) ||
+    (Array.isArray(raw?.coordinates) && raw.coordinates) ||
+    null;
+
+  if (geoJsonCoords && geoJsonCoords.length >= 2) {
+    const lng = toNumber(geoJsonCoords[0]);
+    const lat = toNumber(geoJsonCoords[1]);
+    if (lat !== null && lng !== null) {
+      return { lat, lng };
+    }
+  }
+
+  return null;
+}
+
 function getApiBase(): string {
   return asTrimmedString(env.PARKOUR_SPOT_API_URL) ?? DEFAULT_API_BASE;
 }
@@ -106,17 +155,7 @@ function normalizeSpot(raw: any, index: number): Spot | null {
     asTrimmedString(raw?.displayName) ??
     externalId;
 
-  const lat =
-    toNumber(raw?.lat) ??
-    toNumber(raw?.latitude) ??
-    toNumber(raw?.location?.lat) ??
-    toNumber(raw?.location?.latitude);
-  const lng =
-    toNumber(raw?.lng) ??
-    toNumber(raw?.lon) ??
-    toNumber(raw?.longitude) ??
-    toNumber(raw?.location?.lng) ??
-    toNumber(raw?.location?.longitude);
+  const coordinates = pickCoordinatePair(raw);
 
   const createdAt =
     asTrimmedString(raw?.createdAt) ??
@@ -145,7 +184,7 @@ function normalizeSpot(raw: any, index: number): Spot | null {
       asTrimmedString(raw?.country_code) ??
       asTrimmedString(raw?.address?.country) ??
       undefined,
-    coordinates: lat !== null && lng !== null ? { lat, lng } : undefined,
+    coordinates: coordinates ?? undefined,
     tags: normalizeTags(raw),
     imageUrl:
       asTrimmedString(Array.isArray(raw?.imageUrls) ? raw.imageUrls[0] : null) ??

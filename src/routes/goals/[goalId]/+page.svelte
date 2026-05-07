@@ -11,6 +11,7 @@
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
+  $: spotGoogleMapsUrl = getGoogleMapsUrl(spot?.coordinates?.lat, spot?.coordinates?.lng);
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id as string | undefined;
   $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
@@ -35,6 +36,15 @@
 
     // Proxy through our endpoint
     return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+
+  const googleMapsLogoUrl = '/images/icons/google-map-icon.svg';
+
+  function getGoogleMapsUrl(lat: number | undefined, lng: number | undefined): string | null {
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
   }
 
   async function handleCheckedChange(e: Event) {
@@ -161,15 +171,15 @@
               {/if}
             </div>
             <div class="spot-actions">
-              {#if spot.coordinates}
+              {#if spotGoogleMapsUrl}
                 <a
-                  href="https://maps.google.com/?q={spot.coordinates.lat},{spot.coordinates.lng}"
+                  href={spotGoogleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="btn btn-sm btn-ghost spot-ext-link"
                   title="Open in Google Maps"
                 >
-                  <img src="https://maps.google.com/favicon.ico" alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
+                  <img src={googleMapsLogoUrl} alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
                   Google Maps
                 </a>
               {/if}

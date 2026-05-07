@@ -7,6 +7,7 @@
   export let showOwner = false;
   export let isTracked = false;
   export let progress: { done: number; total: number } | undefined = undefined;
+  export let trackerCount: number | undefined = undefined;
 </script>
 
 <a href="/lists/{list.id}" class="list-card card">
@@ -20,7 +21,12 @@
         <span class="badge tracking-badge">Tracking</span>
       {/if}
     </div>
-    <span class="text-muted text-sm">{list.items.length} goal{list.items.length !== 1 ? 's' : ''}</span>
+    <div class="list-stats text-muted text-sm">
+      {#if trackerCount !== undefined}
+        <span>{trackerCount} tracking</span>
+      {/if}
+      <span>{list.items.length} goal{list.items.length !== 1 ? 's' : ''}</span>
+    </div>
   </div>
   <h3 class="list-name">{list.name}</h3>
   {#if list.description}
@@ -68,6 +74,14 @@
   .list-name {
     font-size: 1rem;
     font-weight: 600;
+  }
+
+  .list-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .list-type-badge {
