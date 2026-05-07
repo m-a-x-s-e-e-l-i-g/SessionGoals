@@ -166,10 +166,11 @@
                   href="https://maps.google.com/?q={spot.coordinates.lat},{spot.coordinates.lng}"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="btn btn-sm btn-ghost"
+                  class="btn btn-sm btn-ghost spot-ext-link"
                   title="Open in Google Maps"
                 >
-                  🗺️ Maps
+                  <img src="https://maps.google.com/favicon.ico" alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
+                  Google Maps
                 </a>
               {/if}
               {#if spot.externalId}
@@ -177,10 +178,11 @@
                   href="https://parkour.spot/spot/{spot.externalId}"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="btn btn-sm btn-ghost"
+                  class="btn btn-sm btn-ghost spot-ext-link"
                   title="View on parkour.spot"
                 >
-                  🎯 parkour.spot
+                  <img src="https://parkour.spot/favicon.ico" alt="" class="ext-logo ext-logo--parkour" width="14" height="14" aria-hidden="true" />
+                  parkour.spot
                 </a>
               {/if}
             </div>
@@ -459,6 +461,23 @@
   .btn-sm {
     padding: 0.35rem 0.75rem;
     font-size: 0.8rem;
+  }
+
+  .spot-ext-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .ext-logo {
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .ext-logo--parkour {
+      filter: invert(1) brightness(0.85);
+    }
   }
 
   .links-list {

@@ -54,6 +54,35 @@
     </div>
   {/if}
 
+  {#if spot.coordinates || spot.externalId}
+    <div class="spot-ext-links">
+      {#if spot.coordinates}
+        <a
+          href="https://maps.google.com/?q={spot.coordinates.lat},{spot.coordinates.lng}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="spot-ext-link"
+          title="Open in Google Maps"
+        >
+          <img src="https://maps.google.com/favicon.ico" alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
+          Google Maps
+        </a>
+      {/if}
+      {#if spot.externalId}
+        <a
+          href="https://parkour.spot/spot/{spot.externalId}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="spot-ext-link"
+          title="View on parkour.spot"
+        >
+          <img src="https://parkour.spot/favicon.ico" alt="" class="ext-logo ext-logo--parkour" width="14" height="14" aria-hidden="true" />
+          parkour.spot
+        </a>
+      {/if}
+    </div>
+  {/if}
+
   {#if showActions}
     <slot name="actions" />
   {/if}
@@ -95,5 +124,45 @@
     -webkit-box-orient: vertical;
     line-clamp: 2;
     overflow: hidden;
+  }
+
+  .spot-ext-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+  }
+
+  .spot-ext-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: border-color 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+
+  .spot-ext-link:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .ext-logo {
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .ext-logo--parkour {
+      filter: invert(1) brightness(0.85);
+    }
   }
 </style>
