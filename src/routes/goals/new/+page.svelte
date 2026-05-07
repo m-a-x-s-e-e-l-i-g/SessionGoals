@@ -1,7 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { getTags } from '$lib/data/tags';
   import { createGoal } from '$lib/data/goals';
+  import { addGoalToList, getListById } from '$lib/data/lists';
   import { upsertSpot } from '$lib/data/spots';
   import GoalForm from '$lib/components/GoalForm.svelte';
   import type { CreateGoalInput, GoalType, GoalStatus, Spot } from '$lib/types';
@@ -9,6 +11,9 @@
   const tags = getTags();
   let submitting = false;
   let error: string | undefined;
+
+  $: listId = $page.url.searchParams.get('listId') ?? undefined;
+  $: sourceList = listId ? getListById(listId) : undefined;
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -45,7 +50,13 @@
       }
 
       const goal = await createGoal(input);
-      goto(`/goals/${goal.id}`);
+
+      if (listId) {
+        await addGoalToList(listId, goal);
+        goto(`/lists/${listId}`);
+      } else {
+        goto(`/goals/${goal.id}`);
+      }
     } catch (e) {
       error = 'Failed to create goal. Please try again.';
       submitting = false;
@@ -59,7 +70,15 @@
 
 <div class="container page">
   <div class="page-header">
-    <h1 class="page-title">New Goal</h1>
+    <div>
+      {#if sourceList}
+        <a href="/lists/{sourceList.id}" class="back-link text-muted text-sm">← {sourceList.name}</a>
+      {/if}
+      <h1 class="page-title">New Goal</h1>
+      {#if sourceList}
+        <p class="text-muted text-sm">Will be added to <strong>{sourceList.name}</strong></p>
+      {/if}
+    </div>
   </div>
 
   <div class="form-card card">
@@ -72,5 +91,15 @@
 <style>
   .form-card {
     max-width: 680px;
+  }
+
+  .back-link {
+    display: block;
+    margin-bottom: 0.25rem;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
   }
 </style>

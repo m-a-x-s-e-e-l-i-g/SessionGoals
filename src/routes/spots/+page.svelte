@@ -241,6 +241,12 @@
     flex-shrink: 0;
   }
 
+  @media (prefers-color-scheme: dark) {
+    .parkour-spot-logo {
+      filter: invert(1) brightness(0.85);
+    }
+  }
+
   .search-input:focus {
     outline: none;
     border-color: var(--color-primary);

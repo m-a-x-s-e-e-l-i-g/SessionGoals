@@ -31,8 +31,8 @@
   --badge-training-text:    oklch(30% 0.11 165);
   --badge-landed-bg:        oklch(88% 0.07 185);
   --badge-landed-text:      oklch(29% 0.11 185);
-  --badge-done-bg:          oklch(90.5% 0.08 84);
-  --badge-done-text:        oklch(35% 0.12 84);
+  --badge-done-bg:          oklch(89% 0.1 145);
+  --badge-done-text:        oklch(30% 0.13 145);
   --badge-archived-bg:      oklch(90.5% 0.03 18);
   --badge-archived-text:    oklch(38% 0.09 18);
 
@@ -93,8 +93,8 @@ html {
     --badge-training-text:    oklch(84% 0.1 165);
     --badge-landed-bg:        oklch(28% 0.08 185);
     --badge-landed-text:      oklch(84% 0.11 185);
-    --badge-done-bg:          oklch(30% 0.09 84);
-    --badge-done-text:        oklch(86% 0.11 84);
+    --badge-done-bg:          oklch(28% 0.1 145);
+    --badge-done-text:        oklch(84% 0.13 145);
     --badge-archived-bg:      oklch(29% 0.04 18);
     --badge-archived-text:    oklch(82% 0.08 18);
 

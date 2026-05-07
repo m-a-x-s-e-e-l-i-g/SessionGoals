@@ -23,6 +23,9 @@ export function getCurrentUserIdFromState(): string | null {
   return getAppState().currentUserId;
 }
 
+/** Readable store — subscribe to re-run derived values when state changes */
+export { appState as appStateStore };
+
 export function ensureClientStateReady(): void {
   if (!browser) return;
   if (initialized) return;

@@ -204,6 +204,33 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ ok: true, data: list });
     }
 
+    if (action === 'updateList') {
+      if (!locals.user) return unauthorized();
+      const id = payload.id as string | undefined;
+      if (!id) return badRequest('List id is required.');
+
+      const name = (payload.name as string | undefined)?.trim();
+      if (!name) return badRequest('List name is required.');
+
+      const { error } = await locals.supabase
+        .from('goal_lists')
+        .update({
+          name,
+          description: (payload.description as string | undefined)?.trim() || null,
+          type: payload.type as string,
+          visibility: payload.visibility as string,
+        })
+        .eq('id', id)
+        .eq('user_id', locals.user.id);
+
+      if (error) throw new Error(error.message);
+
+      const snapshot = await snapshotFor(locals, locals.user.id);
+      const list = snapshot.lists.find((entry) => entry.id === id);
+      if (!list) return json({ ok: false, error: 'List not found.' }, { status: 404 });
+      return json({ ok: true, data: list });
+    }
+
     if (action === 'deleteList') {
       if (!locals.user) return unauthorized();
       const id = payload.id as string | undefined;

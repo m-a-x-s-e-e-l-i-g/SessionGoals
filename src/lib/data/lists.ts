@@ -1,4 +1,4 @@
-import type { GoalList, CreateGoalListInput, Goal } from '$lib/types';
+import type { GoalList, CreateGoalListInput, UpdateGoalListInput, Goal } from '$lib/types';
 import { runDataAction } from './api';
 import { getAppState, getCurrentUserIdFromState, updateAppState } from './state';
 
@@ -40,6 +40,15 @@ export async function createList(input: CreateGoalListInput): Promise<GoalList> 
 
 export async function addGoalToList(listId: string, goal: Goal): Promise<GoalList | undefined> {
   const list = await runDataAction<GoalList>('addGoalToList', { listId, goalId: goal.id });
+  updateAppState((state) => ({
+    ...state,
+    lists: state.lists.map((entry) => (entry.id === list.id ? list : entry)),
+  }));
+  return list;
+}
+
+export async function updateList(id: string, input: UpdateGoalListInput): Promise<GoalList> {
+  const list = await runDataAction<GoalList>('updateList', { id, ...input });
   updateAppState((state) => ({
     ...state,
     lists: state.lists.map((entry) => (entry.id === list.id ? list : entry)),

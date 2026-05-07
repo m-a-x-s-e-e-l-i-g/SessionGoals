@@ -126,6 +126,13 @@ export interface CreateGoalListInput {
   visibility?: GoalListVisibility;
 }
 
+export interface UpdateGoalListInput {
+  name: string;
+  description?: string;
+  type: GoalListType;
+  visibility: GoalListVisibility;
+}
+
 export interface ListProgressItem {
   goalId: string;
   done: boolean;

@@ -34,6 +34,10 @@ export async function updateGoalStatus(id: string, status: Goal['status']): Prom
   updateAppState((state) => ({
     ...state,
     goals: state.goals.map((entry) => (entry.id === id ? goal : entry)),
+    lists: state.lists.map((list) => ({
+      ...list,
+      items: list.items.map((item) => (item.goalId === id ? { ...item, goal } : item)),
+    })),
   }));
   return goal;
 }
