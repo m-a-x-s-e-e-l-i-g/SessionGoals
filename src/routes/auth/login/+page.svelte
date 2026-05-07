@@ -9,6 +9,7 @@
   };
 
   $: callbackError = callbackErrorMessages[data?.urlError ?? ''] ?? null;
+  let isLoading = false;
 </script>
 
 <svelte:head>
@@ -33,9 +34,11 @@
       <p class="auth-error">{callbackError}</p>
     {/if}
 
-    <form method="POST">
+    <form method="POST" on:submit={() => (isLoading = true)}>
       <input type="hidden" name="next" value={data.next} />
-      <button type="submit" class="btn btn-primary auth-button">Continue with Google</button>
+      <button type="submit" class="btn btn-primary auth-button" disabled={isLoading} aria-busy={isLoading}>
+        {isLoading ? 'Loading…' : 'Continue with Google'}
+      </button>
     </form>
 
     <p class="auth-legal text-sm text-muted">

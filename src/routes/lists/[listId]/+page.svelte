@@ -31,6 +31,9 @@
   $: currentUser = currentUserId ? getUserById(currentUserId) : undefined;
   $: canEnrollStudents = isAuthenticated && !!list && list.visibility === 'public' && isTeacher(currentUser);
   $: teacherStudents = canEnrollStudents && currentUserId ? getStudentsForTeacher(currentUserId) : [];
+  $: trackerCount = list
+    ? new Set($appStateStore.progress.filter((p) => p.sourceListId === list.id).map((p) => p.userId)).size
+    : 0;
 
   let enrollmentNotice = '';
   let showDeleteDialog = false;
@@ -269,6 +272,7 @@
       <span class="badge list-visibility-badge visibility-{list.visibility}">
         {formatListVisibility(list.visibility)}
       </span>
+      <span class="badge list-tracking-badge">{trackerCount} tracking</span>
       {#if list.description}
         <p class="text-muted">{list.description}</p>
       {/if}
@@ -354,8 +358,9 @@
             {@const done = isOwnList
               ? goal.status === 'done'
               : !!progress?.items.find((p) => p.goalId === item.goalId)?.done}
-            {@const expanded = expandedGoalIds.has(item.goalId)}
             {@const spot = goal.spotId ? getSpotById(goal.spotId) : undefined}
+            {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0 || goal.tags.length > 0)}
+            {@const expanded = canExpand && expandedGoalIds.has(item.goalId)}
             <li class="checklist-row" class:is-done={done} class:is-expanded={expanded}>
               <!-- tick -->
               {#if isOwnList}
@@ -397,23 +402,42 @@
               {/if}
 
               <!-- main row body: click to expand -->
-              <button type="button" class="checklist-body" on:click={() => toggleExpand(item.goalId)}>
-                <span class="checklist-top-row">
-                  <span class="checklist-goal-title">{goal.title}</span>
-                  <span class="checklist-chevron" class:open={expanded} aria-hidden="true">›</span>
-                </span>
-                <span class="checklist-goal-meta">
-                  {#if goal.status === 'done'}
-                    <span class="badge status-{goal.status}">Checked</span>
-                  {/if}
-                  {#if goal.type !== 'move'}
-                    <span class="badge type-{goal.type}">{goal.type}</span>
-                  {/if}
-                  {#if goal.difficulty}
-                    <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
-                  {/if}
-                </span>
-              </button>
+              {#if canExpand}
+                <button type="button" class="checklist-body" on:click={() => toggleExpand(item.goalId)}>
+                  <span class="checklist-top-row">
+                    <span class="checklist-goal-title">{goal.title}</span>
+                    <span class="checklist-chevron" class:open={expanded} aria-hidden="true">›</span>
+                  </span>
+                  <span class="checklist-goal-meta">
+                    {#if done}
+                      <span class="badge status-done">Checked</span>
+                    {/if}
+                    {#if goal.type !== 'move'}
+                      <span class="badge type-{goal.type}">{goal.type}</span>
+                    {/if}
+                    {#if goal.difficulty}
+                      <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
+                    {/if}
+                  </span>
+                </button>
+              {:else}
+                <div class="checklist-body checklist-body--static">
+                  <span class="checklist-top-row">
+                    <span class="checklist-goal-title">{goal.title}</span>
+                  </span>
+                  <span class="checklist-goal-meta">
+                    {#if done}
+                      <span class="badge status-done">Checked</span>
+                    {/if}
+                    {#if goal.type !== 'move'}
+                      <span class="badge type-{goal.type}">{goal.type}</span>
+                    {/if}
+                    {#if goal.difficulty}
+                      <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
+                    {/if}
+                  </span>
+                </div>
+              {/if}
 
               <!-- open-in-full link -->
               <a href="/goals/{goal.id}" class="open-link" aria-label="Open goal" title="Open full goal">
@@ -508,6 +532,13 @@
   .list-visibility-badge {
     font-size: 0.72rem;
     border: 1px solid var(--color-border);
+  }
+
+  .list-tracking-badge {
+    font-size: 0.72rem;
+    background: color-mix(in oklch, var(--color-primary) 12%, white);
+    color: color-mix(in oklch, var(--color-primary) 72%, black);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
   }
 
   .visibility-public {
@@ -631,8 +662,16 @@
     width: 100%;
   }
 
+  .checklist-body--static {
+    cursor: default;
+  }
+
   .checklist-body:hover .checklist-goal-title {
     color: var(--color-primary);
+  }
+
+  .checklist-body--static:hover .checklist-goal-title {
+    color: inherit;
   }
 
   .checklist-top-row {

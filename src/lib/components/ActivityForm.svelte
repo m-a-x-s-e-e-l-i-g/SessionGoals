@@ -23,13 +23,12 @@
   let successMessage = '';
   let isSubmitting = false;
 
-  const goals = getMyGoals();
+  $: activeGoals = getMyGoals().filter((g) => g.status !== 'done');
+
+  const dateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
 
   function formatLoggedDate(date: string) {
-    return new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return dateFormatter.format(new Date(date + 'T00:00:00Z'));
   }
 
   function validateForm(): string | null {
@@ -43,8 +42,8 @@
 
     if (duration) {
       const parsedDuration = Number.parseInt(duration, 10);
-      if (Number.isNaN(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
-        return 'Duration must be between 5 and 480 minutes.';
+      if (Number.isNaN(parsedDuration) || parsedDuration < 1 || parsedDuration > 480) {
+        return 'Duration must be between 1 and 480 minutes.';
       }
     }
 
@@ -146,7 +145,7 @@
         id="duration"
         type="number"
         bind:value={duration}
-        min="5"
+        min="1"
         max="480"
         placeholder="30"
         disabled={isSubmitting}
@@ -157,7 +156,7 @@
       <label for="linkedGoal">Goal Focus</label>
       <select id="linkedGoal" bind:value={linkedGoalId} disabled={isSubmitting}>
         <option value="">None</option>
-        {#each goals as goal}
+        {#each activeGoals as goal}
           <option value={goal.id}>{goal.title}</option>
         {/each}
       </select>
@@ -255,8 +254,14 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
+  }
+
+  @media (min-width: 960px) {
+    .form-row {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   .form-group {

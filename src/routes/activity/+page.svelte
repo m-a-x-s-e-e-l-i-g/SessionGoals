@@ -1,19 +1,29 @@
 <script lang="ts">
-  import { getActivities, getRecentActivities, getActivityStats } from '$lib/data/activities';
+  import { page } from '$app/stores';
+  import { appStateStore } from '$lib/data/state';
+  import { getActivityStats, deleteActivity } from '$lib/data/activities';
   import { getGoalById } from '$lib/data/goals';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import ActivityForm from '$lib/components/ActivityForm.svelte';
-  import { formatActivityType } from '$lib/utils/format';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import { formatActivityType, formatDuration } from '$lib/utils/format';
 
-  let activities = getActivities();
-  let recentActivities = getRecentActivities(10);
-  let stats = getActivityStats(7);
+  $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id as string | undefined;
 
-  function refreshActivityView() {
-    activities = getActivities();
-    recentActivities = getRecentActivities(10);
-    stats = getActivityStats(7);
-  }
+  let visibleCount = 10;
+  // Scoped to the current user; auto-updates when the store changes
+  $: activities = currentUserId
+    ? [...$appStateStore.activities]
+        .filter((a) => a.userId === currentUserId)
+        .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+    : [];
+  $: recentActivities = activities.slice(0, visibleCount);
+  // Re-derive stats whenever the store or user changes
+  $: stats = ((_store) => getActivityStats(7, currentUserId))($appStateStore);
+  let showDeleteDialog = false;
+  let isDeleting = false;
+  let activityToDeleteId: string | null = null;
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr + 'T00:00:00Z');
@@ -47,11 +57,43 @@
     if (streak >= 7) return 'Week locked';
     return 'Start today';
   }
+
+  function handleDeleteActivity(id: string) {
+    activityToDeleteId = id;
+    showDeleteDialog = true;
+  }
+
+  async function handleConfirmDeleteActivity() {
+    if (!activityToDeleteId) return;
+    isDeleting = true;
+    try {
+      await deleteActivity(activityToDeleteId);
+    } finally {
+      isDeleting = false;
+      showDeleteDialog = false;
+      activityToDeleteId = null;
+    }
+  }
 </script>
 
 <svelte:head>
   <title>Activity — SessionGoals</title>
 </svelte:head>
+
+<ConfirmDialog
+  isOpen={showDeleteDialog}
+  title="Delete session?"
+  message="This session will be removed permanently."
+  confirmLabel="Delete session"
+  cancelLabel="Cancel"
+  isDangerous={true}
+  isLoading={isDeleting}
+  on:confirm={handleConfirmDeleteActivity}
+  on:cancel={() => {
+    showDeleteDialog = false;
+    activityToDeleteId = null;
+  }}
+/>
 
 <div class="container page activity-page">
   <div class="page-header activity-header">
@@ -91,21 +133,21 @@
 
     <article class="stat-box stat-box-secondary">
       <p class="stat-kicker">Total load</p>
-      <p class="stat-number">{stats.totalDuration}</p>
+      <p class="stat-number">{formatDuration(stats.totalDuration)}</p>
       <p class="stat-label">Minutes logged this week</p>
       <p class="stat-context">Volume matters when you want the heatmap to mean something.</p>
     </article>
 
     <article class="stat-box stat-box-secondary">
       <p class="stat-kicker">Average session</p>
-      <p class="stat-number">{stats.averageDuration}</p>
+      <p class="stat-number">{formatDuration(stats.averageDuration)}</p>
       <p class="stat-label">Minutes per session</p>
       <p class="stat-context">The shape of the week matters as much as the raw count.</p>
     </article>
   </section>
 
   <div class="activity-main-grid">
-    <ActivityForm on:logged={refreshActivityView} />
+    <ActivityForm />
     <ActivityHeatmap {activities} />
   </div>
 
@@ -132,12 +174,24 @@
               <div class="activity-meta">
                 <span class="activity-type-badge">{formatActivityType(activity.activityType)}</span>
                 {#if activity.duration}
-                  <span class="activity-duration">{activity.duration} min</span>
+                  <span class="activity-duration">{formatDuration(activity.duration)}</span>
                 {/if}
                 {#if activity.linkedGoalId}
                   <span class="activity-goal">
                     Goal focus: {getGoalLink(activity.linkedGoalId)?.title || 'Goal'}
                   </span>
+                {/if}
+              </div>
+              <div class="activity-item-actions">
+                {#if isAuthenticated && activity.userId === currentUserId}
+                  <button
+                    type="button"
+                    class="btn btn-ghost activity-delete-button"
+                    on:click={() => handleDeleteActivity(activity.id)}
+                    aria-label="Delete this session"
+                  >
+                    Delete
+                  </button>
                 {/if}
               </div>
               {#if activity.notes}
@@ -149,6 +203,11 @@
           </div>
         {/each}
       </div>
+      {#if activities.length > visibleCount}
+        <div class="load-more-wrap">
+          <button type="button" class="btn btn-ghost" on:click={() => (visibleCount += 10)}>Load more</button>
+        </div>
+      {/if}
     {/if}
   </section>
 </div>
@@ -426,6 +485,21 @@
   .activity-notes-empty {
     color: var(--color-text-muted);
     font-style: italic;
+  }
+
+  .activity-item-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .activity-delete-button {
+    min-height: 44px;
+  }
+
+  .load-more-wrap {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
   }
 
   @media (prefers-color-scheme: dark) {

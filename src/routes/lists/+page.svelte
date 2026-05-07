@@ -1,16 +1,40 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { getMyLists, getExplorableLists } from '$lib/data/lists';
-  import { getTrackedProgress } from '$lib/data/listProgress';
+  import { getTrackedProgress, getProgressForList } from '$lib/data/listProgress';
+  import { appStateStore } from '$lib/data/state';
   import ListCard from '$lib/components/ListCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
 
   $: isAuthenticated = !!$page.data.user;
-  const myLists = getMyLists();
-  const trackedProgress = getTrackedProgress();
-  const trackedListIds = new Set(trackedProgress.map((p) => p.sourceListId));
-  const trackedLists = getExplorableLists().filter((l) => trackedListIds.has(l.id));
-  const explorableLists = getExplorableLists().filter((l) => !trackedListIds.has(l.id));
+  $: myLists = getMyLists();
+  $: trackedProgress = getTrackedProgress();
+  $: trackedListIds = new Set(trackedProgress.map((p) => p.sourceListId));
+  $: trackedLists = getExplorableLists().filter((l) => trackedListIds.has(l.id));
+
+  $: trackersByListId = (() => {
+    const grouped = new Map<string, Set<string>>();
+    for (const entry of $appStateStore.progress) {
+      const users = grouped.get(entry.sourceListId) ?? new Set<string>();
+      users.add(entry.userId);
+      grouped.set(entry.sourceListId, users);
+    }
+
+    const counts = new Map<string, number>();
+    for (const [listId, users] of grouped.entries()) {
+      counts.set(listId, users.size);
+    }
+    return counts;
+  })();
+
+  $: explorableLists = getExplorableLists()
+    .filter((l) => !trackedListIds.has(l.id))
+    .sort((a, b) => {
+      const aCount = trackersByListId.get(a.id) ?? 0;
+      const bCount = trackersByListId.get(b.id) ?? 0;
+      if (bCount !== aCount) return bCount - aCount;
+      return a.name.localeCompare(b.name);
+    });
 </script>
 
 <svelte:head>
@@ -61,7 +85,15 @@
       {:else}
         <div class="grid-cards">
           {#each trackedLists as list}
-            <ListCard {list} showOwner={true} isTracked={true} />
+            <ListCard
+              {list}
+              showOwner={true}
+              isTracked={true}
+              progress={(() => {
+                const p = getProgressForList(list.id);
+                return p ? { done: p.items.filter((i) => i.done).length, total: p.items.length } : undefined;
+              })()}
+            />
           {/each}
         </div>
       {/if}
@@ -77,7 +109,7 @@
     {:else}
       <div class="grid-cards">
         {#each explorableLists as list}
-          <ListCard {list} showOwner={true} />
+          <ListCard {list} showOwner={true} trackerCount={trackersByListId.get(list.id) ?? 0} />
         {/each}
       </div>
     {/if}

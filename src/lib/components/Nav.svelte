@@ -80,7 +80,7 @@
 
           {#if userMenuOpen}
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class="dropdown-backdrop" on:click={closeUserMenu} on:keydown={() => {}}></div>
+            <div class="dropdown-backdrop" on:click={closeUserMenu} on:keydown={(e) => e.key === 'Escape' && closeUserMenu()}></div>
             <div class="nav-user-menu" role="menu" aria-label="User menu">
               <a href={profileHref} class="nav-user-menu-item" role="menuitem" on:click={closeUserMenu}>
                 View profile
@@ -123,7 +123,7 @@
 <!-- Mobile drawer -->
 {#if mobileOpen}
   <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div class="drawer-backdrop" on:click={closeMobile} on:keydown={() => {}}></div>
+  <div class="drawer-backdrop" on:click={closeMobile} on:keydown={(e) => e.key === 'Escape' && closeMobile()}></div>
 {/if}
 
 <div class="drawer" class:open={mobileOpen} aria-hidden={!mobileOpen}>

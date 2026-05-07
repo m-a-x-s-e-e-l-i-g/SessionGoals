@@ -16,6 +16,7 @@
   --color-text-muted:    oklch(50% 0.015 236);
   --color-primary:       oklch(57% 0.175 252);
   --color-primary-hover: oklch(51% 0.19 252);
+  --color-primary-dark:  oklch(47% 0.2 252);
   --color-accent:        oklch(72% 0.16 72);
   --color-success:       oklch(58% 0.15 158);
   --color-warning:       oklch(74% 0.14 84);
@@ -83,6 +84,7 @@ html {
     --color-text-muted:    oklch(70% 0.012 236);
     --color-primary:       oklch(72% 0.17 252);
     --color-primary-hover: oklch(78% 0.15 252);
+    --color-primary-dark:  oklch(64% 0.19 252);
     --color-on-primary:    oklch(16% 0.012 236);
 
     --badge-idea-bg:          oklch(30% 0.02 234);
@@ -319,3 +321,5 @@ textarea {
 .flex       { display: flex; }
 .flex-wrap  { flex-wrap: wrap; }
 .items-center { align-items: center; }
+
+/* Time formatting helper — used elsewhere via JS */

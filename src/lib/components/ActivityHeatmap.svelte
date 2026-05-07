@@ -9,6 +9,7 @@
     minutes: number;
     sessions: number;
     intensity: 'empty' | 'low' | 'medium' | 'high';
+    isToday: boolean;
   }
 
   interface WeekRow {
@@ -33,6 +34,7 @@
 
   function generateHeatmap(filteredActivities: Activity[]) {
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - 364); // 52 weeks
 
@@ -75,6 +77,7 @@
         minutes,
         sessions,
         intensity,
+        isToday: dateStr === todayStr,
       });
 
       // Track month labels: add at the start of each month (first day of month)
@@ -95,13 +98,13 @@
     const maxWeeks = Math.max(...rows.map((r) => r.cells.length));
     rows.forEach((row) => {
       while (row.cells.length < maxWeeks) {
-        row.cells.push({ date: '', minutes: 0, sessions: 0, intensity: 'empty' });
+        row.cells.push({ date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false });
       }
     });
 
     // Transpose to weeks x days format
     heatmapData = Array.from({ length: maxWeeks }, (_, weekIdx) => ({
-      cells: rows.map((row) => row.cells[weekIdx] || { date: '', minutes: 0, sessions: 0, intensity: 'empty' }),
+      cells: rows.map((row) => row.cells[weekIdx] || { date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false }),
     }));
 
     // Convert month label map to array, spreading across grid width
@@ -182,6 +185,7 @@
               {#each week.cells as cell}
                 <div
                   class="heatmap-cell cell-{cell.intensity}"
+                  class:cell-today={cell.isToday}
                   title={getTooltip(cell)}
                   aria-label={getTooltip(cell)}
                 ></div>
@@ -412,6 +416,11 @@
     background: var(--color-primary);
   }
 
+  .heatmap-cell.cell-today {
+    box-shadow: 0 0 0 2px var(--color-accent);
+    border-radius: 3px;
+  }
+
   @media (prefers-color-scheme: dark) {
     .heatmap-cell.cell-low {
       background: color-mix(in oklch, var(--color-primary) 35%, black);
@@ -420,6 +429,12 @@
     .heatmap-cell.cell-medium {
       background: color-mix(in oklch, var(--color-primary) 65%, black);
     }
+  }
+
+  @media (prefers-contrast: more) {
+    .heatmap-cell.cell-low    { background: oklch(85% 0.12 252); }
+    .heatmap-cell.cell-medium { background: oklch(65% 0.18 252); }
+    .heatmap-cell.cell-high   { background: oklch(40% 0.22 252); }
   }
 
   /* Responsive sizing */

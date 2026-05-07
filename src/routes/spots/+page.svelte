@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import type { Spot } from '$lib/types';
   import SpotCard from '$lib/components/SpotCard.svelte';
   import SpotActions from '$lib/components/SpotActions.svelte';
@@ -18,7 +19,7 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: spots = data.spots;
-  let query = data.query ?? '';
+  $: query = $page.url.searchParams.get('q') ?? '';
   const lists = getLists();
   const allGoals = getGoals();
   const allKnownSpots = getSpots();
@@ -120,9 +121,14 @@
       />
       <span>Search parkour.spot</span>
     </button>
+    {#if query}
+      <button type="button" class="btn btn-ghost search-btn" on:click={() => goto('/spots')}>
+        Clear
+      </button>
+    {/if}
   </form>
 
-  {#if !data.query && !data.error}
+  {#if !query && !data.error}
     <EmptyState
       icon="🔍"
       title="Search for spots"

@@ -369,8 +369,8 @@
   }
 
   .role-badge {
-    background: color-mix(in oklch, var(--color-primary) 14%, white);
-    color: color-mix(in oklch, var(--color-primary) 70%, black);
+    background: color-mix(in oklch, var(--color-primary) 14%, var(--color-surface));
+    color: color-mix(in oklch, var(--color-primary) 70%, var(--color-text));
     border: 1px solid color-mix(in oklch, var(--color-primary) 45%, var(--color-border));
   }
 

@@ -11,9 +11,14 @@
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
+  $: spotGoogleMapsUrl = getGoogleMapsUrl(spot?.coordinates?.lat, spot?.coordinates?.lng);
+  $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id as string | undefined;
+  $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
 
   let showDeleteDialog = false;
   let isDeleting = false;
+  let justChecked = false;
 
   // Normalize image URL - handle relative paths and ensure it's proxied
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
@@ -33,11 +38,24 @@
     return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
   }
 
+  const googleMapsLogoUrl = '/images/icons/google-map-icon.svg';
+
+  function getGoogleMapsUrl(lat: number | undefined, lng: number | undefined): string | null {
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  }
+
   async function handleCheckedChange(e: Event) {
     if (!goalId) return;
     const input = e.target as HTMLInputElement;
     await updateGoalStatus(goalId, input.checked ? 'done' : 'want_to_try');
     goal = getGoalById(goalId);
+    if (input.checked) {
+      justChecked = true;
+      setTimeout(() => (justChecked = false), 2000);
+    }
   }
 
   async function handleDelete() {
@@ -86,8 +104,10 @@
         <h1 class="page-title">{goal.title}</h1>
       </div>
       <div class="header-actions">
-        <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
-        <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+        {#if isOwnGoal}
+          <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
+          <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+        {/if}
       </div>
     </div>
 
@@ -97,11 +117,21 @@
           <span class="badge type-{goal.type}">
             {typeIcon(goal.type)} {formatGoalType(goal.type)}
           </span>
-          <label class="goal-check-toggle">
-            <input type="checkbox" checked={goal.status === 'done'} on:change={handleCheckedChange} />
-            <span>{goal.status === 'done' ? 'Checked' : 'Unchecked'}</span>
-          </label>
+          {#if isOwnGoal}
+            <label class="goal-check-toggle">
+              <input type="checkbox" checked={goal.status === 'done'} on:change={handleCheckedChange} />
+              <span>{goal.status === 'done' ? 'Checked' : 'Unchecked'}</span>
+            </label>
+          {:else}
+            <span class="badge {goal.status === 'done' ? 'badge-success' : 'badge-muted'}">
+              {goal.status === 'done' ? '✓ Checked' : 'Unchecked'}
+            </span>
+          {/if}
         </div>
+
+        {#if justChecked}
+          <p class="checked-feedback">✓ Goal checked!</p>
+        {/if}
 
         {#if goal.description}
           <div class="description-section">
@@ -141,15 +171,16 @@
               {/if}
             </div>
             <div class="spot-actions">
-              {#if spot.coordinates}
+              {#if spotGoogleMapsUrl}
                 <a
-                  href="https://maps.google.com/?q={spot.coordinates.lat},{spot.coordinates.lng}"
+                  href={spotGoogleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="btn btn-sm btn-ghost"
+                  class="btn btn-sm btn-ghost spot-ext-link"
                   title="Open in Google Maps"
                 >
-                  🗺️ Maps
+                  <img src={googleMapsLogoUrl} alt="" class="ext-logo" width="14" height="14" aria-hidden="true" />
+                  Google Maps
                 </a>
               {/if}
               {#if spot.externalId}
@@ -157,10 +188,11 @@
                   href="https://parkour.spot/spot/{spot.externalId}"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="btn btn-sm btn-ghost"
+                  class="btn btn-sm btn-ghost spot-ext-link"
                   title="View on parkour.spot"
                 >
-                  🎯 parkour.spot
+                  <img src="https://parkour.spot/favicon.ico" alt="" class="ext-logo ext-logo--parkour" width="14" height="14" aria-hidden="true" />
+                  parkour.spot
                 </a>
               {/if}
             </div>
@@ -182,7 +214,16 @@
           <div class="section">
             <h3 class="section-label">Reference</h3>
             <a href={goal.sourceUrl} target="_blank" rel="noopener noreferrer" class="link-item">
-              {goal.sourceUrl}
+              <span class="link-url-text">
+                {(() => {
+                  try {
+                    const parsed = new URL(goal.sourceUrl);
+                    return `${parsed.hostname}${parsed.pathname}`;
+                  } catch {
+                    return goal.sourceUrl;
+                  }
+                })()}
+              </span>
               <span class="text-muted text-sm">↗</span>
             </a>
           </div>
@@ -312,6 +353,12 @@
     margin-bottom: 2rem;
   }
 
+  .checked-feedback {
+    color: var(--color-success);
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
   .section-label {
     font-size: 0.7rem;
     font-weight: 800;
@@ -426,6 +473,23 @@
     font-size: 0.8rem;
   }
 
+  .spot-ext-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .ext-logo {
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .ext-logo--parkour {
+      filter: invert(1) brightness(0.85);
+    }
+  }
+
   .links-list {
     list-style: none;
     display: flex;
@@ -448,6 +512,15 @@
     text-decoration: underline;
   }
 
+  .link-url-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40ch;
+    display: inline-block;
+    vertical-align: bottom;
+  }
+
   .detail-sidebar {
     display: flex;
     flex-direction: column;
@@ -458,7 +531,7 @@
     padding: 1.5rem;
     height: fit-content;
     position: sticky;
-    top: 1rem;
+    top: calc(60px + var(--space-md));
   }
 
   .sidebar-item {
