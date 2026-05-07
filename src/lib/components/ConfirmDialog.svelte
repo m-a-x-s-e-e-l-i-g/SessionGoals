@@ -57,9 +57,6 @@
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
       tabindex="-1"
-      on:keydown={(e) => {
-        if (e.key === 'Escape' && !isLoading) handleCancel();
-      }}
     >
       <div class="confirm-dialog-header">
         <h2 class="confirm-dialog-title" id="confirm-dialog-title">{title}</h2>
