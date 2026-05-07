@@ -1,25 +1,29 @@
 <script lang="ts">
-  import { getActivities, getActivityStats, deleteActivity } from '$lib/data/activities';
+  import { page } from '$app/stores';
+  import { appStateStore } from '$lib/data/state';
+  import { getActivityStats, deleteActivity } from '$lib/data/activities';
   import { getGoalById } from '$lib/data/goals';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import ActivityForm from '$lib/components/ActivityForm.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import { formatActivityType, formatDuration } from '$lib/utils/format';
 
-  let activities = getActivities();
+  $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id as string | undefined;
+
   let visibleCount = 10;
-  let recentActivities = activities.slice(0, visibleCount);
-  let stats = getActivityStats(7);
+  // Scoped to the current user; auto-updates when the store changes
+  $: activities = currentUserId
+    ? [...$appStateStore.activities]
+        .filter((a) => a.userId === currentUserId)
+        .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+    : [];
+  $: recentActivities = activities.slice(0, visibleCount);
+  // Re-derive stats whenever the store or user changes
+  $: stats = ((_store) => getActivityStats(7, currentUserId))($appStateStore);
   let showDeleteDialog = false;
   let isDeleting = false;
   let activityToDeleteId: string | null = null;
-
-  function refreshActivityView() {
-    activities = getActivities();
-    stats = getActivityStats(7);
-  }
-
-  $: recentActivities = activities.slice(0, visibleCount);
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr + 'T00:00:00Z');
@@ -64,7 +68,6 @@
     isDeleting = true;
     try {
       await deleteActivity(activityToDeleteId);
-      refreshActivityView();
     } finally {
       isDeleting = false;
       showDeleteDialog = false;
@@ -144,7 +147,7 @@
   </section>
 
   <div class="activity-main-grid">
-    <ActivityForm on:logged={refreshActivityView} />
+    <ActivityForm />
     <ActivityHeatmap {activities} />
   </div>
 
@@ -180,14 +183,16 @@
                 {/if}
               </div>
               <div class="activity-item-actions">
-                <button
-                  type="button"
-                  class="btn btn-ghost activity-delete-button"
-                  on:click={() => handleDeleteActivity(activity.id)}
-                  aria-label="Delete this session"
-                >
-                  Delete
-                </button>
+                {#if isAuthenticated && activity.userId === currentUserId}
+                  <button
+                    type="button"
+                    class="btn btn-ghost activity-delete-button"
+                    on:click={() => handleDeleteActivity(activity.id)}
+                    aria-label="Delete this session"
+                  >
+                    Delete
+                  </button>
+                {/if}
               </div>
               {#if activity.notes}
                 <p class="activity-notes">{activity.notes}</p>

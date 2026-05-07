@@ -11,6 +11,9 @@
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
+  $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id as string | undefined;
+  $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
 
   let showDeleteDialog = false;
   let isDeleting = false;
@@ -91,8 +94,10 @@
         <h1 class="page-title">{goal.title}</h1>
       </div>
       <div class="header-actions">
-        <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
-        <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+        {#if isOwnGoal}
+          <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
+          <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+        {/if}
       </div>
     </div>
 
