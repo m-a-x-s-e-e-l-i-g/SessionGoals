@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { getMyLists, getExplorableLists } from '$lib/data/lists';
-  import { getTrackedProgress } from '$lib/data/listProgress';
+  import { getTrackedProgress, getProgressForList } from '$lib/data/listProgress';
   import ListCard from '$lib/components/ListCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
 
@@ -61,7 +61,15 @@
       {:else}
         <div class="grid-cards">
           {#each trackedLists as list}
-            <ListCard {list} showOwner={true} isTracked={true} />
+            <ListCard
+              {list}
+              showOwner={true}
+              isTracked={true}
+              progress={(() => {
+                const p = getProgressForList(list.id);
+                return p ? { done: p.items.filter((i) => i.done).length, total: p.items.length } : undefined;
+              })()}
+            />
           {/each}
         </div>
       {/if}

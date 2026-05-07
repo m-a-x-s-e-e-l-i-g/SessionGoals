@@ -30,7 +30,7 @@
 <div class="app-shell">
   <a href="#main-content" class="skip-link">Skip to content</a>
   <Nav user={data.user} />
-  <main id="main-content" class="site-main">
+  <main id="main-content" class="site-main" tabindex="-1">
     <slot />
   </main>
 
@@ -118,17 +118,23 @@
     }
 
     .footer-mobile-nav {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
       border-top: 1px solid var(--color-border);
       margin-top: 0.25rem;
     }
+
+    .footer-mobile-nav::-webkit-scrollbar { display: none; }
 
     .footer-mobile-link {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0.9rem 0.5rem;
+      flex: 0 0 auto;
+      min-width: 64px;
+      padding: 0.9rem 0.75rem;
       font-size: 0.78rem;
       font-weight: 500;
       color: var(--color-text-muted);

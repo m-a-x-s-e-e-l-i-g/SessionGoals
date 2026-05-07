@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getMyGoals } from '$lib/data/goals';
+  import { getMyGoals, updateGoalStatus } from '$lib/data/goals';
+  import { getSpotById } from '$lib/data/spots';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import type { GoalStatus } from '$lib/types';
@@ -8,6 +9,7 @@
 
   let filterStatus: GoalStatus | 'all' = 'all';
   let searchQuery = '';
+  let filterTagId: string | null = null;
 
   const FILTERS: { status: GoalStatus; label: string }[] = [
     { status: 'want_to_try', label: 'Open' },
@@ -29,9 +31,11 @@
   $: totalDone = goals.filter((g) => g.status === 'done').length;
 
   $: normalizedQuery = searchQuery.trim().toLowerCase();
+  $: allTags = [...new Map(goals.flatMap((g) => g.tags).map((t) => [t.id, t])).values()];
   $: filteredByStatus = goals.filter((g) => {
-    const matchesStatus = filterStatus === 'all' || g.status === filterStatus;
-    if (!matchesStatus) return false;
+    const matchStatus = filterStatus === 'all' || g.status === filterStatus;
+    const matchTag = !filterTagId || g.tags.some((t) => t.id === filterTagId);
+    if (!matchStatus || !matchTag) return false;
     if (!normalizedQuery) return true;
 
     const inTitle = g.title.toLowerCase().includes(normalizedQuery);
@@ -42,6 +46,14 @@
   $: moveGoals = filteredByStatus.filter((g) => g.type === 'move');
   $: spotGoals = filteredByStatus.filter((g) => g.type === 'spot');
   $: inspirationGoals = filteredByStatus.filter((g) => g.type === 'inspiration');
+
+  async function handleToggleGoal(goalId: string) {
+    const goal = goals.find((entry) => entry.id === goalId);
+    if (!goal) return;
+    const next: GoalStatus = goal.status === 'done' ? 'want_to_try' : 'done';
+    await updateGoalStatus(goalId, next);
+    goals = getMyGoals();
+  }
 </script>
 
 <svelte:head>
@@ -60,8 +72,12 @@
       <span class="pipeline-total text-muted text-sm">{totalDone}/{goals.length} checked · {moveDone}/{moveTotal} moves · {spotDone}/{spotTotal} spots · {inspirationDone}/{inspirationTotal} inspiration</span>
     </div>
     <div class="pipeline-track" role="img" aria-label="Goal completion distribution">
-      <div class="pipeline-seg pipeline-seg--done" style="flex: {Math.max(totalDone, 0)}"></div>
-      <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: {Math.max(goals.length - totalDone, 1)}"></div>
+      {#if goals.length > 0}
+        <div class="pipeline-seg pipeline-seg--done" style="flex: {Math.max(totalDone, 0)}"></div>
+        <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: {Math.max(goals.length - totalDone, 0)}"></div>
+      {:else}
+        <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: 1"></div>
+      {/if}
     </div>
     <div class="pipeline-legend" aria-hidden="true">
       {#each statusCounts as entry}
@@ -108,6 +124,28 @@
         >{stage.label} <span class="chip-count">{stage.count}</span></button>
       {/each}
     </div>
+    {#if allTags.length > 0}
+      <div class="tag-filter-chips" role="group" aria-label="Filter by tag">
+        <button
+          type="button"
+          class="filter-chip"
+          class:active={!filterTagId}
+          on:click={() => (filterTagId = null)}
+        >
+          All tags
+        </button>
+        {#each allTags as tag}
+          <button
+            type="button"
+            class="filter-chip"
+            class:active={filterTagId === tag.id}
+            on:click={() => (filterTagId = tag.id)}
+          >
+            #{tag.name}
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if filteredByStatus.length === 0}
@@ -118,50 +156,56 @@
       actionHref="/goals/new"
     />
   {:else}
-    <section class="goal-section">
-      <h2 class="section-title">🤸 Move</h2>
-      {#if moveGoals.length === 0}
-        <p class="text-muted text-sm">No move goals for this status.</p>
-      {:else}
+    {#if moveGoals.length > 0}
+      <section class="goal-section">
+        <h2 class="section-title">🤸 Move</h2>
         <div class="grid-cards">
           {#each moveGoals as goal}
             <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
-              <GoalCard {goal} />
+              <GoalCard
+                {goal}
+                spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+                onToggle={handleToggleGoal}
+              />
             </div>
           {/each}
         </div>
-      {/if}
-    </section>
+      </section>
+    {/if}
 
-    <section class="goal-section">
-      <h2 class="section-title">📍 Spot</h2>
-      {#if spotGoals.length === 0}
-        <p class="text-muted text-sm">No spot goals for this status.</p>
-      {:else}
+    {#if spotGoals.length > 0}
+      <section class="goal-section">
+        <h2 class="section-title">📍 Spot</h2>
         <div class="grid-cards">
           {#each spotGoals as goal}
             <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
-              <GoalCard {goal} />
+              <GoalCard
+                {goal}
+                spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+                onToggle={handleToggleGoal}
+              />
             </div>
           {/each}
         </div>
-      {/if}
-    </section>
+      </section>
+    {/if}
 
-    <section class="goal-section">
-      <h2 class="section-title">💡 Inspiration</h2>
-      {#if inspirationGoals.length === 0}
-        <p class="text-muted text-sm">No inspiration goals for this status.</p>
-      {:else}
+    {#if inspirationGoals.length > 0}
+      <section class="goal-section">
+        <h2 class="section-title">💡 Inspiration</h2>
         <div class="grid-cards">
           {#each inspirationGoals as goal}
             <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
-              <GoalCard {goal} />
+              <GoalCard
+                {goal}
+                spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+                onToggle={handleToggleGoal}
+              />
             </div>
           {/each}
         </div>
-      {/if}
-    </section>
+      </section>
+    {/if}
   {/if}
 </div>
 
@@ -293,7 +337,7 @@
     font-size: 0.75rem;
     font-weight: 600;
     padding: 0.18rem 0.55rem;
-    min-height: 30px;
+    min-height: 44px;
     cursor: pointer;
   }
 
@@ -314,7 +358,7 @@
     color: var(--color-text-muted);
     font-size: 0.8rem;
     font-weight: 500;
-    min-height: 32px;
+    min-height: 44px;
     cursor: pointer;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     white-space: nowrap;
@@ -361,15 +405,24 @@
   }
 
   .goal-card-wrap {
-    transition: opacity 0.18s ease;
+    transition: border-color 0.18s ease;
   }
 
-  .goal-card-wrap.is-done {
-    opacity: 0.52;
+  .goal-card-wrap.is-done :global(.goal-card) {
+    border-color: var(--color-success);
   }
 
-  .goal-card-wrap.is-done:hover {
-    opacity: 0.72;
+  .tag-filter-chips {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+  }
+
+  .tag-filter-chips::-webkit-scrollbar {
+    display: none;
   }
 
   @media (max-width: 640px) {

@@ -10,17 +10,31 @@
   export let isLoading = false;
 
   const dispatch = createEventDispatcher<{ confirm: void; cancel: void }>();
+  let dialogEl: HTMLDivElement | undefined;
+  let previousFocusedEl: HTMLElement | null = null;
+
+  $: if (isOpen && typeof document !== 'undefined') {
+    if (!previousFocusedEl) {
+      previousFocusedEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
+    setTimeout(() => dialogEl?.querySelector('button')?.focus(), 0);
+  }
+
+  function restoreFocus() {
+    previousFocusedEl?.focus();
+    previousFocusedEl = null;
+  }
 
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget && !isLoading) {
-      isOpen = false;
-      dispatch('cancel');
+      handleCancel();
     }
   }
 
   function handleConfirm() {
     if (!isLoading) {
       dispatch('confirm');
+      restoreFocus();
     }
   }
 
@@ -28,15 +42,26 @@
     if (!isLoading) {
       isOpen = false;
       dispatch('cancel');
+      restoreFocus();
     }
   }
 </script>
 
 {#if isOpen}
-  <div class="confirm-dialog-backdrop" on:click={handleBackdropClick} on:keydown={(e) => e.key === 'Escape' && !isLoading && (isOpen = false)} role="presentation">
-    <div class="confirm-dialog">
+  <div class="confirm-dialog-backdrop" on:click={handleBackdropClick} on:keydown={(e) => e.key === 'Escape' && !isLoading && handleCancel()} role="presentation">
+    <div
+      class="confirm-dialog"
+      bind:this={dialogEl}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+      tabindex="-1"
+      on:keydown={(e) => {
+        if (e.key === 'Escape' && !isLoading) handleCancel();
+      }}
+    >
       <div class="confirm-dialog-header">
-        <h2 class="confirm-dialog-title">{title}</h2>
+        <h2 class="confirm-dialog-title" id="confirm-dialog-title">{title}</h2>
       </div>
 
       <div class="confirm-dialog-body">

@@ -57,9 +57,9 @@ export async function addActivity(activity: Omit<Activity, 'id' | 'createdAt'>):
 
   if (
     activity.duration !== undefined
-    && (!Number.isFinite(activity.duration) || activity.duration < 5 || activity.duration > 480)
+    && (!Number.isFinite(activity.duration) || activity.duration < 1 || activity.duration > 480)
   ) {
-    throw new Error('Duration must be between 5 and 480 minutes.');
+    throw new Error('Duration must be between 1 and 480 minutes.');
   }
 
   if (!isActivityType(activity.activityType)) {
@@ -73,6 +73,14 @@ export async function addActivity(activity: Omit<Activity, 'id' | 'createdAt'>):
   }));
 
   return nextActivity;
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  await runDataAction<{ id: string }>('deleteActivity', { id });
+  updateAppState((state) => ({
+    ...state,
+    activities: state.activities.filter((activity) => activity.id !== id),
+  }));
 }
 
 export function getRecentActivities(count: number = 7, userId?: string): Activity[] {

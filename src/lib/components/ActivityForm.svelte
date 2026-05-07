@@ -23,13 +23,10 @@
   let successMessage = '';
   let isSubmitting = false;
 
-  const goals = getMyGoals();
+  const goals = getMyGoals().filter((g) => g.status !== 'done');
 
   function formatLoggedDate(date: string) {
-    return new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(date + 'T00:00:00Z'));
   }
 
   function validateForm(): string | null {
@@ -43,8 +40,8 @@
 
     if (duration) {
       const parsedDuration = Number.parseInt(duration, 10);
-      if (Number.isNaN(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
-        return 'Duration must be between 5 and 480 minutes.';
+      if (Number.isNaN(parsedDuration) || parsedDuration < 1 || parsedDuration > 480) {
+        return 'Duur moet tussen 1 en 480 minuten zijn.';
       }
     }
 
@@ -146,7 +143,7 @@
         id="duration"
         type="number"
         bind:value={duration}
-        min="5"
+        min="1"
         max="480"
         placeholder="30"
         disabled={isSubmitting}
@@ -255,8 +252,14 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
+  }
+
+  @media (min-width: 960px) {
+    .form-row {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   .form-group {

@@ -19,6 +19,7 @@
   $: isAuthenticated = !!$page.data.user;
   $: spots = data.spots;
   let query = data.query ?? '';
+  $: query = $page.url.searchParams.get('q') ?? '';
   const lists = getLists();
   const allGoals = getGoals();
   const allKnownSpots = getSpots();
@@ -111,18 +112,20 @@
       class="search-input"
     />
     <button class="btn btn-ghost search-btn" type="submit">
-      <img
-        src="https://parkour.spot/favicon.ico"
-        alt="parkour.spot"
-        class="parkour-spot-logo"
-        width="16"
-        height="16"
-      />
+      <svg class="parkour-spot-logo" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor"></circle>
+        <path d="M8 6h4.5a4.5 4.5 0 0 1 0 9H10v3H8V6zm2 2v5h2.5a2.5 2.5 0 0 0 0-5H10z" fill="var(--color-surface)"></path>
+      </svg>
       <span>Search parkour.spot</span>
     </button>
+    {#if query}
+      <button type="button" class="btn btn-ghost search-btn" on:click={() => (query = '')}>
+        Clear
+      </button>
+    {/if}
   </form>
 
-  {#if !data.query && !data.error}
+  {#if !query && !data.error}
     <EmptyState
       icon="🔍"
       title="Search for spots"
@@ -237,14 +240,8 @@
   }
 
   .parkour-spot-logo {
-    border-radius: 3px;
     flex-shrink: 0;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .parkour-spot-logo {
-      filter: invert(1) brightness(0.85);
-    }
+    color: var(--color-primary);
   }
 
   .search-input:focus {

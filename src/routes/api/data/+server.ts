@@ -488,6 +488,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ ok: true, data: created });
     }
 
+    if (action === 'deleteActivity') {
+      if (!locals.user) return unauthorized();
+      const id = payload.id as string | undefined;
+      if (!id) return badRequest('Activity id is required.');
+
+      const { error } = await locals.supabase
+        .from('activities')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', locals.user.id);
+      if (error) throw new Error(error.message);
+
+      return json({ ok: true, data: { id } });
+    }
+
     if (action === 'upsertSpot') {
       if (!locals.user) return unauthorized();
       const spot = payload.spot as Spot | undefined;

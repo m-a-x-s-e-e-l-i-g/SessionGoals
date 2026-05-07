@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { getGoals, getMyGoals } from '$lib/data/goals';
+  import { getGoals, getMyGoals, updateGoalStatus } from '$lib/data/goals';
   import { getMyLists, getExplorableLists, getListById, getPublicLists } from '$lib/data/lists';
   import { getTrackedProgress } from '$lib/data/listProgress';
   import { getSpots } from '$lib/data/spots';
@@ -46,8 +46,8 @@
     return getUserById(userId)?.displayName ?? 'Unknown athlete';
   }
 
-  const myGoals = getMyGoals();
-  const recentGoals = myGoals.slice(0, 4);
+  let myGoals = getMyGoals();
+  let recentGoals = myGoals.slice(0, 4);
   const myLists = getMyLists();
   const trackedProgress = getTrackedProgress();
   const trackedListIds = new Set(trackedProgress.map((p) => p.sourceListId));
@@ -96,6 +96,15 @@
     if (activeDays >= 3) return 'Solid session rhythm';
     if (activeDays >= 1) return 'Momentum building';
     return 'No sessions this week';
+  }
+
+  async function handleToggleGoal(goalId: string) {
+    const goal = myGoals.find((entry) => entry.id === goalId);
+    if (!goal) return;
+    const nextStatus = goal.status === 'done' ? 'want_to_try' : 'done';
+    await updateGoalStatus(goalId, nextStatus);
+    myGoals = getMyGoals();
+    recentGoals = myGoals.slice(0, 4);
   }
 </script>
 
@@ -283,12 +292,16 @@
       <h2 class="section-title section-title--goals">Recent Goals</h2>
       <a href="/goals" class="text-sm">View all →</a>
     </div>
-    <div class="grid-cards">
-      {#each recentGoals as goal}
-        <GoalCard {goal} />
-      {/each}
-    </div>
-  </section>
+      <div class="grid-cards">
+        {#each recentGoals as goal}
+        <GoalCard
+          {goal}
+          onToggle={handleToggleGoal}
+          spotName={goal.spotId ? spotById.get(goal.spotId)?.name : undefined}
+        />
+        {/each}
+      </div>
+    </section>
 
   <div class="secondary-grid">
     <section class="section">
@@ -796,4 +809,3 @@
     margin-top: 0.2rem;
   }
 </style>
-

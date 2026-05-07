@@ -14,6 +14,7 @@
 
   let showDeleteDialog = false;
   let isDeleting = false;
+  let justChecked = false;
 
   // Normalize image URL - handle relative paths and ensure it's proxied
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
@@ -38,6 +39,10 @@
     const input = e.target as HTMLInputElement;
     await updateGoalStatus(goalId, input.checked ? 'done' : 'want_to_try');
     goal = getGoalById(goalId);
+    if (input.checked) {
+      justChecked = true;
+      setTimeout(() => (justChecked = false), 2000);
+    }
   }
 
   async function handleDelete() {
@@ -102,6 +107,10 @@
             <span>{goal.status === 'done' ? 'Checked' : 'Unchecked'}</span>
           </label>
         </div>
+
+        {#if justChecked}
+          <p class="checked-feedback">✓ Doel afgevinkt!</p>
+        {/if}
 
         {#if goal.description}
           <div class="description-section">
@@ -182,7 +191,16 @@
           <div class="section">
             <h3 class="section-label">Reference</h3>
             <a href={goal.sourceUrl} target="_blank" rel="noopener noreferrer" class="link-item">
-              {goal.sourceUrl}
+              <span class="link-url-text">
+                {(() => {
+                  try {
+                    const parsed = new URL(goal.sourceUrl);
+                    return `${parsed.hostname}${parsed.pathname}`;
+                  } catch {
+                    return goal.sourceUrl;
+                  }
+                })()}
+              </span>
               <span class="text-muted text-sm">↗</span>
             </a>
           </div>
@@ -310,6 +328,12 @@
 
   .section {
     margin-bottom: 2rem;
+  }
+
+  .checked-feedback {
+    color: var(--color-success);
+    font-weight: 600;
+    margin-bottom: 1rem;
   }
 
   .section-label {
@@ -448,6 +472,15 @@
     text-decoration: underline;
   }
 
+  .link-url-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40ch;
+    display: inline-block;
+    vertical-align: bottom;
+  }
+
   .detail-sidebar {
     display: flex;
     flex-direction: column;
@@ -458,7 +491,7 @@
     padding: 1.5rem;
     height: fit-content;
     position: sticky;
-    top: 1rem;
+    top: calc(60px + var(--space-md));
   }
 
   .sidebar-item {

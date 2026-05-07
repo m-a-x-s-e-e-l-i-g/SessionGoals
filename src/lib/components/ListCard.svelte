@@ -6,6 +6,7 @@
   export let list: GoalList;
   export let showOwner = false;
   export let isTracked = false;
+  export let progress: { done: number; total: number } | undefined = undefined;
 </script>
 
 <a href="/lists/{list.id}" class="list-card card">
@@ -27,6 +28,11 @@
   {/if}
   {#if showOwner}
     <p class="text-muted text-sm">By {getUserDisplayName(list.userId)}</p>
+  {/if}
+  {#if progress && progress.total > 0}
+    <div class="list-progress" aria-label={`Progress ${progress.done} of ${progress.total}`}>
+      <div class="list-progress-bar" style={`width: ${(progress.done / progress.total) * 100}%`}></div>
+    </div>
   {/if}
 </a>
 
@@ -92,5 +98,19 @@
     color: color-mix(in oklch, var(--color-primary) 72%, black);
     border: 1px solid color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
     font-size: 0.72rem;
+  }
+
+  .list-progress {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-surface-2);
+    overflow: hidden;
+    margin-top: 0.3rem;
+  }
+
+  .list-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-success), var(--color-primary));
   }
 </style>
