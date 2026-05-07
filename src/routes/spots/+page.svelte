@@ -24,6 +24,15 @@
   const allGoals = getGoals();
   const allKnownSpots = getSpots();
 
+  function hasUsableCoordinates(spot: Spot): boolean {
+    const lat = spot.coordinates?.lat;
+    const lng = spot.coordinates?.lng;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+    return !(lat === 0 && lng === 0);
+  }
+
   const goalById = new Map(allGoals.map((goal) => [goal.id, goal]));
   const myGoals = getMyGoals();
   const trackedProgress = getTrackedProgress();
@@ -44,8 +53,31 @@
   }
 
   const spotById = new Map(allKnownSpots.map((spot) => [spot.id, spot]));
-  const actionSpots = Array.from(actionSpotCounts.keys())
-    .map((spotId) => spotById.get(spotId))
+  $: liveSpotByExternalId = new Map(
+    spots
+      .filter((spot) => !!spot.externalId)
+      .map((spot) => [spot.externalId as string, spot])
+  );
+  $: actionSpots = Array.from(actionSpotCounts.keys())
+    .map((spotId) => {
+      const savedSpot = spotById.get(spotId);
+      if (!savedSpot) return null;
+
+      if (!savedSpot.externalId) return savedSpot;
+
+      const liveSpot = liveSpotByExternalId.get(savedSpot.externalId);
+      if (!liveSpot) return savedSpot;
+
+      return {
+        ...savedSpot,
+        coordinates: hasUsableCoordinates(savedSpot) ? savedSpot.coordinates : liveSpot.coordinates,
+        city: savedSpot.city ?? liveSpot.city,
+        country: savedSpot.country ?? liveSpot.country,
+        description: savedSpot.description ?? liveSpot.description,
+        imageUrl: savedSpot.imageUrl ?? liveSpot.imageUrl,
+        tags: savedSpot.tags.length > 0 ? savedSpot.tags : liveSpot.tags,
+      } satisfies Spot;
+    })
     .filter((spot): spot is Spot => !!spot);
 
   $: filtered = spots.filter(

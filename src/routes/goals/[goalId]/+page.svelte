@@ -11,7 +11,13 @@
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
-  $: spotGoogleMapsUrl = getGoogleMapsUrl(spot?.coordinates?.lat, spot?.coordinates?.lng);
+  $: spotGoogleMapsUrl = getGoogleMapsUrl(
+    spot?.coordinates?.lat,
+    spot?.coordinates?.lng,
+    spot?.name,
+    spot?.city,
+    spot?.country,
+  );
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id as string | undefined;
   $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
@@ -40,11 +46,38 @@
 
   const googleMapsLogoUrl = '/images/icons/google-map-icon.svg';
 
-  function getGoogleMapsUrl(lat: number | undefined, lng: number | undefined): string | null {
-    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  function getGoogleMapsUrl(
+    lat: number | undefined,
+    lng: number | undefined,
+    name?: string,
+    city?: string,
+    country?: string,
+  ): string | null {
+    const url = new URL('https://www.google.com/maps/search/');
+    url.searchParams.set('api', '1');
 
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+    if (
+      typeof lat === 'number' &&
+      typeof lng === 'number' &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !(lat === 0 && lng === 0)
+    ) {
+      const latLng = `${lat},${lng}`;
+      url.searchParams.set('query', latLng);
+      url.searchParams.set('center', latLng);
+      return url.toString();
+    }
+
+    const fallbackQuery = [name, city, country].filter(Boolean).join(', ').trim();
+    if (!fallbackQuery) return null;
+
+    url.searchParams.set('query', fallbackQuery);
+    return url.toString();
   }
 
   async function handleCheckedChange(e: Event) {

@@ -20,8 +20,21 @@ function asTrimmedString(value: unknown): string | null {
 
 function toNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  const asNumber = Number(String(value ?? ''));
+
+  const asString = asTrimmedString(typeof value === 'string' ? value : String(value ?? ''));
+  if (!asString) return null;
+
+  const asNumber = Number(asString);
   return Number.isFinite(asNumber) ? asNumber : null;
+}
+
+function isValidCoordinatePair(lat: number, lng: number): boolean {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat < -90 || lat > 90) return false;
+  if (lng < -180 || lng > 180) return false;
+  // Treat Null Island as missing/placeholder coordinates for this integration.
+  if (lat === 0 && lng === 0) return false;
+  return true;
 }
 
 function pickCoordinatePair(raw: any): { lat: number; lng: number } | null {
@@ -53,7 +66,9 @@ function pickCoordinatePair(raw: any): { lat: number; lng: number } | null {
     toNumber(raw?.geometry?.location?.longitude);
 
   if (directLat !== null && directLng !== null) {
-    return { lat: directLat, lng: directLng };
+    if (isValidCoordinatePair(directLat, directLng)) {
+      return { lat: directLat, lng: directLng };
+    }
   }
 
   const geoJsonCoords =
@@ -66,7 +81,9 @@ function pickCoordinatePair(raw: any): { lat: number; lng: number } | null {
     const lng = toNumber(geoJsonCoords[0]);
     const lat = toNumber(geoJsonCoords[1]);
     if (lat !== null && lng !== null) {
-      return { lat, lng };
+      if (isValidCoordinatePair(lat, lng)) {
+        return { lat, lng };
+      }
     }
   }
 
