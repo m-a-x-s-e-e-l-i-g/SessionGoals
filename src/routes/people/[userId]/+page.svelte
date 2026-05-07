@@ -8,14 +8,14 @@
     updateUserProfile,
     isTeacher,
   } from '$lib/data/users';
-  import { getGoals } from '$lib/data/goals';
+  import { createGoal, getGoals } from '$lib/data/goals';
   import { getLists } from '$lib/data/lists';
   import { getActivities, getActivityStats, getRecentActivities } from '$lib/data/activities';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
-  import type { UserProfile } from '$lib/types';
+  import type { CreateGoalInput, Goal, UserProfile } from '$lib/types';
   import { formatActivityType } from '$lib/utils/format';
 
   $: isAuthenticated = !!$page.data.user;
@@ -29,6 +29,8 @@
 
   // ── Edit mode ──────────────────────────────────────────────────────────────
   let editing = false;
+  let addingGoalId: string | null = null;
+  let goalsFeedback: string | undefined;
   let editDisplayName = '';
   let editBio = '';
   let editCity = '';
@@ -95,6 +97,37 @@
       month: 'short',
       day: 'numeric',
     });
+  }
+
+  function toGoalCopyInput(goal: Goal): CreateGoalInput {
+    return {
+      type: goal.type,
+      title: goal.title,
+      description: goal.description ?? undefined,
+      status: 'want_to_try',
+      difficulty: goal.difficulty ?? undefined,
+      spotId: goal.spotId ?? undefined,
+      imageUrl: goal.imageUrl ?? undefined,
+      sourceUrl: goal.sourceUrl ?? undefined,
+    };
+  }
+
+  async function addGoalToMine(goal: Goal) {
+    if (!isAuthenticated || !currentUserId) return;
+    if (goal.userId && goal.userId === currentUserId) return;
+    if (addingGoalId) return;
+
+    addingGoalId = goal.id;
+    goalsFeedback = undefined;
+
+    try {
+      await createGoal(toGoalCopyInput(goal));
+      goalsFeedback = `Added \"${goal.title}\" to your goals.`;
+    } catch {
+      goalsFeedback = 'Could not add this goal right now. Please try again.';
+    } finally {
+      addingGoalId = null;
+    }
   }
 </script>
 
@@ -319,6 +352,9 @@
       <div class="section-header">
         <h2 class="section-title">Goals</h2>
       </div>
+      {#if goalsFeedback}
+        <p class="goals-feedback text-sm">{goalsFeedback}</p>
+      {/if}
       {#if visibleGoals.length === 0}
         <EmptyState
           icon="🎯"
@@ -328,7 +364,16 @@
       {:else}
         <div class="grid-cards">
           {#each visibleGoals as goal}
-            <GoalCard {goal} />
+            {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId}
+            <div class="goal-card-wrap">
+              <GoalCard
+                {goal}
+                onAddToMine={canAddToMine ? addGoalToMine : undefined}
+              />
+              {#if addingGoalId === goal.id}
+                <p class="text-sm text-muted">Adding to your goals...</p>
+              {/if}
+            </div>
           {/each}
         </div>
       {/if}
@@ -405,6 +450,17 @@
     font-family: var(--font-display);
     font-size: 1.35rem;
     font-weight: 700;
+  }
+
+  .goals-feedback {
+    margin-bottom: 0.65rem;
+    color: var(--color-success);
+  }
+
+  .goal-card-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .student-grid {

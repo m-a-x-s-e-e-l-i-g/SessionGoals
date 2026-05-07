@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { Goal } from '$lib/types';
   import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
-  import { getMovePreviewImageUrl } from '$lib/utils/media';
+  import { getGoalVisualImageUrl } from '$lib/utils/media';
 
   export let goal: Goal;
   export let onToggle: ((id: string) => void) | undefined = undefined;
+  export let onAddToMine: ((goal: Goal) => void) | undefined = undefined;
+  export let addToMineLabel = 'Add to my goals';
   export let spotName: string | undefined = undefined;
 
-  $: movePreviewImageUrl = getMovePreviewImageUrl(goal);
+  $: goalVisualImageUrl = getGoalVisualImageUrl(goal);
 </script>
 
 <div class="goal-card card">
@@ -17,11 +19,11 @@
     aria-label="Open goal: {goal.title}"
   ></a>
 
-  {#if movePreviewImageUrl}
+  {#if goalVisualImageUrl}
     <img
       class="move-preview"
-      src={movePreviewImageUrl}
-      alt="{goal.title} move preview"
+      src={goalVisualImageUrl}
+      alt="{goal.title} preview"
       loading="lazy"
       on:error={(e) => {
         (e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -47,6 +49,15 @@
           aria-pressed={goal.status === 'done'}
         >
           ✓
+        </button>
+      {/if}
+      {#if onAddToMine}
+        <button
+          type="button"
+          class="add-goal"
+          on:click|stopPropagation={() => onAddToMine?.(goal)}
+        >
+          + {addToMineLabel}
         </button>
       {/if}
     </div>
@@ -178,6 +189,23 @@
     font-size: 1rem;
     font-weight: 700;
     padding: 0;
+  }
+
+  .add-goal {
+    pointer-events: auto;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .add-goal:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
   .quick-check.is-done {

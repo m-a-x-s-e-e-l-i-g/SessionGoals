@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import GoalForm from '$lib/components/GoalForm.svelte';
-  import { getGoalById, getMyGoals, updateGoal } from '$lib/data/goals';
+  import { getGoalById, updateGoal } from '$lib/data/goals';
   import { getListById } from '$lib/data/lists';
   import { getSpotById, upsertSpot } from '$lib/data/spots';
   import type { GoalStatus, GoalType, Spot, UpdateGoalInput } from '$lib/types';
@@ -15,7 +15,6 @@
   $: listId = $page.url.searchParams.get('listId') ?? undefined;
   $: sourceList = listId ? getListById(listId) : undefined;
   $: initialSpot = goal?.spotId ? (getSpotById(goal.spotId) ?? null) : null;
-  $: subgoalCandidates = getMyGoals().filter((entry) => entry.type === 'move' && entry.id !== goalId);
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -41,7 +40,7 @@
       status: (data.get('status') as GoalStatus) ?? 'want_to_try',
       difficulty: data.get('difficulty') ? Number(data.get('difficulty')) : undefined,
       spotId: (data.get('spotId') as string)?.trim() || undefined,
-      subgoalIds: data.getAll('subgoalIds').map((value) => String(value)).filter(Boolean),
+      imageUrl: (data.get('imageUrl') as string)?.trim() || undefined,
       sourceUrl: (data.get('sourceUrl') as string)?.trim() || undefined,
     };
 
@@ -97,10 +96,9 @@
             description: goal.description,
             status: goal.status,
             difficulty: goal.difficulty,
+            imageUrl: goal.imageUrl,
             sourceUrl: goal.sourceUrl,
           }}
-          initialSubgoalIds={goal.subgoalIds ?? []}
-          availableSubgoals={subgoalCandidates}
           {initialSpot}
         />
       </form>

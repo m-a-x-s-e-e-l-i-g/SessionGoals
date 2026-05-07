@@ -38,13 +38,21 @@ function getGiphyGifUrl(url: URL): string | null {
 }
 
 function toPreviewImageUrl(rawUrl: string): string | null {
-  const parsed = parseUrl(rawUrl);
+  const trimmed = rawUrl.trim();
+  if (trimmed.startsWith('data:image/')) {
+    return trimmed;
+  }
+
+  const parsed = parseUrl(trimmed);
   if (!parsed) return null;
 
   return getDirectImageUrl(parsed) ?? getGiphyGifUrl(parsed);
 }
 
-export function getMovePreviewImageUrl(goal: Pick<Goal, 'type' | 'sourceUrl' | 'links'>): string | null {
+export function getGoalVisualImageUrl(goal: Pick<Goal, 'type' | 'imageUrl' | 'sourceUrl' | 'links'>): string | null {
+  const explicitImage = goal.imageUrl ? toPreviewImageUrl(goal.imageUrl) : null;
+  if (explicitImage) return explicitImage;
+
   if (goal.type !== 'move') return null;
 
   const candidates = [
@@ -58,4 +66,8 @@ export function getMovePreviewImageUrl(goal: Pick<Goal, 'type' | 'sourceUrl' | '
   }
 
   return null;
+}
+
+export function getMovePreviewImageUrl(goal: Pick<Goal, 'type' | 'imageUrl' | 'sourceUrl' | 'links'>): string | null {
+  return getGoalVisualImageUrl(goal);
 }

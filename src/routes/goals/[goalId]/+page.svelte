@@ -1,20 +1,17 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { getGoalById, updateGoalStatus, deleteGoal } from '$lib/data/goals';
+  import { createGoal, getGoalById, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
-  import { getMovePreviewImageUrl } from '$lib/utils/media';
+  import { getGoalVisualImageUrl } from '$lib/utils/media';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import type { GoalStatus } from '$lib/types';
+  import type { CreateGoalInput, GoalStatus } from '$lib/types';
 
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: spot = goal?.spotId ? getSpotById(goal.spotId) : undefined;
-  $: subgoals = (goal?.subgoalIds ?? [])
-    .map((id) => getGoalById(id))
-    .filter((entry): entry is NonNullable<typeof entry> => !!entry);
-  $: movePreviewImageUrl = goal ? getMovePreviewImageUrl(goal) : null;
+  $: goalVisualImageUrl = goal ? getGoalVisualImageUrl(goal) : null;
   $: spotGoogleMapsUrl = getGoogleMapsUrl(
     spot?.coordinates?.lat,
     spot?.coordinates?.lng,
@@ -26,6 +23,8 @@
   let showDeleteDialog = false;
   let isDeleting = false;
   let justChecked = false;
+  let addError: string | undefined;
+  let addingToMine = false;
 
   // Normalize image URL - handle relative paths and ensure it's proxied
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
@@ -90,6 +89,43 @@
       isDeleting = false;
     }
   }
+
+  function toGoalCopyInput() {
+    if (!goal) return null;
+    const input: CreateGoalInput = {
+      type: goal.type,
+      title: goal.title,
+      description: goal.description ?? undefined,
+      status: 'want_to_try',
+      difficulty: goal.difficulty ?? undefined,
+      spotId: goal.spotId ?? undefined,
+      imageUrl: goal.imageUrl ?? undefined,
+      sourceUrl: goal.sourceUrl ?? undefined,
+    };
+    return input;
+  }
+
+  async function handleAddToMine() {
+    if (!goal) return;
+    if (!isAuthenticated) {
+      goto('/auth/login');
+      return;
+    }
+
+    const input = toGoalCopyInput();
+    if (!input) return;
+
+    addingToMine = true;
+    addError = undefined;
+
+    try {
+      const createdGoal = await createGoal(input);
+      goto(`/goals/${createdGoal.id}`);
+    } catch {
+      addError = 'Failed to add this goal. Please try again.';
+      addingToMine = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -124,9 +160,17 @@
         {#if isOwnGoal}
           <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
           <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+        {:else if isAuthenticated}
+          <button class="btn btn-primary" on:click={handleAddToMine} disabled={addingToMine}>
+            {addingToMine ? 'Adding...' : '+ Add To My Goals'}
+          </button>
         {/if}
       </div>
     </div>
+
+    {#if addError}
+      <p class="form-error">{addError}</p>
+    {/if}
 
     <div class="detail-layout">
       <div class="detail-main">
@@ -150,11 +194,11 @@
           <p class="checked-feedback">✓ Goal checked!</p>
         {/if}
 
-        {#if movePreviewImageUrl}
+        {#if goalVisualImageUrl}
           <div class="move-preview-wrap">
             <img
-              src={movePreviewImageUrl}
-              alt="{goal.title} move preview"
+              src={goalVisualImageUrl}
+              alt="{goal.title} preview"
               class="move-preview-image"
               loading="lazy"
               on:error={(e) => {
@@ -227,22 +271,6 @@
                 </a>
               {/if}
             </div>
-          </div>
-        {/if}
-
-        {#if subgoals.length > 0}
-          <div class="section">
-            <h3 class="section-label">Subgoals</h3>
-            <ul class="links-list">
-              {#each subgoals as subgoal}
-                <li>
-                  <a href="/goals/{subgoal.id}" class="link-item">
-                    {subgoal.title}
-                    <span class="text-muted text-sm">→</span>
-                  </a>
-                </li>
-              {/each}
-            </ul>
           </div>
         {/if}
 
@@ -321,6 +349,15 @@
   .header-actions {
     display: flex;
     gap: 0.5rem;
+  }
+
+  .form-error {
+    color: var(--color-danger);
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    background: rgba(242, 78, 78, 0.1);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
   }
 
   .detail-layout {

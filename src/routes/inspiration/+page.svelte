@@ -1,12 +1,19 @@
 <script lang="ts">
-  import { getGoals } from '$lib/data/goals';
+  import { page } from '$app/stores';
+  import { createGoal, getGoals } from '$lib/data/goals';
   import { getUserById } from '$lib/data/users';
   import { getSpotById } from '$lib/data/spots';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import SearchBar from '$lib/components/SearchBar.svelte';
+  import type { CreateGoalInput, Goal } from '$lib/types';
 
   let query = '';
+  let addingGoalId: string | null = null;
+  let feedback: string | undefined = undefined;
+
+  $: isAuthenticated = !!$page.data.user;
+  $: currentUserId = $page.data.user?.id as string | undefined;
 
   $: libraryMoves = getGoals()
     .filter((goal) => goal.type === 'move')
@@ -29,6 +36,37 @@
       || ownerHandle.includes(normalizedQuery)
     );
   });
+
+  function toGoalCopyInput(goal: Goal): CreateGoalInput {
+    return {
+      type: goal.type,
+      title: goal.title,
+      description: goal.description ?? undefined,
+      status: 'want_to_try',
+      difficulty: goal.difficulty ?? undefined,
+      spotId: goal.spotId ?? undefined,
+      imageUrl: goal.imageUrl ?? undefined,
+      sourceUrl: goal.sourceUrl ?? undefined,
+    };
+  }
+
+  async function addGoalToMine(goal: Goal) {
+    if (!isAuthenticated) return;
+    if (goal.userId && goal.userId === currentUserId) return;
+    if (addingGoalId) return;
+
+    addingGoalId = goal.id;
+    feedback = undefined;
+
+    try {
+      await createGoal(toGoalCopyInput(goal));
+      feedback = `Added \"${goal.title}\" to your goals.`;
+    } catch {
+      feedback = 'Could not add this move right now. Please try again.';
+    } finally {
+      addingGoalId = null;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -52,6 +90,10 @@
     metaText={`Showing ${filteredMoves.length} of ${libraryMoves.length} moves`}
   />
 
+  {#if feedback}
+    <p class="library-feedback text-sm">{feedback}</p>
+  {/if}
+
   {#if libraryMoves.length === 0}
     <EmptyState
       icon="🤸"
@@ -70,14 +112,19 @@
     <div class="grid-cards mt-2">
       {#each filteredMoves as goal}
         {@const owner = goal.userId ? getUserById(goal.userId) : undefined}
+        {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId}
         <div class="library-card-wrap">
           <GoalCard
             {goal}
+            onAddToMine={canAddToMine ? addGoalToMine : undefined}
             spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
           />
           <p class="library-meta text-muted text-sm">
             Added by {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}
           </p>
+          {#if addingGoalId === goal.id}
+            <p class="text-sm text-muted">Adding to your goals...</p>
+          {/if}
         </div>
       {/each}
     </div>
@@ -102,5 +149,10 @@
 
   .library-meta {
     padding-inline: 0.15rem;
+  }
+
+  .library-feedback {
+    margin: -0.55rem 0 1rem;
+    color: var(--color-success);
   }
 </style>

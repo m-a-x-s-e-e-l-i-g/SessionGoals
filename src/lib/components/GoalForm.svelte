@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Goal, GoalStatus, GoalType, Spot } from '$lib/types';
+  import type { GoalStatus, GoalType, Spot } from '$lib/types';
+  import ImageUploadField from '$lib/components/ImageUploadField.svelte';
 
   export let submitting = false;
   export let error: string | undefined = undefined;
@@ -11,6 +12,7 @@
     description?: string;
     status: GoalStatus;
     difficulty?: number;
+    imageUrl?: string;
     sourceUrl?: string;
   } = {
     type: 'move',
@@ -18,11 +20,10 @@
     description: '',
     status: 'want_to_try',
     difficulty: undefined,
+    imageUrl: '',
     sourceUrl: '',
   };
   export let initialSpot: Spot | null = null;
-  export let availableSubgoals: Goal[] = [];
-  export let initialSubgoalIds: string[] = [];
 
   let type: GoalType = initial.type;
   let isDone = initial.status === 'done';
@@ -32,7 +33,7 @@
   let spotLoading = false;
   let spotError: string | undefined = undefined;
   let hiddenSpotImages = new Set<string>();
-  let selectedSubgoalIds: string[] = [...initialSubgoalIds];
+  let imageValue = initial.imageUrl ?? '';
 
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
     if (!imageUrl) return undefined;
@@ -146,6 +147,14 @@
     <textarea id="description" name="description" placeholder="Notes, context, cues…">{initial.description ?? ''}</textarea>
   </div>
 
+  <ImageUploadField
+    id="imageUrl"
+    name="imageUrl"
+    label="Image"
+    bind:value={imageValue}
+    helperText="Upload an image. It is compressed locally before saving."
+  />
+
   <div class="form-group">
     <label for="sourceUrl">Link / URL</label>
     <input
@@ -156,26 +165,6 @@
       value={initial.sourceUrl ?? ''}
     />
   </div>
-
-  {#if type === 'move' && availableSubgoals.length > 0}
-    <div class="form-group">
-      <p class="form-section-label">Subgoals</p>
-      <p class="text-sm text-muted subgoal-help">Break this move down into smaller move goals.</p>
-      <div class="subgoals-grid">
-        {#each availableSubgoals as candidate}
-          <label class="chip-option">
-            <input
-              type="checkbox"
-              name="subgoalIds"
-              value={candidate.id}
-              bind:group={selectedSubgoalIds}
-            />
-            <span>{candidate.title}</span>
-          </label>
-        {/each}
-      </div>
-    </div>
-  {/if}
 
   {#if type === 'spot'}
     <div class="form-group">
@@ -292,24 +281,6 @@
     align-items: center;
   }
 
-  .subgoal-help {
-    margin-bottom: 0.45rem;
-  }
-
-  .form-section-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .subgoals-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-  }
-
   .spot-results {
     display: flex;
     flex-direction: column;
@@ -363,33 +334,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface-2);
-  }
-
-  .chip-option {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    padding: 0.25rem 0.65rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    text-transform: none;
-    font-weight: 500;
-    letter-spacing: normal;
-    color: var(--color-text);
-    transition: border-color 0.15s;
-  }
-
-  .chip-option:has(input:checked) {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-
-  .chip-option input {
-    width: auto;
-    margin: 0;
   }
 
   .form-actions {

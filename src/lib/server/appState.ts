@@ -36,17 +36,6 @@ function must<T>(result: QueryResult<T>, table: string): T[] {
   return result.data ?? [];
 }
 
-function optionalWhenTableMissing<T>(result: QueryResult<T>, table: string): T[] {
-  if (!result.error) return result.data ?? [];
-
-  const message = result.error.message.toLowerCase();
-  if (message.includes('does not exist') && message.includes(table.toLowerCase())) {
-    return [];
-  }
-
-  throw new Error(`Failed to load ${table}: ${result.error.message}`);
-}
-
 export async function loadAppStateForRequest(
   supabase: SupabaseClient | null,
   currentUserId: string | null,
@@ -60,7 +49,6 @@ export async function loadAppStateForRequest(
     spotsResult,
     goalsResult,
     goalLinksResult,
-    goalSubgoalsResult,
     listsResult,
     listItemsResult,
     progressResult,
@@ -75,7 +63,6 @@ export async function loadAppStateForRequest(
     supabase.from('spots').select('*'),
     supabase.from('goals').select('*'),
     supabase.from('goal_links').select('*'),
-    supabase.from('goal_subgoals').select('*'),
     supabase.from('goal_lists').select('*'),
     supabase.from('goal_list_items').select('*'),
     supabase.from('list_progress').select('*'),
@@ -91,7 +78,6 @@ export async function loadAppStateForRequest(
   const spotsRows = must(spotsResult, 'spots');
   const goalsRows = must(goalsResult, 'goals');
   const goalLinksRows = must(goalLinksResult, 'goal_links');
-  const goalSubgoalsRows = optionalWhenTableMissing(goalSubgoalsResult, 'goal_subgoals');
   const listsRows = must(listsResult, 'goal_lists');
   const listItemsRows = must(listItemsResult, 'goal_list_items');
   const progressRows = must(progressResult, 'list_progress');
@@ -143,13 +129,6 @@ export async function loadAppStateForRequest(
     goalLinksByGoalId.set(row.goal_id, existing);
   }
 
-  const subgoalsByParentGoalId = new Map<string, string[]>();
-  for (const row of goalSubgoalsRows as any[]) {
-    const existing = subgoalsByParentGoalId.get(row.parent_goal_id) ?? [];
-    existing.push(row.child_goal_id);
-    subgoalsByParentGoalId.set(row.parent_goal_id, existing);
-  }
-
   const goals: Goal[] = goalsRows.map((row: any) => ({
     id: row.id,
     userId: row.user_id,
@@ -159,7 +138,7 @@ export async function loadAppStateForRequest(
     status: normalizeGoalStatus(row.status),
     difficulty: row.difficulty ?? undefined,
     spotId: row.spot_id ?? undefined,
-    subgoalIds: subgoalsByParentGoalId.get(row.id) ?? [],
+    imageUrl: row.image_url ?? undefined,
     sourceUrl: row.source_url ?? undefined,
     links: goalLinksByGoalId.get(row.id) ?? [],
     createdAt: toIsoString(row.created_at),

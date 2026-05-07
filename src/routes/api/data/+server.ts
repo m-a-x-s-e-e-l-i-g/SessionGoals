@@ -55,28 +55,6 @@ async function snapshotFor(locals: App.Locals, userId: string | null) {
   return loadAppStateForRequest(locals.supabase, userId);
 }
 
-async function getOwnedSubgoalIds(
-  locals: App.Locals,
-  userId: string,
-  subgoalIds: string[] | undefined,
-  excludeGoalId?: string,
-): Promise<string[]> {
-  const uniqueIds = Array.from(new Set((subgoalIds ?? []).map((id) => id?.trim()).filter(Boolean) as string[]));
-  if (uniqueIds.length === 0) return [];
-
-  const { data, error } = await locals.supabase!
-    .from('goals')
-    .select('id')
-    .eq('user_id', userId)
-    .in('id', uniqueIds);
-
-  if (error) throw new Error(error.message);
-
-  const ownedIds = new Set((data ?? []).map((row) => row.id as string));
-  const sanitized = uniqueIds.filter((id) => ownedIds.has(id) && id !== excludeGoalId);
-  return sanitized;
-}
-
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.supabase) {
     return json({ ok: false, error: 'Supabase is not configured.' }, { status: 500 });
@@ -111,25 +89,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           status: input.status,
           difficulty: input.difficulty ?? null,
           spot_id: input.spotId ?? null,
+          image_url: input.imageUrl ?? null,
           source_url: input.sourceUrl ?? null,
         })
         .select('*')
         .single();
 
       if (goalError || !goalRow) throw new Error(goalError?.message ?? 'Failed to create goal.');
-
-      const subgoalIds =
-        input.type === 'move'
-          ? await getOwnedSubgoalIds(locals, locals.user.id, input.subgoalIds, goalRow.id)
-          : [];
-      if (subgoalIds.length > 0) {
-        const inserts = subgoalIds.map((childGoalId) => ({
-          parent_goal_id: goalRow.id,
-          child_goal_id: childGoalId,
-        }));
-        const { error: subgoalsError } = await locals.supabase.from('goal_subgoals').insert(inserts);
-        if (subgoalsError) throw new Error(subgoalsError.message);
-      }
 
       const snapshot = await snapshotFor(locals, locals.user.id);
       const goal = snapshot.goals.find((entry) => entry.id === goalRow.id);
@@ -176,6 +142,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           status: input.status,
           difficulty: input.difficulty ?? null,
           spot_id: input.spotId ?? null,
+          image_url: input.imageUrl ?? null,
           source_url: input.sourceUrl ?? null,
         })
         .eq('id', id)
@@ -185,25 +152,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       if (updateError) throw new Error(updateError.message);
       if (!updatedGoal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
-
-      const { error: deleteSubgoalsError } = await locals.supabase
-        .from('goal_subgoals')
-        .delete()
-        .eq('parent_goal_id', id);
-      if (deleteSubgoalsError) throw new Error(deleteSubgoalsError.message);
-
-      const subgoalIds =
-        input.type === 'move'
-          ? await getOwnedSubgoalIds(locals, locals.user.id, input.subgoalIds, id)
-          : [];
-      if (subgoalIds.length > 0) {
-        const inserts = subgoalIds.map((childGoalId) => ({
-          parent_goal_id: id,
-          child_goal_id: childGoalId,
-        }));
-        const { error: insertSubgoalsError } = await locals.supabase.from('goal_subgoals').insert(inserts);
-        if (insertSubgoalsError) throw new Error(insertSubgoalsError.message);
-      }
 
       const snapshot = await snapshotFor(locals, locals.user.id);
       const goal = snapshot.goals.find((entry) => entry.id === id);
