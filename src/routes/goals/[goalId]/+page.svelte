@@ -107,10 +107,16 @@
           <span class="badge type-{goal.type}">
             {typeIcon(goal.type)} {formatGoalType(goal.type)}
           </span>
-          <label class="goal-check-toggle">
-            <input type="checkbox" checked={goal.status === 'done'} on:change={handleCheckedChange} />
-            <span>{goal.status === 'done' ? 'Checked' : 'Unchecked'}</span>
-          </label>
+          {#if isOwnGoal}
+            <label class="goal-check-toggle">
+              <input type="checkbox" checked={goal.status === 'done'} on:change={handleCheckedChange} />
+              <span>{goal.status === 'done' ? 'Checked' : 'Unchecked'}</span>
+            </label>
+          {:else}
+            <span class="badge {goal.status === 'done' ? 'badge-success' : 'badge-muted'}">
+              {goal.status === 'done' ? '✓ Checked' : 'Unchecked'}
+            </span>
+          {/if}
         </div>
 
         {#if justChecked}
