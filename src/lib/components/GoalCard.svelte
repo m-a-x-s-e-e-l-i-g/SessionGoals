@@ -22,7 +22,7 @@
           type="button"
           class="quick-check"
           class:is-done={goal.status === 'done'}
-          on:click={() => onToggle?.(goal.id)}
+          on:click|stopPropagation={() => onToggle?.(goal.id)}
           aria-label={goal.status === 'done' ? 'Mark goal as unchecked' : 'Mark goal as checked'}
           aria-pressed={goal.status === 'done'}
         >

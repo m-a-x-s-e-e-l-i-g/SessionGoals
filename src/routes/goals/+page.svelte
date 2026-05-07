@@ -46,6 +46,7 @@
   $: moveGoals = filteredByStatus.filter((g) => g.type === 'move');
   $: spotGoals = filteredByStatus.filter((g) => g.type === 'spot');
   $: inspirationGoals = filteredByStatus.filter((g) => g.type === 'inspiration');
+  $: openCount = goals.length - totalDone;
 
   async function handleToggleGoal(goalId: string) {
     const goal = goals.find((entry) => entry.id === goalId);
@@ -74,7 +75,7 @@
     <div class="pipeline-track" role="img" aria-label="Goal completion distribution">
       {#if goals.length > 0}
         <div class="pipeline-seg pipeline-seg--done" style="flex: {Math.max(totalDone, 0)}"></div>
-        <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: {Math.max(goals.length - totalDone, 0)}; min-width: {goals.length - totalDone > 0 ? '4px' : '0'}"></div>
+        <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: {Math.max(openCount, 0)}; min-width: {openCount > 0 ? '4px' : '0'}"></div>
       {:else}
         <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: 1"></div>
       {/if}

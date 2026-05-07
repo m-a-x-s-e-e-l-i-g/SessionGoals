@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import type { Spot } from '$lib/types';
   import SpotCard from '$lib/components/SpotCard.svelte';
   import SpotActions from '$lib/components/SpotActions.svelte';
@@ -118,7 +119,7 @@
       <span>Search parkour.spot</span>
     </button>
     {#if query}
-      <button type="button" class="btn btn-ghost search-btn" on:click={() => (query = '')}>
+      <button type="button" class="btn btn-ghost search-btn" on:click={() => goto('/spots')}>
         Clear
       </button>
     {/if}

@@ -23,7 +23,7 @@
   let successMessage = '';
   let isSubmitting = false;
 
-  const goals = getMyGoals().filter((g) => g.status !== 'done');
+  $: activeGoals = getMyGoals().filter((g) => g.status !== 'done');
 
   const dateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
 
@@ -156,7 +156,7 @@
       <label for="linkedGoal">Goal Focus</label>
       <select id="linkedGoal" bind:value={linkedGoalId} disabled={isSubmitting}>
         <option value="">None</option>
-        {#each goals as goal}
+        {#each activeGoals as goal}
           <option value={goal.id}>{goal.title}</option>
         {/each}
       </select>
