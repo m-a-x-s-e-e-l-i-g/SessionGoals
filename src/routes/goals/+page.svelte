@@ -125,7 +125,9 @@
       {:else}
         <div class="grid-cards">
           {#each moveGoals as goal}
-            <GoalCard {goal} />
+            <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
+              <GoalCard {goal} />
+            </div>
           {/each}
         </div>
       {/if}
@@ -138,7 +140,9 @@
       {:else}
         <div class="grid-cards">
           {#each spotGoals as goal}
-            <GoalCard {goal} />
+            <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
+              <GoalCard {goal} />
+            </div>
           {/each}
         </div>
       {/if}
@@ -151,7 +155,9 @@
       {:else}
         <div class="grid-cards">
           {#each inspirationGoals as goal}
-            <GoalCard {goal} />
+            <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
+              <GoalCard {goal} />
+            </div>
           {/each}
         </div>
       {/if}
@@ -352,6 +358,18 @@
     font-size: 1.3rem;
     font-weight: 700;
     margin-bottom: 0.8rem;
+  }
+
+  .goal-card-wrap {
+    transition: opacity 0.18s ease;
+  }
+
+  .goal-card-wrap.is-done {
+    opacity: 0.52;
+  }
+
+  .goal-card-wrap.is-done:hover {
+    opacity: 0.72;
   }
 
   @media (max-width: 640px) {

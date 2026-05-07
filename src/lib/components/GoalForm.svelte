@@ -31,6 +31,23 @@
   let selectedSpot: Spot | null = initialSpot;
   let spotLoading = false;
   let spotError: string | undefined = undefined;
+  let hiddenSpotImages = new Set<string>();
+
+  function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
+    if (!imageUrl) return undefined;
+
+    if (imageUrl.startsWith('/api/image-proxy')) {
+      return imageUrl;
+    }
+
+    const normalized = imageUrl.startsWith('/') ? `https://parkour.spot${imageUrl}` : imageUrl;
+    return `/api/image-proxy?url=${encodeURIComponent(normalized)}`;
+  }
+
+  function hideSpotImage(spotId: string) {
+    hiddenSpotImages.add(spotId);
+    hiddenSpotImages = hiddenSpotImages;
+  }
 
   async function searchSpotResults() {
     const q = spotQuery.trim();
@@ -174,8 +191,19 @@
         <div class="spot-results">
           {#each spotResults as spot}
             <button type="button" class="spot-result" on:click={() => selectSpot(spot)}>
-              <span class="spot-result-name">{spot.name}</span>
-              <span class="text-sm text-muted">{[spot.city, spot.country].filter(Boolean).join(', ')}</span>
+              {#if getProxiedImageUrl(spot.imageUrl) && !hiddenSpotImages.has(spot.id)}
+                <img
+                  src={getProxiedImageUrl(spot.imageUrl)}
+                  alt={spot.name}
+                  class="spot-result-image"
+                  loading="lazy"
+                  on:error={() => hideSpotImage(spot.id)}
+                />
+              {/if}
+              <span class="spot-result-content">
+                <span class="spot-result-name">{spot.name}</span>
+                <span class="text-sm text-muted">{[spot.city, spot.country].filter(Boolean).join(', ')}</span>
+              </span>
             </button>
           {/each}
         </div>
@@ -273,11 +301,10 @@
 
   .spot-result {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2rem;
+    align-items: center;
+    gap: 0.75rem;
     width: 100%;
-    padding: 0.75rem 0.9rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface);
@@ -292,6 +319,24 @@
   .spot-result-name,
   .spot-selected-name {
     font-weight: 600;
+  }
+
+  .spot-result-image {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+  }
+
+  .spot-result-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    min-width: 0;
   }
 
   .spot-selected {
@@ -351,6 +396,11 @@
     .spot-search-row {
       flex-direction: column;
       align-items: stretch;
+    }
+
+    .spot-result-image {
+      width: 56px;
+      height: 56px;
     }
   }
 </style>
