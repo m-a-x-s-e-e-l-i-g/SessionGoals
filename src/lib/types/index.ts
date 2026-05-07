@@ -10,13 +10,7 @@
  */
 export type GoalType = 'move' | 'spot' | 'inspiration';
 
-export type GoalStatus =
-  | 'idea'
-  | 'want_to_try'
-  | 'training'
-  | 'landed'
-  | 'done'
-  | 'archived';
+export type GoalStatus = 'want_to_try' | 'done';
 
 export interface Tag {
   id: string;
@@ -109,6 +103,17 @@ export interface Spot {
 // ─── Form helper types ────────────────────────────────────────────────────────
 
 export interface CreateGoalInput {
+  type: GoalType;
+  title: string;
+  description?: string;
+  status: GoalStatus;
+  difficulty?: number;
+  spotId?: string;
+  sourceUrl?: string;
+  tagIds: string[];
+}
+
+export interface UpdateGoalInput {
   type: GoalType;
   title: string;
   description?: string;

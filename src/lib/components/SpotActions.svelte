@@ -115,7 +115,7 @@
         {#each linkedGoals as goal}
           <a href="/goals/{goal.id}" class="linked-goal">
             <span class="linked-goal-title">{goal.title}</span>
-            <span class="linked-goal-status status-{goal.status}">{formatStatus(goal.status)}</span>
+            <span class="linked-goal-status status-{goal.status}">{goal.status === 'done' ? 'Checked' : 'Open'}</span>
           </a>
         {/each}
       </div>

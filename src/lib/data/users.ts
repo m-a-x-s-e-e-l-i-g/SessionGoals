@@ -56,7 +56,7 @@ export function getStudentTrackingSummary(studentId: string): {
   needs: string[];
 } {
   const goals = getGoalsByUser(studentId);
-  const goalsDone = goals.filter((goal) => goal.status === 'landed' || goal.status === 'done').length;
+  const goalsDone = goals.filter((goal) => goal.status === 'done').length;
 
   const tracked = getTrackedProgress(studentId);
   const trackedTotal = tracked.reduce((acc, progress) => acc + progress.items.length, 0);

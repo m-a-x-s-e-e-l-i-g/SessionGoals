@@ -403,7 +403,9 @@
                   <span class="checklist-chevron" class:open={expanded} aria-hidden="true">›</span>
                 </span>
                 <span class="checklist-goal-meta">
-                  <span class="badge status-{goal.status}">{goal.status.replace('_', ' ')}</span>
+                  {#if goal.status === 'done'}
+                    <span class="badge status-{goal.status}">Checked</span>
+                  {/if}
                   {#if goal.type !== 'move'}
                     <span class="badge type-{goal.type}">{goal.type}</span>
                   {/if}

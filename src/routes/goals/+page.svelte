@@ -9,30 +9,24 @@
   let filterStatus: GoalStatus | 'all' = 'all';
   let searchQuery = '';
 
-  const isCompleted = (status: GoalStatus): boolean => status === 'landed' || status === 'done';
-
-  const PIPELINE: { status: GoalStatus; label: string }[] = [
-    { status: 'idea',        label: 'Idea' },
-    { status: 'want_to_try', label: 'Want to try' },
-    { status: 'training',    label: 'Training' },
-    { status: 'landed',      label: 'Landed' },
-    { status: 'done',        label: 'Done' },
-    { status: 'archived',    label: 'Archived' },
+  const FILTERS: { status: GoalStatus; label: string }[] = [
+    { status: 'want_to_try', label: 'Open' },
+    { status: 'done', label: 'Checked' },
   ];
 
-  $: pipelineCounts = PIPELINE.map((s) => ({
-    ...s,
-    count: goals.filter((g) => g.status === s.status).length,
+  $: statusCounts = FILTERS.map((entry) => ({
+    ...entry,
+    count: goals.filter((goal) => goal.status === entry.status).length,
   }));
 
   $: moveTotal = goals.filter((g) => g.type === 'move').length;
   $: spotTotal = goals.filter((g) => g.type === 'spot').length;
   $: inspirationTotal = goals.filter((g) => g.type === 'inspiration').length;
 
-  $: moveDone = goals.filter((g) => g.type === 'move' && isCompleted(g.status)).length;
-  $: spotDone = goals.filter((g) => g.type === 'spot' && isCompleted(g.status)).length;
-  $: inspirationDone = goals.filter((g) => g.type === 'inspiration' && isCompleted(g.status)).length;
-  $: totalDone = goals.filter((g) => isCompleted(g.status)).length;
+  $: moveDone = goals.filter((g) => g.type === 'move' && g.status === 'done').length;
+  $: spotDone = goals.filter((g) => g.type === 'spot' && g.status === 'done').length;
+  $: inspirationDone = goals.filter((g) => g.type === 'inspiration' && g.status === 'done').length;
+  $: totalDone = goals.filter((g) => g.status === 'done').length;
 
   $: normalizedQuery = searchQuery.trim().toLowerCase();
   $: filteredByStatus = goals.filter((g) => {
@@ -60,31 +54,21 @@
     <a href="/goals/new" class="btn btn-primary">+ New Goal</a>
   </div>
 
-  <!-- Pipeline progress visualization -->
-  <section class="pipeline" aria-label="Goals progress pipeline">
+  <section class="pipeline" aria-label="Goals progress summary">
     <div class="pipeline-header">
       <span class="pipeline-label">Progress</span>
-      <span class="pipeline-total text-muted text-sm">{totalDone}/{goals.length} completed · {moveDone}/{moveTotal} moves · {spotDone}/{spotTotal} spots</span>
+      <span class="pipeline-total text-muted text-sm">{totalDone}/{goals.length} checked · {moveDone}/{moveTotal} moves · {spotDone}/{spotTotal} spots · {inspirationDone}/{inspirationTotal} inspiration</span>
     </div>
-    <div class="pipeline-track" role="img" aria-label="Goal status distribution">
-      {#each pipelineCounts as stage}
-        {#if stage.count > 0}
-          <div
-            class="pipeline-seg pipeline-seg--{stage.status}"
-            style="flex: {stage.count}"
-            title="{stage.label}: {stage.count}"
-          ></div>
-        {/if}
-      {/each}
+    <div class="pipeline-track" role="img" aria-label="Goal completion distribution">
+      <div class="pipeline-seg pipeline-seg--done" style="flex: {Math.max(totalDone, 0)}"></div>
+      <div class="pipeline-seg pipeline-seg--want_to_try" style="flex: {Math.max(goals.length - totalDone, 1)}"></div>
     </div>
     <div class="pipeline-legend" aria-hidden="true">
-      {#each pipelineCounts as stage}
-        {#if stage.count > 0}
-          <span class="pipeline-legend-item">
-            <span class="pipeline-legend-dot pipeline-seg--{stage.status}"></span>
-            {stage.label} <strong>{stage.count}</strong>
-          </span>
-        {/if}
+      {#each statusCounts as entry}
+        <span class="pipeline-legend-item">
+          <span class="pipeline-legend-dot pipeline-seg--{entry.status}"></span>
+          {entry.label} <strong>{entry.count}</strong>
+        </span>
       {/each}
     </div>
   </section>
@@ -108,14 +92,14 @@
         <button type="button" class="clear-search" on:click={() => (searchQuery = '')}>Clear</button>
       {/if}
     </div>
-    <div class="filter-chips" role="group" aria-label="Filter by status">
+    <div class="filter-chips" role="group" aria-label="Filter by goal completion">
       <button
         type="button"
         class="filter-chip"
         class:active={filterStatus === 'all'}
         on:click={() => (filterStatus = 'all')}
       >All <span class="chip-count">{goals.length}</span></button>
-      {#each pipelineCounts as stage}
+      {#each statusCounts as stage}
         <button
           type="button"
           class="filter-chip filter-chip--{stage.status}"
@@ -176,7 +160,6 @@
 </div>
 
 <style>
-  /* ─── Pipeline ─────────────────────────────────────────────────────── */
   .pipeline {
     margin-bottom: 1.5rem;
   }
@@ -217,12 +200,8 @@
     opacity: 0.8;
   }
 
-  .pipeline-seg--idea        { background: var(--badge-idea-text); opacity: 0.45; }
-  .pipeline-seg--want_to_try { background: var(--badge-want-text); opacity: 0.55; }
-  .pipeline-seg--training    { background: var(--badge-training-text); opacity: 0.75; }
-  .pipeline-seg--landed      { background: var(--badge-landed-text); }
+  .pipeline-seg--want_to_try { background: var(--badge-want-text); opacity: 0.5; }
   .pipeline-seg--done        { background: var(--color-primary); }
-  .pipeline-seg--archived    { background: var(--color-text-muted); opacity: 0.35; }
 
   .pipeline-legend {
     display: flex;
@@ -346,12 +325,8 @@
     color: var(--color-on-primary);
   }
 
-  .filter-chip--idea.active       { background: var(--badge-idea-bg);     border-color: var(--badge-idea-text);     color: var(--badge-idea-text); }
   .filter-chip--want_to_try.active{ background: var(--badge-want-bg);     border-color: var(--badge-want-text);     color: var(--badge-want-text); }
-  .filter-chip--training.active   { background: var(--badge-training-bg); border-color: var(--badge-training-text); color: var(--badge-training-text); }
-  .filter-chip--landed.active     { background: var(--badge-landed-bg);   border-color: var(--badge-landed-text);   color: var(--badge-landed-text); }
   .filter-chip--done.active       { background: var(--badge-done-bg);     border-color: var(--badge-done-text);     color: var(--badge-done-text); }
-  .filter-chip--archived.active   { background: var(--badge-archived-bg); border-color: var(--badge-archived-text); color: var(--badge-archived-text); }
 
   .chip-count {
     font-weight: 700;

@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { getGoalById, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
-  import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
+  import { formatGoalType, typeIcon } from '$lib/utils/format';
   import TagBadge from '$lib/components/TagBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { GoalStatus } from '$lib/types';
@@ -15,11 +15,28 @@
   let showDeleteDialog = false;
   let isDeleting = false;
 
-  async function handleStatusChange(e: Event) {
+  // Normalize image URL - handle relative paths and ensure it's proxied
+  function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
+    if (!imageUrl) return undefined;
+
+    // If already using our proxy, return as-is
+    if (imageUrl.startsWith('/api/image-proxy')) {
+      return imageUrl;
+    }
+
+    // If relative URL, assume it's from parkour.spot
+    if (imageUrl.startsWith('/')) {
+      imageUrl = `https://parkour.spot${imageUrl}`;
+    }
+
+    // Proxy through our endpoint
+    return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+
+  async function handleCheckedChange(e: Event) {
     if (!goalId) return;
-    const select = e.target as HTMLSelectElement;
-    await updateGoalStatus(goalId, select.value as GoalStatus);
-    // re-read to trigger reactivity
+    const input = e.target as HTMLInputElement;
+    await updateGoalStatus(goalId, input.checked ? 'done' : 'want_to_try');
     goal = getGoalById(goalId);
   }
 
@@ -69,6 +86,7 @@
         <h1 class="page-title">{goal.title}</h1>
       </div>
       <div class="header-actions">
+        <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
         <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
       </div>
     </div>
@@ -79,18 +97,74 @@
           <span class="badge type-{goal.type}">
             {typeIcon(goal.type)} {formatGoalType(goal.type)}
           </span>
-          <select class="status-select" aria-label="Goal status" on:change={handleStatusChange} value={goal.status}>
-            <option value="idea">Idea</option>
-            <option value="want_to_try">Want to try</option>
-            <option value="training">Training</option>
-            <option value="landed">Landed</option>
-            <option value="done">Done</option>
-            <option value="archived">Archived</option>
-          </select>
+          <label class="goal-check-toggle">
+            <input type="checkbox" checked={goal.status === 'done'} on:change={handleCheckedChange} />
+            <span>{goal.status === 'done' ? 'Checked' : 'Unchecked'}</span>
+          </label>
         </div>
 
         {#if goal.description}
-          <p class="goal-description">{goal.description}</p>
+          <div class="description-section">
+            <p class="goal-description">{goal.description}</p>
+          </div>
+        {/if}
+
+        {#if spot}
+          <div class="section spot-section">
+            <h3 class="section-label">📍 Spot</h3>
+            {#if spot.imageUrl}
+              {@const proxiedImageUrl = getProxiedImageUrl(spot.imageUrl)}
+              {#if proxiedImageUrl}
+                <div class="spot-image-container">
+                  <img 
+                    src={proxiedImageUrl}
+                    alt={spot.name} 
+                    class="spot-image"
+                    on:error={(e) => {
+                      // Hide image container if load fails
+                      const container = e.currentTarget.parentElement;
+                      if (container) {
+                        container.style.display = 'none';
+                      }
+                    }}
+                  />
+                </div>
+              {/if}
+            {/if}
+            <div class="spot-info">
+              <div class="spot-name">{spot.name}</div>
+              {#if spot.city}
+                <div class="text-muted text-sm">{spot.city}, {spot.country}</div>
+              {/if}
+              {#if spot.description}
+                <div class="spot-description">{spot.description}</div>
+              {/if}
+            </div>
+            <div class="spot-actions">
+              {#if spot.coordinates}
+                <a
+                  href="https://maps.google.com/?q={spot.coordinates.lat},{spot.coordinates.lng}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-sm btn-ghost"
+                  title="Open in Google Maps"
+                >
+                  🗺️ Maps
+                </a>
+              {/if}
+              {#if spot.externalId}
+                <a
+                  href="https://parkour.spot/spot/{spot.externalId}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-sm btn-ghost"
+                  title="View on parkour.spot"
+                >
+                  🎯 parkour.spot
+                </a>
+              {/if}
+            </div>
+          </div>
         {/if}
 
         {#if goal.tags.length > 0}
@@ -101,6 +175,16 @@
                 <TagBadge {tag} />
               {/each}
             </div>
+          </div>
+        {/if}
+
+        {#if goal.sourceUrl}
+          <div class="section">
+            <h3 class="section-label">Reference</h3>
+            <a href={goal.sourceUrl} target="_blank" rel="noopener noreferrer" class="link-item">
+              {goal.sourceUrl}
+              <span class="text-muted text-sm">↗</span>
+            </a>
           </div>
         {/if}
 
@@ -119,13 +203,6 @@
             </ul>
           </div>
         {/if}
-
-        {#if goal.sourceUrl}
-          <div class="section">
-            <h3 class="section-label">Source</h3>
-            <a href={goal.sourceUrl} target="_blank" rel="noopener noreferrer">{goal.sourceUrl}</a>
-          </div>
-        {/if}
       </div>
 
       <div class="detail-sidebar">
@@ -137,19 +214,6 @@
                 <span class="dot" class:filled={i < (goal.difficulty ?? 0)}>●</span>
               {/each}
             </div>
-          </div>
-        {/if}
-
-        {#if spot}
-          <div class="sidebar-item">
-            <span class="sidebar-label">Spot</span>
-            <div class="spot-ref">
-              <span>📍</span>
-              <span>{spot.name}</span>
-            </div>
-            {#if spot.city}
-              <span class="text-muted text-sm">{spot.city}, {spot.country}</span>
-            {/if}
           </div>
         {/if}
 
@@ -184,105 +248,287 @@
 
   .detail-layout {
     display: grid;
-    grid-template-columns: 1fr 240px;
-    gap: 2rem;
+    grid-template-columns: 1fr 280px;
+    gap: 3rem;
     align-items: start;
+  }
+
+  .detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
   .meta-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
   }
 
-  .status-select {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
     background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
     color: var(--color-text);
-    font-family: inherit;
+  }
+
+  .goal-check-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-2);
     font-size: 0.85rem;
-    padding: 0.3rem 0.65rem;
+    font-weight: 600;
     cursor: pointer;
+  }
+
+  .goal-check-toggle input {
     width: auto;
+    margin: 0;
+  }
+
+  .description-section {
+    margin-bottom: 2rem;
   }
 
   .goal-description {
     color: var(--color-text-muted);
-    line-height: 1.7;
-    margin-bottom: 1.5rem;
+    line-height: 1.8;
+    font-size: 1rem;
   }
 
   .section {
-    margin-top: 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .section-label {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .spot-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .spot-image-container {
+    margin: 0 -1.5rem 1rem -1.5rem;
+    overflow: hidden;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+
+  .spot-image {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .spot-info {
+    margin-bottom: 1rem;
+  }
+
+  .spot-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.3rem;
+  }
+
+  .spot-description {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-top: 0.75rem;
+  }
+
+  .spot-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+
+  .btn:hover {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-dark, #0066cc);
+    border-color: var(--color-primary-dark, #0066cc);
+  }
+
+  .btn-danger {
+    background: rgba(242, 78, 78, 0.1);
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+  }
+
+  .btn-danger:hover {
+    background: rgba(242, 78, 78, 0.15);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-text);
+  }
+
+  .btn-ghost:hover {
+    background: var(--color-surface-2);
+    border-color: var(--color-border);
+  }
+
+  .btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
   }
 
   .links-list {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.6rem;
   }
 
   .link-item {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.15s;
+  }
+
+  .link-item:hover {
+    color: var(--color-primary-dark, #0066cc);
+    text-decoration: underline;
   }
 
   .detail-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 1.25rem;
+    padding: 1.5rem;
+    height: fit-content;
+    position: sticky;
+    top: 1rem;
   }
 
   .sidebar-item {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.5rem;
   }
 
   .sidebar-label {
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     color: var(--color-text-muted);
   }
 
   .difficulty-dots {
     display: flex;
-    gap: 3px;
-    font-size: 0.75rem;
+    gap: 4px;
+    font-size: 0.9rem;
   }
 
-  .dot { color: var(--color-border); }
-  .dot.filled { color: var(--color-primary); }
+  .dot {
+    color: var(--color-border);
+    transition: color 0.15s;
+  }
 
-  .spot-ref {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.9rem;
+  .dot.filled {
+    color: var(--color-primary);
+  }
+
+  @media (max-width: 900px) {
+    .detail-layout {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .detail-sidebar {
+      position: static;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
   }
 
   @media (max-width: 640px) {
     .detail-layout {
+      gap: 1.5rem;
+    }
+
+    .detail-sidebar {
       grid-template-columns: 1fr;
+    }
+
+    .meta-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .spot-image {
+      height: 200px;
+    }
+
+    .spot-actions {
+      gap: 0.4rem;
+    }
+
+    .btn {
+      flex: 1;
+      justify-content: center;
     }
   }
 </style>

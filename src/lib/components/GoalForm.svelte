@@ -1,14 +1,34 @@
 <script lang="ts">
-  import type { Spot, Tag } from '$lib/types';
+  import type { GoalStatus, GoalType, Spot, Tag } from '$lib/types';
 
   export let tags: Tag[] = [];
   export let submitting = false;
   export let error: string | undefined = undefined;
+  export let submitLabel = 'Save Goal';
+  export let cancelHref = '/goals';
+  export let initial: {
+    type: GoalType;
+    title: string;
+    description?: string;
+    status: GoalStatus;
+    difficulty?: number;
+    sourceUrl?: string;
+  } = {
+    type: 'move',
+    title: '',
+    description: '',
+    status: 'want_to_try',
+    difficulty: undefined,
+    sourceUrl: '',
+  };
+  export let initialTagIds: string[] = [];
+  export let initialSpot: Spot | null = null;
 
-  let type = 'move';
-  let spotQuery = '';
+  let type: GoalType = initial.type;
+  let isDone = initial.status === 'done';
+  let spotQuery = initialSpot?.name ?? '';
   let spotResults: Spot[] = [];
-  let selectedSpot: Spot | null = null;
+  let selectedSpot: Spot | null = initialSpot;
   let spotLoading = false;
   let spotError: string | undefined = undefined;
 
@@ -51,6 +71,8 @@
     spotResults = [];
     spotError = undefined;
   }
+
+  $: currentStatus = (isDone ? 'done' : 'want_to_try') as GoalStatus;
 </script>
 
 <div class="form-grid">
@@ -62,6 +84,7 @@
       type="text"
       required
       placeholder="e.g. Kong precision"
+      value={initial.title}
     />
   </div>
 
@@ -76,18 +99,6 @@
     </div>
 
     <div class="form-group">
-      <label for="status">Status *</label>
-      <select id="status" name="status" required>
-        <option value="idea">Idea</option>
-        <option value="want_to_try">Want to try</option>
-        <option value="training">Training</option>
-        <option value="landed">Landed</option>
-        <option value="done">Done</option>
-        <option value="archived">Archived</option>
-      </select>
-    </div>
-
-    <div class="form-group">
       <label for="difficulty">Difficulty (1–5)</label>
       <input
         id="difficulty"
@@ -97,13 +108,25 @@
         max="5"
         step="1"
         placeholder="3"
+        value={initial.difficulty ?? ''}
       />
     </div>
   </div>
 
+  <div class="form-group form-check-group">
+    <input type="hidden" name="status" value={currentStatus} />
+    <label class="check-option" for="isDone">
+      <input id="isDone" type="checkbox" bind:checked={isDone} />
+      <span>
+        <strong>Checked off</strong>
+        <small class="text-muted">Mark this if the goal is already done.</small>
+      </span>
+    </label>
+  </div>
+
   <div class="form-group">
     <label for="description">Description</label>
-    <textarea id="description" name="description" placeholder="Notes, context, cues…"></textarea>
+    <textarea id="description" name="description" placeholder="Notes, context, cues…">{initial.description ?? ''}</textarea>
   </div>
 
   <div class="form-group">
@@ -113,6 +136,7 @@
       name="sourceUrl"
       type="url"
       placeholder="https://youtube.com/…"
+      value={initial.sourceUrl ?? ''}
     />
   </div>
 
@@ -165,7 +189,7 @@
       <div class="tags-grid">
         {#each tags as tag}
           <label class="tag-option">
-            <input type="checkbox" name="tags" value={tag.id} />
+            <input type="checkbox" name="tags" value={tag.id} checked={initialTagIds.includes(tag.id)} />
             <span>{tag.name}</span>
           </label>
         {/each}
@@ -179,9 +203,9 @@
 
   <div class="form-actions">
     <button type="submit" class="btn btn-primary" disabled={submitting}>
-      {submitting ? 'Saving…' : 'Save Goal'}
+      {submitting ? 'Saving…' : submitLabel}
     </button>
-    <a href="/goals" class="btn btn-ghost">Cancel</a>
+    <a href={cancelHref} class="btn btn-ghost">Cancel</a>
   </div>
 </div>
 
@@ -202,6 +226,36 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .form-check-group {
+    margin-top: -0.15rem;
+  }
+
+  .check-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    cursor: pointer;
+  }
+
+  .check-option input {
+    width: auto;
+    margin: 0.15rem 0 0;
+  }
+
+  .check-option span {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .check-option small {
+    font-size: 0.8rem;
   }
 
   .spot-search-row {

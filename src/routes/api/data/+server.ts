@@ -6,6 +6,7 @@ import type {
   Challenge,
   CreateChallengeInput,
   CreateGoalInput,
+  UpdateGoalInput,
   CreateGoalListInput,
   Goal,
   GoalStatus,
@@ -120,6 +121,50 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         .eq('user_id', locals.user.id);
 
       if (error) throw new Error(error.message);
+
+      const snapshot = await snapshotFor(locals, locals.user.id);
+      const goal = snapshot.goals.find((entry) => entry.id === id);
+      if (!goal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
+      return json({ ok: true, data: goal });
+    }
+
+    if (action === 'updateGoal') {
+      if (!locals.user) return unauthorized();
+
+      const id = payload.id as string | undefined;
+      const input = payload.input as UpdateGoalInput | undefined;
+
+      if (!id || !input?.type) return badRequest('Goal id and input are required.');
+
+      const normalizedTitle = input.title?.trim() || (input.type === 'spot' ? 'Spot visit' : 'Untitled goal');
+
+      const { data: updatedGoal, error: updateError } = await locals.supabase
+        .from('goals')
+        .update({
+          type: input.type,
+          title: normalizedTitle,
+          description: input.description ?? null,
+          status: input.status,
+          difficulty: input.difficulty ?? null,
+          spot_id: input.spotId ?? null,
+          source_url: input.sourceUrl ?? null,
+        })
+        .eq('id', id)
+        .eq('user_id', locals.user.id)
+        .select('id')
+        .maybeSingle();
+
+      if (updateError) throw new Error(updateError.message);
+      if (!updatedGoal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
+
+      const { error: deleteTagsError } = await locals.supabase.from('goal_tags').delete().eq('goal_id', id);
+      if (deleteTagsError) throw new Error(deleteTagsError.message);
+
+      if ((input.tagIds ?? []).length > 0) {
+        const links = input.tagIds.map((tagId) => ({ goal_id: id, tag_id: tagId }));
+        const { error: insertTagsError } = await locals.supabase.from('goal_tags').insert(links);
+        if (insertTagsError) throw new Error(insertTagsError.message);
+      }
 
       const snapshot = await snapshotFor(locals, locals.user.id);
       const goal = snapshot.goals.find((entry) => entry.id === id);

@@ -2,12 +2,8 @@ import type { ActivityType, GoalStatus, GoalType, GoalListType, GoalListVisibili
 
 export function formatStatus(status: GoalStatus): string {
   const map: Record<GoalStatus, string> = {
-    idea: 'Idea',
-    want_to_try: 'Want to try',
-    training: 'Training',
-    landed: 'Landed ✓',
+    want_to_try: 'Unchecked',
     done: 'Done',
-    archived: 'Archived',
   };
   return map[status] ?? status;
 }
@@ -54,12 +50,8 @@ export function formatActivityType(activityType: ActivityType): string {
 
 export function statusColor(status: GoalStatus): string {
   const map: Record<GoalStatus, string> = {
-    idea: 'status-idea',
-    want_to_try: 'status-want',
-    training: 'status-training',
-    landed: 'status-landed',
+    want_to_try: 'status-open',
     done: 'status-done',
-    archived: 'status-archived',
   };
   return map[status] ?? '';
 }

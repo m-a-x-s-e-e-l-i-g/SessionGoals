@@ -11,7 +11,9 @@
     <span class="type-badge badge type-{goal.type}">
       {typeIcon(goal.type)} {formatGoalType(goal.type)}
     </span>
-    <span class="badge {statusColor(goal.status)}">{formatStatus(goal.status)}</span>
+    {#if goal.status === 'done'}
+      <span class="badge {statusColor(goal.status)}">✓ {formatStatus(goal.status)}</span>
+    {/if}
   </div>
 
   <h3 class="goal-title">{goal.title}</h3>

@@ -283,12 +283,8 @@ textarea {
   letter-spacing: 0.03em;
 }
 
-.status-idea       { background: var(--badge-idea-bg);          color: var(--badge-idea-text); }
-.status-want       { background: var(--badge-want-bg);          color: var(--badge-want-text); }
-.status-training   { background: var(--badge-training-bg);      color: var(--badge-training-text); }
-.status-landed     { background: var(--badge-landed-bg);        color: var(--badge-landed-text); }
+.status-open       { background: var(--badge-want-bg);          color: var(--badge-want-text); }
 .status-done       { background: var(--badge-done-bg);          color: var(--badge-done-text); }
-.status-archived   { background: var(--badge-archived-bg);      color: var(--badge-archived-text); }
 
 .type-move        { background: var(--badge-move-bg);          color: var(--badge-move-text); }
 .type-spot        { background: var(--badge-spot-bg);          color: var(--badge-spot-text); }

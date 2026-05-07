@@ -20,6 +20,10 @@ function toIsoString(value: string | null | undefined): string {
   return value ?? new Date().toISOString();
 }
 
+function normalizeGoalStatus(value: string | null | undefined): 'want_to_try' | 'done' {
+  return value === 'done' || value === 'landed' ? 'done' : 'want_to_try';
+}
+
 type QueryResult<T> = { data: T[] | null; error: { message: string } | null };
 
 function must<T>(result: QueryResult<T>, table: string): T[] {
@@ -168,7 +172,7 @@ export async function loadAppStateForRequest(
     type: row.type,
     title: row.title,
     description: row.description ?? undefined,
-    status: row.status,
+    status: normalizeGoalStatus(row.status),
     difficulty: row.difficulty ?? undefined,
     spotId: row.spot_id ?? undefined,
     sourceUrl: row.source_url ?? undefined,
@@ -276,7 +280,7 @@ export async function loadAppStateForRequest(
     userId: row.user_id,
     title: row.title,
     description: row.description ?? undefined,
-    status: row.status,
+    status: normalizeGoalStatus(row.status),
     difficulty: row.difficulty ?? undefined,
     spotIds: challengeSpotsByChallengeId.get(row.id) ?? [],
     goalIds: challengeGoalsByChallengeId.get(row.id) ?? [],
