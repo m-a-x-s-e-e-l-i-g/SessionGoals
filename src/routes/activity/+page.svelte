@@ -200,7 +200,7 @@
       </div>
       {#if activities.length > visibleCount}
         <div class="load-more-wrap">
-          <button type="button" class="btn btn-ghost" on:click={() => (visibleCount += 10)}>Meer laden</button>
+          <button type="button" class="btn btn-ghost" on:click={() => (visibleCount += 10)}>Load more</button>
         </div>
       {/if}
     {/if}

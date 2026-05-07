@@ -18,7 +18,6 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: spots = data.spots;
-  let query = data.query ?? '';
   $: query = $page.url.searchParams.get('q') ?? '';
   const lists = getLists();
   const allGoals = getGoals();

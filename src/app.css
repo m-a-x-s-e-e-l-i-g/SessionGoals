@@ -322,4 +322,4 @@ textarea {
 .flex-wrap  { flex-wrap: wrap; }
 .items-center { align-items: center; }
 
-/* Tijdformattering helper — wordt elders gebruikt via JS */
+/* Time formatting helper — used elsewhere via JS */

@@ -41,7 +41,7 @@
     if (duration) {
       const parsedDuration = Number.parseInt(duration, 10);
       if (Number.isNaN(parsedDuration) || parsedDuration < 1 || parsedDuration > 480) {
-        return 'Duur moet tussen 1 en 480 minuten zijn.';
+        return 'Duration must be between 1 and 480 minutes.';
       }
     }
 

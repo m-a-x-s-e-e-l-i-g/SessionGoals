@@ -109,7 +109,7 @@
         </div>
 
         {#if justChecked}
-          <p class="checked-feedback">✓ Doel afgevinkt!</p>
+          <p class="checked-feedback">✓ Goal checked!</p>
         {/if}
 
         {#if goal.description}

@@ -37,7 +37,7 @@
     <form method="POST" on:submit={() => (isLoading = true)}>
       <input type="hidden" name="next" value={data.next} />
       <button type="submit" class="btn btn-primary auth-button" disabled={isLoading} aria-busy={isLoading}>
-        {isLoading ? 'Bezig…' : 'Continue with Google'}
+        {isLoading ? 'Loading…' : 'Continue with Google'}
       </button>
     </form>
 
