@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { Goal, GoalStatus, GoalType, Spot, Tag } from '$lib/types';
+  import type { Goal, GoalStatus, GoalType, Spot } from '$lib/types';
 
-  export let tags: Tag[] = [];
   export let submitting = false;
   export let error: string | undefined = undefined;
   export let submitLabel = 'Save Goal';
@@ -21,7 +20,6 @@
     difficulty: undefined,
     sourceUrl: '',
   };
-  export let initialTagIds: string[] = [];
   export let initialSpot: Spot | null = null;
   export let availableSubgoals: Goal[] = [];
   export let initialSubgoalIds: string[] = [];
@@ -165,7 +163,7 @@
       <p class="text-sm text-muted subgoal-help">Break this move down into smaller move goals.</p>
       <div class="subgoals-grid">
         {#each availableSubgoals as candidate}
-          <label class="tag-option">
+          <label class="chip-option">
             <input
               type="checkbox"
               name="subgoalIds"
@@ -233,20 +231,6 @@
     </div>
   {/if}
 
-  {#if tags.length > 0}
-    <div class="form-group">
-      <label>Tags</label>
-      <div class="tags-grid">
-        {#each tags as tag}
-          <label class="tag-option">
-            <input type="checkbox" name="tags" value={tag.id} checked={initialTagIds.includes(tag.id)} />
-            <span>{tag.name}</span>
-          </label>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
   {#if error}
     <p class="form-error">{error}</p>
   {/if}
@@ -270,12 +254,6 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 1rem;
-  }
-
-  .tags-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
   }
 
   .form-check-group {
@@ -387,7 +365,7 @@
     background: var(--color-surface-2);
   }
 
-  .tag-option {
+  .chip-option {
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -404,12 +382,12 @@
     transition: border-color 0.15s;
   }
 
-  .tag-option:has(input:checked) {
+  .chip-option:has(input:checked) {
     border-color: var(--color-primary);
     color: var(--color-primary);
   }
 
-  .tag-option input {
+  .chip-option input {
     width: auto;
     margin: 0;
   }

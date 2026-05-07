@@ -4,11 +4,9 @@
   import { getGoals } from '$lib/data/goals';
   import { getPublicLists } from '$lib/data/lists';
   import { getActivityStats } from '$lib/data/activities';
+  import SearchBar from '$lib/components/SearchBar.svelte';
 
   let query = '';
-  function clearQuery() {
-    query = '';
-  }
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
@@ -71,31 +69,17 @@
     </section>
   {/if}
 
-    <div class="search-shell" role="search" aria-label="People search">
-      <label for="people-search" class="search-label">Find People</label>
-      <div class="search-field-wrap">
-        <span class="search-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="7"></circle>
-            <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
-          </svg>
-        </span>
-        <input
-          id="people-search"
-          type="search"
-          bind:value={query}
-          placeholder="Name, username, city, country"
-          autocomplete="off"
-          class="people-search-input"
-        />
-        {#if query}
-          <button class="clear-search" type="button" on:click={() => (query = '')} aria-label="Clear search">
-            Clear
-          </button>
-        {/if}
-      </div>
-      <p class="search-help text-muted text-sm">Try "lena", "berlin", or "@milo".</p>
-    </div>
+  <div class="people-search-wrap">
+    <SearchBar
+      id="people-search"
+      bind:value={query}
+      label="Find People"
+      placeholder="Name, username, city, country"
+      ariaLabel="People search"
+      helperText={'Try "lena", "berlin", or "@milo".'}
+      metaText={`Showing ${users.length} ${users.length === 1 ? 'athlete' : 'athletes'}`}
+    />
+  </div>
 
   {#if users.length === 0}
     <p class="text-muted">No people found for "{query}".</p>
@@ -200,97 +184,12 @@
     gap: 0.3rem;
   }
 
-  .search-shell {
-    max-width: 720px;
+  .people-search-wrap {
     margin-bottom: 1.35rem;
-    padding: 0.9rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background:
-      radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 12%, transparent), transparent 48%),
-      linear-gradient(
-        180deg,
-        color-mix(in oklch, var(--color-surface) 90%, var(--color-primary) 10%),
-        var(--color-surface)
-      );
   }
 
-  .search-label {
-    display: inline-block;
-    margin-bottom: 0.45rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: color-mix(in oklch, var(--color-accent) 75%, var(--color-text));
-  }
-
-  .search-field-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.4rem 0.45rem;
-    border: 1px solid color-mix(in oklch, var(--color-border) 82%, var(--color-primary));
-    border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--color-surface) 86%, var(--color-surface-2));
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-
-  .search-field-wrap:focus-within {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 18%, transparent);
-  }
-
-  .search-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-text-muted);
-    margin-left: 0.15rem;
-    flex-shrink: 0;
-  }
-
-  .people-search-input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    background: transparent;
-    padding: 0.45rem 0.2rem;
-    font-size: 0.95rem;
-    color: var(--color-text);
-  }
-
-  .people-search-input:focus {
-    outline: none;
-  }
-
-  .people-search-input::placeholder {
-    color: color-mix(in oklch, var(--color-text-muted) 88%, var(--color-surface));
-  }
-
-  .clear-search {
-    border: 1px solid var(--color-border);
-    background: color-mix(in oklch, var(--color-surface-2) 92%, var(--color-primary) 8%);
-    color: var(--color-text-muted);
-    border-radius: 999px;
-    padding: 0.2rem 0.6rem;
-    min-height: 30px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-  }
-
-  .clear-search:hover {
-    color: var(--color-text);
-    border-color: var(--color-primary);
-  }
-
-  .search-help {
-    margin-top: 0.45rem;
-    margin-bottom: 0;
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
+  .people-search-wrap :global(.search-shell) {
+    max-width: 720px;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -305,18 +204,8 @@
         );
     }
 
-    .search-shell {
-      background:
-        radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 10%, transparent), transparent 50%),
-        linear-gradient(
-          180deg,
-          color-mix(in oklch, var(--color-surface) 94%, var(--color-primary) 6%),
-          var(--color-surface)
-        );
-    }
-
-    .search-field-wrap {
-      background: color-mix(in oklch, var(--color-surface) 92%, var(--color-surface-2));
+    .people-search-wrap :global(.search-shell) {
+      border-color: color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
     }
   }
 
@@ -403,13 +292,8 @@
   }
 
   @media (max-width: 520px) {
-    .search-shell {
-      padding: 0.75rem;
-    }
-
-    .search-field-wrap {
-      gap: 0.35rem;
-      padding: 0.3rem 0.35rem;
+    .people-search-wrap :global(.search-shell) {
+      max-width: 100%;
     }
   }
 </style>

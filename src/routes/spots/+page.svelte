@@ -11,6 +11,7 @@
   import SpotCard from '$lib/components/SpotCard.svelte';
   import SpotActions from '$lib/components/SpotActions.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import SearchBar from '$lib/components/SearchBar.svelte';
   import { getLists, getListById } from '$lib/data/lists';
   import { getGoals, getMyGoals } from '$lib/data/goals';
   import { getSpots } from '$lib/data/spots';
@@ -138,7 +139,6 @@
         country: savedSpot.country ?? liveSpot.country,
         description: savedSpot.description ?? liveSpot.description,
         imageUrl: liveSpot.imageUrl,
-        tags: savedSpot.tags.length > 0 ? savedSpot.tags : liveSpot.tags,
       } satisfies Spot;
     })
     .filter((spot): spot is Spot => !!spot);
@@ -231,8 +231,7 @@
     (s) =>
       !query ||
       s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.city?.toLowerCase().includes(query.toLowerCase()) ||
-      s.tags.some((t) => t.name.toLowerCase().includes(query.toLowerCase()))
+      s.city?.toLowerCase().includes(query.toLowerCase())
   );
 
   type UserLocationStatus = 'idle' | 'locating' | 'ready' | 'denied' | 'unavailable';
@@ -497,35 +496,41 @@
   {/if}
 
   <form class="search-bar" method="GET">
-    <input
-      type="text"
+    <SearchBar
       bind:value={query}
       name="q"
-      placeholder="Search by name, city, or tag…"
-      class="search-input"
-    />
-    <button class="btn btn-ghost search-btn" type="submit">
-      <img
-        src="https://parkour.spot/favicon.ico"
-        alt="parkour.spot"
-        class="parkour-spot-logo"
-        width="16"
-        height="16"
-      />
-      <span>Search parkour.spot</span>
-    </button>
-    {#if query}
-      <button type="button" class="btn btn-ghost search-btn" on:click={() => goto('/spots')}>
-        Clear
-      </button>
-    {/if}
+      placeholder="Search by name or city"
+      ariaLabel="Search spots"
+      showClear={false}
+      metaText={query
+        ? `Showing ${filtered.length} result${filtered.length === 1 ? '' : 's'}`
+        : 'Search live spots from parkour.spot'}
+    >
+      <svelte:fragment slot="actions">
+        <button class="btn btn-ghost search-action-btn" type="submit">
+          <img
+            src="https://parkour.spot/favicon.ico"
+            alt="parkour.spot"
+            class="parkour-spot-logo"
+            width="16"
+            height="16"
+          />
+          <span>Search parkour.spot</span>
+        </button>
+        {#if query}
+          <button type="button" class="btn btn-ghost search-action-btn" on:click={() => goto('/spots')}>
+            Reset
+          </button>
+        {/if}
+      </svelte:fragment>
+    </SearchBar>
   </form>
 
   {#if !query && !data.error}
     <EmptyState
       icon="🔍"
       title="Search for spots"
-      message="Type a name, city, or tag above and hit Search."
+      message="Type a name or city above and hit Search."
     />
   {:else if filtered.length === 0 && !data.error}
     <EmptyState
@@ -642,31 +647,12 @@
   }
 
   .search-bar {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    flex-wrap: wrap;
     margin-bottom: 1.5rem;
   }
 
-  .search-input {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    color: var(--color-text);
-    font-family: inherit;
-    font-size: 0.95rem;
-    padding: 0.65rem 1rem;
-    width: 100%;
-    max-width: 400px;
-    transition: border-color 0.15s;
-  }
-
-  .search-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    white-space: nowrap;
+  .search-bar :global(.search-shell) {
+    margin-bottom: 0;
+    max-width: 920px;
   }
 
   .parkour-spot-logo {
@@ -678,11 +664,6 @@
     .parkour-spot-logo {
       filter: invert(1) brightness(0.85);
     }
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--color-primary);
   }
 
   @media (max-width: 700px) {

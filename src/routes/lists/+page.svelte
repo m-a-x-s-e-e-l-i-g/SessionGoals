@@ -1,10 +1,14 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { getMyLists, getExplorableLists } from '$lib/data/lists';
+  import { getUserById } from '$lib/data/users';
   import { getTrackedProgress, getProgressForList } from '$lib/data/listProgress';
   import { appStateStore } from '$lib/data/state';
   import ListCard from '$lib/components/ListCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import SearchBar from '$lib/components/SearchBar.svelte';
+
+  let publicQuery = '';
 
   $: isAuthenticated = !!$page.data.user;
   $: myLists = getMyLists();
@@ -35,6 +39,19 @@
       if (bCount !== aCount) return bCount - aCount;
       return a.name.localeCompare(b.name);
     });
+
+  $: normalizedPublicQuery = publicQuery.trim().toLowerCase();
+  $: filteredExplorableLists = explorableLists.filter((list) => {
+    if (!normalizedPublicQuery) return true;
+
+    const owner = list.userId ? getUserById(list.userId) : undefined;
+    return (
+      list.name.toLowerCase().includes(normalizedPublicQuery)
+      || (list.description ?? '').toLowerCase().includes(normalizedPublicQuery)
+      || (owner?.displayName ?? '').toLowerCase().includes(normalizedPublicQuery)
+      || (owner?.username ?? '').toLowerCase().includes(normalizedPublicQuery)
+    );
+  });
 </script>
 
 <svelte:head>
@@ -104,11 +121,23 @@
     <div class="section-header">
       <h2 class="section-title">{isAuthenticated ? 'Explore Public Lists' : 'Public Lists'}</h2>
     </div>
+
+    <div class="public-search-wrap">
+      <SearchBar
+        bind:value={publicQuery}
+        placeholder="Search public lists by name, owner, or description"
+        ariaLabel="Search public lists"
+        metaText={`Showing ${filteredExplorableLists.length} of ${explorableLists.length} public lists`}
+      />
+    </div>
+
     {#if explorableLists.length === 0}
       <p class="text-muted">No public lists from other athletes yet.</p>
+    {:else if filteredExplorableLists.length === 0}
+      <p class="text-muted">No public lists match your search.</p>
     {:else}
       <div class="grid-cards">
-        {#each explorableLists as list}
+        {#each filteredExplorableLists as list}
           <ListCard {list} showOwner={true} trackerCount={trackersByListId.get(list.id) ?? 0} />
         {/each}
       </div>
@@ -132,5 +161,14 @@
     font-family: var(--font-display);
     font-size: 1.4rem;
     font-weight: 700;
+  }
+
+  .public-search-wrap {
+    margin-bottom: 1rem;
+  }
+
+  .public-search-wrap :global(.search-shell) {
+    margin-bottom: 0;
+    max-width: 820px;
   }
 </style>

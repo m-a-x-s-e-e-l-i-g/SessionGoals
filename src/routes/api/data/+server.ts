@@ -118,12 +118,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       if (goalError || !goalRow) throw new Error(goalError?.message ?? 'Failed to create goal.');
 
-      if ((input.tagIds ?? []).length > 0) {
-        const links = input.tagIds.map((tagId) => ({ goal_id: goalRow.id, tag_id: tagId }));
-        const { error: tagsError } = await locals.supabase.from('goal_tags').insert(links);
-        if (tagsError) throw new Error(tagsError.message);
-      }
-
       const subgoalIds =
         input.type === 'move'
           ? await getOwnedSubgoalIds(locals, locals.user.id, input.subgoalIds, goalRow.id)
@@ -191,15 +185,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       if (updateError) throw new Error(updateError.message);
       if (!updatedGoal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
-
-      const { error: deleteTagsError } = await locals.supabase.from('goal_tags').delete().eq('goal_id', id);
-      if (deleteTagsError) throw new Error(deleteTagsError.message);
-
-      if ((input.tagIds ?? []).length > 0) {
-        const links = input.tagIds.map((tagId) => ({ goal_id: id, tag_id: tagId }));
-        const { error: insertTagsError } = await locals.supabase.from('goal_tags').insert(links);
-        if (insertTagsError) throw new Error(insertTagsError.message);
-      }
 
       const { error: deleteSubgoalsError } = await locals.supabase
         .from('goal_subgoals')
@@ -588,13 +573,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       if (spotError) throw new Error(spotError.message);
 
-      await locals.supabase.from('spot_tags').delete().eq('spot_id', spotId);
-      if (spot.tags.length > 0) {
-        const inserts = spot.tags.map((tag) => ({ spot_id: spotId, tag_id: tag.id }));
-        const { error: tagsError } = await locals.supabase.from('spot_tags').insert(inserts);
-        if (tagsError) throw new Error(tagsError.message);
-      }
-
       const snapshot = await snapshotFor(locals, locals.user.id);
       const saved = snapshot.spots.find((entry) => entry.id === spotId);
       if (!saved) throw new Error('Spot saved but failed to load it.');
@@ -656,12 +634,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         const inserts = input.goalIds!.map((goalId) => ({ challenge_id: challengeId, goal_id: goalId }));
         const { error: goalsError } = await locals.supabase.from('challenge_goals').insert(inserts);
         if (goalsError) throw new Error(goalsError.message);
-      }
-
-      if ((input.tagIds ?? []).length > 0) {
-        const inserts = input.tagIds!.map((tagId) => ({ challenge_id: challengeId, tag_id: tagId }));
-        const { error: tagsError } = await locals.supabase.from('challenge_tags').insert(inserts);
-        if (tagsError) throw new Error(tagsError.message);
       }
 
       const snapshot = await snapshotFor(locals, locals.user.id);

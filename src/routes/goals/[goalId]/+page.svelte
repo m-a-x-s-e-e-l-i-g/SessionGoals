@@ -5,7 +5,6 @@
   import { getSpotById } from '$lib/data/spots';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
   import { getMovePreviewImageUrl } from '$lib/utils/media';
-  import TagBadge from '$lib/components/TagBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { GoalStatus } from '$lib/types';
 
@@ -244,17 +243,6 @@
                 </li>
               {/each}
             </ul>
-          </div>
-        {/if}
-
-        {#if goal.tags.length > 0}
-          <div class="section">
-            <h3 class="section-label">Tags</h3>
-            <div class="flex flex-wrap gap-1">
-              {#each goal.tags as tag}
-                <TagBadge {tag} />
-              {/each}
-            </div>
           </div>
         {/if}
 

@@ -11,7 +11,6 @@ import type {
   ListProgress,
   ListProgressItem,
   Spot,
-  Tag,
   UserProfile,
 } from '$lib/types';
 import { normalizeActivityType } from '$lib/types';
@@ -58,11 +57,8 @@ export async function loadAppStateForRequest(
 
   const [
     usersResult,
-    tagsResult,
     spotsResult,
-    spotTagsResult,
     goalsResult,
-    goalTagsResult,
     goalLinksResult,
     goalSubgoalsResult,
     listsResult,
@@ -73,15 +69,11 @@ export async function loadAppStateForRequest(
     challengesResult,
     challengeSpotsResult,
     challengeGoalsResult,
-    challengeTagsResult,
     challengeLinksResult,
   ] = await Promise.all([
     supabase.from('users').select('*'),
-    supabase.from('tags').select('*'),
     supabase.from('spots').select('*'),
-    supabase.from('spot_tags').select('*'),
     supabase.from('goals').select('*'),
-    supabase.from('goal_tags').select('*'),
     supabase.from('goal_links').select('*'),
     supabase.from('goal_subgoals').select('*'),
     supabase.from('goal_lists').select('*'),
@@ -92,16 +84,12 @@ export async function loadAppStateForRequest(
     supabase.from('challenges').select('*'),
     supabase.from('challenge_spots').select('*'),
     supabase.from('challenge_goals').select('*'),
-    supabase.from('challenge_tags').select('*'),
     supabase.from('challenge_links').select('*'),
   ]);
 
   const usersRows = must(usersResult, 'users');
-  const tagsRows = must(tagsResult, 'tags');
   const spotsRows = must(spotsResult, 'spots');
-  const spotTagsRows = must(spotTagsResult, 'spot_tags');
   const goalsRows = must(goalsResult, 'goals');
-  const goalTagsRows = must(goalTagsResult, 'goal_tags');
   const goalLinksRows = must(goalLinksResult, 'goal_links');
   const goalSubgoalsRows = optionalWhenTableMissing(goalSubgoalsResult, 'goal_subgoals');
   const listsRows = must(listsResult, 'goal_lists');
@@ -112,16 +100,7 @@ export async function loadAppStateForRequest(
   const challengesRows = must(challengesResult, 'challenges');
   const challengeSpotsRows = must(challengeSpotsResult, 'challenge_spots');
   const challengeGoalsRows = must(challengeGoalsResult, 'challenge_goals');
-  const challengeTagsRows = must(challengeTagsResult, 'challenge_tags');
   const challengeLinksRows = must(challengeLinksResult, 'challenge_links');
-
-  const tags: Tag[] = tagsRows.map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    category: row.category ?? undefined,
-  }));
-
-  const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 
   const users: UserProfile[] = usersRows.map((row: any) => ({
     id: row.id,
@@ -137,15 +116,6 @@ export async function loadAppStateForRequest(
     joinedAt: toIsoString(row.joined_at),
   }));
 
-  const spotTagsBySpotId = new Map<string, Tag[]>();
-  for (const row of spotTagsRows as any[]) {
-    const tag = tagsById.get(row.tag_id);
-    if (!tag) continue;
-    const existing = spotTagsBySpotId.get(row.spot_id) ?? [];
-    existing.push(tag);
-    spotTagsBySpotId.set(row.spot_id, existing);
-  }
-
   const spots: Spot[] = spotsRows.map((row: any) => ({
     id: row.id,
     externalId: row.external_id ?? undefined,
@@ -155,20 +125,10 @@ export async function loadAppStateForRequest(
     country: row.country ?? undefined,
     // Coordinates are considered API-owned data and should be fetched live.
     coordinates: undefined,
-    tags: spotTagsBySpotId.get(row.id) ?? [],
     // Image URL is considered API-owned data and should be fetched live.
     imageUrl: undefined,
     createdAt: toIsoString(row.created_at),
   }));
-
-  const goalTagsByGoalId = new Map<string, Tag[]>();
-  for (const row of goalTagsRows as any[]) {
-    const tag = tagsById.get(row.tag_id);
-    if (!tag) continue;
-    const existing = goalTagsByGoalId.get(row.goal_id) ?? [];
-    existing.push(tag);
-    goalTagsByGoalId.set(row.goal_id, existing);
-  }
 
   const goalLinksByGoalId = new Map<string, GoalLink[]>();
   for (const row of goalLinksRows as any[]) {
@@ -201,7 +161,6 @@ export async function loadAppStateForRequest(
     spotId: row.spot_id ?? undefined,
     subgoalIds: subgoalsByParentGoalId.get(row.id) ?? [],
     sourceUrl: row.source_url ?? undefined,
-    tags: goalTagsByGoalId.get(row.id) ?? [],
     links: goalLinksByGoalId.get(row.id) ?? [],
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
@@ -264,15 +223,6 @@ export async function loadAppStateForRequest(
     createdAt: toIsoString(row.created_at),
   }));
 
-  const challengeTagsByChallengeId = new Map<string, Tag[]>();
-  for (const row of challengeTagsRows as any[]) {
-    const tag = tagsById.get(row.tag_id);
-    if (!tag) continue;
-    const existing = challengeTagsByChallengeId.get(row.challenge_id) ?? [];
-    existing.push(tag);
-    challengeTagsByChallengeId.set(row.challenge_id, existing);
-  }
-
   const challengeSpotsByChallengeId = new Map<string, string[]>();
   for (const row of challengeSpotsRows as any[]) {
     const existing = challengeSpotsByChallengeId.get(row.challenge_id) ?? [];
@@ -309,7 +259,6 @@ export async function loadAppStateForRequest(
     difficulty: row.difficulty ?? undefined,
     spotIds: challengeSpotsByChallengeId.get(row.id) ?? [],
     goalIds: challengeGoalsByChallengeId.get(row.id) ?? [],
-    tags: challengeTagsByChallengeId.get(row.id) ?? [],
     links: challengeLinksByChallengeId.get(row.id) ?? [],
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
@@ -318,7 +267,6 @@ export async function loadAppStateForRequest(
   return {
     currentUserId,
     users,
-    tags,
     spots,
     goals,
     lists,

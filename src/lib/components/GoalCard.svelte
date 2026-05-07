@@ -2,7 +2,6 @@
   import type { Goal } from '$lib/types';
   import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
   import { getMovePreviewImageUrl } from '$lib/utils/media';
-  import TagBadge from './TagBadge.svelte';
 
   export let goal: Goal;
   export let onToggle: ((id: string) => void) | undefined = undefined;
@@ -58,17 +57,6 @@
 
     {#if goal.description}
       <p class="goal-desc text-muted text-sm">{goal.description}</p>
-    {/if}
-
-    {#if goal.tags.length > 0}
-      <div class="goal-tags flex flex-wrap gap-1 mt-1">
-        {#each goal.tags.slice(0, 4) as tag}
-          <TagBadge {tag} />
-        {/each}
-        {#if goal.tags.length > 4}
-          <span class="text-muted text-sm">+{goal.tags.length - 4}</span>
-        {/if}
-      </div>
     {/if}
 
     {#if spotName}

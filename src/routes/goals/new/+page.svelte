@@ -1,14 +1,12 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { getTags } from '$lib/data/tags';
   import { createGoal, getMyGoals } from '$lib/data/goals';
   import { addGoalToList, getListById } from '$lib/data/lists';
   import { upsertSpot } from '$lib/data/spots';
   import GoalForm from '$lib/components/GoalForm.svelte';
   import type { CreateGoalInput, GoalType, GoalStatus, Spot } from '$lib/types';
 
-  const tags = getTags();
   let submitting = false;
   let error: string | undefined;
   const subgoalCandidates = getMyGoals().filter((goal) => goal.type === 'move');
@@ -40,7 +38,6 @@
       spotId: (data.get('spotId') as string)?.trim() || undefined,
       subgoalIds: data.getAll('subgoalIds').map((value) => String(value)).filter(Boolean),
       sourceUrl: (data.get('sourceUrl') as string)?.trim() || undefined,
-      tagIds: data.getAll('tags') as string[],
     };
 
     const spotPayload = (data.get('spotPayload') as string)?.trim();
@@ -85,7 +82,7 @@
 
   <div class="form-card card">
     <form on:submit={handleSubmit}>
-      <GoalForm {tags} {submitting} {error} availableSubgoals={subgoalCandidates} />
+      <GoalForm {submitting} {error} availableSubgoals={subgoalCandidates} />
     </form>
   </div>
 </div>

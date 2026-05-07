@@ -7,7 +7,7 @@
 // export async function getGoals(userId: string) {
 //   const { data, error } = await supabase
 //     .from('goals')
-//     .select('*, goal_tags(tag_id, tags(*))')
+//     .select('*')
 //     .eq('user_id', userId);
 //   if (error) throw error;
 //   return data;

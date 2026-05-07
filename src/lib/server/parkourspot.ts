@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import type { Spot, Tag } from '$lib/types';
+import type { Spot } from '$lib/types';
 
 const DEFAULT_API_BASE = 'https://parkour.spot/api/v1';
 
@@ -129,35 +129,6 @@ async function parkourSpotFetch(path: string, init?: RequestInit): Promise<Respo
   });
 }
 
-function normalizeTags(raw: any): Tag[] {
-  const source =
-    (Array.isArray(raw?.tags) && raw.tags) ||
-    (Array.isArray(raw?.categories) && raw.categories) ||
-    (Array.isArray(raw?.tagNames) && raw.tagNames) ||
-    [];
-
-  const out: Tag[] = [];
-  const seen = new Set<string>();
-
-  for (const entry of source) {
-    const name =
-      asTrimmedString(typeof entry === 'string' ? entry : entry?.name) ??
-      asTrimmedString(typeof entry === 'string' ? entry : entry?.label);
-    if (!name) continue;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    out.push({
-      id: `tag-${key.replace(/\s+/g, '-')}`,
-      name,
-      category: asTrimmedString(typeof entry === 'object' ? entry?.category : null) ?? undefined
-    });
-  }
-
-  return out;
-}
-
 function normalizeSpot(raw: any, index: number): Spot | null {
   const externalId =
     asTrimmedString(raw?.id) ??
@@ -202,7 +173,6 @@ function normalizeSpot(raw: any, index: number): Spot | null {
       asTrimmedString(raw?.address?.country) ??
       undefined,
     coordinates: coordinates ?? undefined,
-    tags: normalizeTags(raw),
     imageUrl:
       asTrimmedString(Array.isArray(raw?.imageUrls) ? raw.imageUrls[0] : null) ??
       asTrimmedString(raw?.imageUrl) ??

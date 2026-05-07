@@ -11,12 +11,6 @@ export type GoalType = 'move' | 'spot';
 
 export type GoalStatus = 'want_to_try' | 'done';
 
-export interface Tag {
-  id: string;
-  name: string;
-  category?: string;
-}
-
 export interface UserProfile {
   id: string;
   username: string;
@@ -50,7 +44,6 @@ export interface Goal {
   spotId?: string;
   subgoalIds?: string[];
   sourceUrl?: string;
-  tags: Tag[];
   links: GoalLink[];
   createdAt: string;
   updatedAt: string;
@@ -95,7 +88,6 @@ export interface Spot {
   city?: string;
   country?: string;
   coordinates?: SpotCoordinates;
-  tags: Tag[];
   imageUrl?: string;
   createdAt: string;
 }
@@ -111,7 +103,6 @@ export interface CreateGoalInput {
   spotId?: string;
   subgoalIds?: string[];
   sourceUrl?: string;
-  tagIds: string[];
 }
 
 export interface UpdateGoalInput {
@@ -123,7 +114,6 @@ export interface UpdateGoalInput {
   spotId?: string;
   subgoalIds?: string[];
   sourceUrl?: string;
-  tagIds: string[];
 }
 
 export interface CreateGoalListInput {
@@ -172,7 +162,6 @@ export interface Challenge {
   difficulty?: number; // 1–5
   spotIds: string[];   // spots involved in the challenge
   goalIds: string[];   // component goals / moves that make up the challenge
-  tags: Tag[];
   links: GoalLink[];
   createdAt: string;
   updatedAt: string;
@@ -185,7 +174,6 @@ export interface CreateChallengeInput {
   difficulty?: number;
   spotIds?: string[];
   goalIds?: string[];
-  tagIds?: string[];
 }
 
 // ─── Activity types ──────────────────────────────────────────────────────────

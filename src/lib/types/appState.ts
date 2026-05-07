@@ -1,9 +1,8 @@
-import type { Activity, Challenge, Goal, GoalList, ListProgress, Spot, Tag, UserProfile } from '$lib/types';
+import type { Activity, Challenge, Goal, GoalList, ListProgress, Spot, UserProfile } from '$lib/types';
 
 export interface AppStateSnapshot {
   currentUserId: string | null;
   users: UserProfile[];
-  tags: Tag[];
   spots: Spot[];
   goals: Goal[];
   lists: GoalList[];
@@ -16,7 +15,6 @@ export function createEmptyAppState(currentUserId: string | null = null): AppSta
   return {
     currentUserId,
     users: [],
-    tags: [],
     spots: [],
     goals: [],
     lists: [],

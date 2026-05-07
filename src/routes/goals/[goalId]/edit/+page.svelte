@@ -5,10 +5,8 @@
   import { getGoalById, getMyGoals, updateGoal } from '$lib/data/goals';
   import { getListById } from '$lib/data/lists';
   import { getSpotById, upsertSpot } from '$lib/data/spots';
-  import { getTags } from '$lib/data/tags';
   import type { GoalStatus, GoalType, Spot, UpdateGoalInput } from '$lib/types';
 
-  const tags = getTags();
   let submitting = false;
   let error: string | undefined;
 
@@ -45,7 +43,6 @@
       spotId: (data.get('spotId') as string)?.trim() || undefined,
       subgoalIds: data.getAll('subgoalIds').map((value) => String(value)).filter(Boolean),
       sourceUrl: (data.get('sourceUrl') as string)?.trim() || undefined,
-      tagIds: data.getAll('tags') as string[],
     };
 
     const spotPayload = (data.get('spotPayload') as string)?.trim();
@@ -90,7 +87,6 @@
     <div class="form-card card">
       <form on:submit={handleSubmit}>
         <GoalForm
-          {tags}
           {submitting}
           {error}
           submitLabel="Update Goal"
@@ -103,7 +99,6 @@
             difficulty: goal.difficulty,
             sourceUrl: goal.sourceUrl,
           }}
-          initialTagIds={goal.tags.map((tag) => tag.id)}
           initialSubgoalIds={goal.subgoalIds ?? []}
           availableSubgoals={subgoalCandidates}
           {initialSpot}

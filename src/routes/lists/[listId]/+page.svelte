@@ -359,7 +359,7 @@
               ? goal.status === 'done'
               : !!progress?.items.find((p) => p.goalId === item.goalId)?.done}
             {@const spot = goal.spotId ? getSpotById(goal.spotId) : undefined}
-            {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0 || goal.tags.length > 0)}
+            {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0)}
             {@const expanded = canExpand && expandedGoalIds.has(item.goalId)}
             <li class="checklist-row" class:is-done={done} class:is-expanded={expanded}>
               <!-- tick -->
@@ -472,13 +472,6 @@
                           <a href={link.url} class="detail-link" target="_blank" rel="noopener">{link.title ?? link.platform ?? link.url}</a>
                         {/each}
                       </span>
-                    </div>
-                  {/if}
-                  {#if goal.tags.length > 0}
-                    <div class="detail-tags">
-                      {#each goal.tags as tag}
-                        <span class="badge">{tag.name}</span>
-                      {/each}
                     </div>
                   {/if}
                 </div>
@@ -786,12 +779,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
-  }
-
-  .detail-tags {
-    display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
   }
 
   .enroll-panel {

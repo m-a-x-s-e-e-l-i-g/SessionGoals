@@ -32,7 +32,3 @@ export async function upsertSpot(spot: Spot): Promise<Spot> {
 
   return nextSpot;
 }
-
-export function getSuggestedSpotsForGoal(goalTagNames: string[]): Spot[] {
-  return getAppState().spots.filter((spot) => spot.tags.some((tag) => goalTagNames.includes(tag.name)));
-}

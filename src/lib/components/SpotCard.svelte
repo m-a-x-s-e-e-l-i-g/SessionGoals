@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Spot } from '$lib/types';
-  import TagBadge from './TagBadge.svelte';
 
   export let spot: Spot;
   export let showActions = false;
@@ -65,14 +64,6 @@
 
   {#if spot.description}
     <p class="text-sm text-muted spot-desc">{spot.description}</p>
-  {/if}
-
-  {#if spot.tags.length > 0}
-    <div class="flex flex-wrap gap-1 mt-1">
-      {#each spot.tags as tag}
-        <TagBadge {tag} />
-      {/each}
-    </div>
   {/if}
 
   {#if spot.coordinates || spot.externalId}

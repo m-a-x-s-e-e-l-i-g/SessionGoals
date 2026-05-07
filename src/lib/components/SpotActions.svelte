@@ -63,7 +63,6 @@
       status: 'want_to_try',
       spotId: savedSpot.id,
       sourceUrl: undefined,
-      tagIds: spot.tags.map((t) => t.id),
     });
     goto(`/goals/${goal.id}`);
   }
@@ -78,7 +77,6 @@
       status: 'want_to_try',
       spotId: savedSpot.id,
       sourceUrl: undefined,
-      tagIds: spot.tags.map((t) => t.id),
     });
     await addGoalToList(listId, goal);
     addedToList = listId;
@@ -96,7 +94,6 @@
       status: 'want_to_try',
       spotId: savedSpot.id,
       sourceUrl: undefined,
-      tagIds: spot.tags.map((t) => t.id),
     });
     await addGoalToList(listId, goal);
     addedToList = listId;

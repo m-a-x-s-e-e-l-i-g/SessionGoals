@@ -3,13 +3,13 @@
   import { getSpotById } from '$lib/data/spots';
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import SearchBar from '$lib/components/SearchBar.svelte';
   import type { GoalStatus } from '$lib/types';
 
   let goals = getMyGoals();
 
   let filterStatus: GoalStatus | 'all' = 'all';
   let searchQuery = '';
-  let filterTagId: string | null = null;
 
   const FILTERS: { status: GoalStatus; label: string }[] = [
     { status: 'want_to_try', label: 'Open' },
@@ -29,17 +29,14 @@
   $: totalDone = goals.filter((g) => g.status === 'done').length;
 
   $: normalizedQuery = searchQuery.trim().toLowerCase();
-  $: allTags = [...new Map(goals.flatMap((g) => g.tags).map((t) => [t.id, t])).values()];
   $: filteredByStatus = goals.filter((g) => {
     const matchStatus = filterStatus === 'all' || g.status === filterStatus;
-    const matchTag = !filterTagId || g.tags.some((t) => t.id === filterTagId);
-    if (!matchStatus || !matchTag) return false;
+    if (!matchStatus) return false;
     if (!normalizedQuery) return true;
 
     const inTitle = g.title.toLowerCase().includes(normalizedQuery);
     const inDescription = (g.description ?? '').toLowerCase().includes(normalizedQuery);
-    const inTags = g.tags.some((tag) => tag.name.toLowerCase().includes(normalizedQuery));
-    return inTitle || inDescription || inTags;
+    return inTitle || inDescription;
   });
   $: moveGoals = filteredByStatus.filter((g) => g.type === 'move');
   $: spotGoals = filteredByStatus.filter((g) => g.type === 'spot');
@@ -88,23 +85,13 @@
   </section>
 
   <div class="filters">
-    <div class="search-shell">
-      <span class="search-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="7"></circle>
-          <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
-        </svg>
-      </span>
-      <input
-        type="search"
+    <div class="goal-search">
+      <SearchBar
         bind:value={searchQuery}
-        class="search-input"
-        placeholder="Search goals…"
-        aria-label="Search goals"
+        placeholder="Search goals"
+        ariaLabel="Search goals"
+        metaText={`Showing ${filteredByStatus.length} of ${goals.length} goals`}
       />
-      {#if searchQuery}
-        <button type="button" class="clear-search" on:click={() => (searchQuery = '')}>Clear</button>
-      {/if}
     </div>
     <div class="filter-chips" role="group" aria-label="Filter by goal completion">
       <button
@@ -122,28 +109,6 @@
         >{stage.label} <span class="chip-count">{stage.count}</span></button>
       {/each}
     </div>
-    {#if allTags.length > 0}
-      <div class="tag-filter-chips" role="group" aria-label="Filter by tag">
-        <button
-          type="button"
-          class="filter-chip"
-          class:active={!filterTagId}
-          on:click={() => (filterTagId = null)}
-        >
-          All tags
-        </button>
-        {#each allTags as tag}
-          <button
-            type="button"
-            class="filter-chip"
-            class:active={filterTagId === tag.id}
-            on:click={() => (filterTagId = tag.id)}
-          >
-            #{tag.name}
-          </button>
-        {/each}
-      </div>
-    {/if}
   </div>
 
   {#if filteredByStatus.length === 0}
@@ -271,55 +236,14 @@
     align-items: flex-start;
   }
 
-  .search-shell {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.35rem 0.5rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background: var(--color-surface);
+  .goal-search {
     min-width: min(100%, 320px);
     flex: 1;
   }
 
-  .search-shell:focus-within {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 14%, transparent);
-  }
-
-  .search-icon {
-    color: var(--color-text-muted);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 0.15rem;
-  }
-
-  .search-input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    background: transparent;
-    color: var(--color-text);
-    font-size: 0.92rem;
-    padding: 0.4rem 0.2rem;
-  }
-
-  .search-input:focus {
-    outline: none;
-  }
-
-  .clear-search {
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: var(--color-surface-2);
-    color: var(--color-text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.18rem 0.55rem;
-    min-height: 44px;
-    cursor: pointer;
+  .goal-search :global(.search-shell) {
+    margin-bottom: 0;
+    max-width: none;
   }
 
   .filter-chips {
@@ -373,11 +297,6 @@
     margin-bottom: 2.25rem;
   }
 
-  .clear-search:hover {
-    color: var(--color-text);
-    border-color: var(--color-primary);
-  }
-
   .section-title {
     font-family: var(--font-display);
     font-size: 1.3rem;
@@ -391,19 +310,6 @@
 
   .goal-card-wrap.is-done :global(.goal-card) {
     border-color: var(--color-success);
-  }
-
-  .tag-filter-chips {
-    display: flex;
-    gap: 0.4rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    width: 100%;
-  }
-
-  .tag-filter-chips::-webkit-scrollbar {
-    display: none;
   }
 
   @media (max-width: 640px) {
