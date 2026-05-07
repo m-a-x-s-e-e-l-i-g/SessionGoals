@@ -341,7 +341,7 @@
       {:else}
         <div class="spots-compact">
           {#each spots as spot}
-            <div class="spot-compact">
+            <a href="/spots?q={encodeURIComponent(spot.name)}" class="spot-compact spot-compact-link">
               <span class="spot-compact-name">{spot.name}</span>
               {#if spot.city}
                 <span class="spot-compact-city text-muted text-sm">{spot.city}</span>
@@ -349,7 +349,7 @@
               <span class="spot-compact-count">
                 {actionSpotCounts.get(spot.id)} goal{actionSpotCounts.get(spot.id) === 1 ? '' : 's'}
               </span>
-            </div>
+            </a>
           {/each}
         </div>
       {/if}
