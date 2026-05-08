@@ -13,12 +13,19 @@
   export let clearLabel = 'Reset';
   export let showClear = true;
   export let autocomplete: HTMLInputAttributes['autocomplete'] = 'off';
+  export let preventSubmitOnEnter = false;
 
   const dispatch = createEventDispatcher<{ clear: void }>();
 
   function handleClear() {
     value = '';
     dispatch('clear');
+  }
+
+  function handleInputKeydown(event: KeyboardEvent) {
+    if (preventSubmitOnEnter && event.key === 'Enter') {
+      event.preventDefault();
+    }
   }
 </script>
 
@@ -43,6 +50,7 @@
       {placeholder}
       {autocomplete}
       aria-label={ariaLabel}
+      on:keydown={handleInputKeydown}
     />
 
     <div class="search-actions">

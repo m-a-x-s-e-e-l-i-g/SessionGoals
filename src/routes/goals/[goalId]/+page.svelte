@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { createGoal, getGoalById, updateGoalStatus, deleteGoal } from '$lib/data/goals';
+  import { createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
   import { getGoalVisualImageUrl } from '$lib/utils/media';
@@ -19,6 +19,12 @@
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id as string | undefined;
   $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
+  $: isAdoptedGoal = !!goal?.sourceGoalId;
+  $: myGoals = currentUserId ? getGoals().filter((entry) => entry.userId === currentUserId) : [];
+  $: sourceGoalIdForAdd = goal?.id;
+  $: existingMineForCurrentGoal = sourceGoalIdForAdd
+    ? myGoals.find((entry) => entry.sourceGoalId === sourceGoalIdForAdd)
+    : undefined;
 
   let showDeleteDialog = false;
   let isDeleting = false;
@@ -94,13 +100,9 @@
     if (!goal) return null;
     const input: CreateGoalInput = {
       type: goal.type,
+      sourceGoalId: goal.id,
       title: goal.title,
-      description: goal.description ?? undefined,
       status: 'want_to_try',
-      difficulty: goal.difficulty ?? undefined,
-      spotId: goal.spotId ?? undefined,
-      imageUrl: goal.imageUrl ?? undefined,
-      sourceUrl: goal.sourceUrl ?? undefined,
     };
     return input;
   }
@@ -114,6 +116,11 @@
 
     const input = toGoalCopyInput();
     if (!input) return;
+
+    if (existingMineForCurrentGoal) {
+      goto(`/goals/${existingMineForCurrentGoal.id}`);
+      return;
+    }
 
     addingToMine = true;
     addError = undefined;
@@ -158,12 +165,20 @@
       </div>
       <div class="header-actions">
         {#if isOwnGoal}
-          <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
-          <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+          {#if !isAdoptedGoal}
+            <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
+            <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+          {:else}
+            <button class="btn btn-danger" on:click={handleDelete}>Remove</button>
+          {/if}
         {:else if isAuthenticated}
-          <button class="btn btn-primary" on:click={handleAddToMine} disabled={addingToMine}>
-            {addingToMine ? 'Adding...' : '+ Add To My Goals'}
-          </button>
+          {#if existingMineForCurrentGoal}
+            <a href="/goals/{existingMineForCurrentGoal.id}" class="btn btn-ghost">In My Goals</a>
+          {:else}
+            <button class="btn btn-primary" on:click={handleAddToMine} disabled={addingToMine}>
+              {addingToMine ? 'Adding...' : '+ Add To My Goals'}
+            </button>
+          {/if}
         {/if}
       </div>
     </div>
@@ -189,6 +204,10 @@
             </span>
           {/if}
         </div>
+
+        {#if isOwnGoal && isAdoptedGoal}
+          <p class="text-muted text-sm">This goal was added from another athlete. You can track it, but details are read-only.</p>
+        {/if}
 
         {#if justChecked}
           <p class="checked-feedback">✓ Goal checked!</p>

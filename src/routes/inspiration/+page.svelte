@@ -14,9 +14,14 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id as string | undefined;
+  $: mySourceGoalIds = new Set(
+    getGoals()
+      .filter((goal) => goal.userId === currentUserId && !!goal.sourceGoalId)
+      .map((goal) => goal.sourceGoalId as string)
+  );
 
   $: libraryMoves = getGoals()
-    .filter((goal) => goal.type === 'move')
+    .filter((goal) => goal.type === 'move' && !goal.sourceGoalId)
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 
   $: normalizedQuery = query.trim().toLowerCase();
@@ -40,19 +45,19 @@
   function toGoalCopyInput(goal: Goal): CreateGoalInput {
     return {
       type: goal.type,
+      sourceGoalId: goal.id,
       title: goal.title,
-      description: goal.description ?? undefined,
       status: 'want_to_try',
-      difficulty: goal.difficulty ?? undefined,
-      spotId: goal.spotId ?? undefined,
-      imageUrl: goal.imageUrl ?? undefined,
-      sourceUrl: goal.sourceUrl ?? undefined,
     };
   }
 
   async function addGoalToMine(goal: Goal) {
     if (!isAuthenticated) return;
     if (goal.userId && goal.userId === currentUserId) return;
+    if (mySourceGoalIds.has(goal.id)) {
+      feedback = `"${goal.title}" is already in your goals.`;
+      return;
+    }
     if (addingGoalId) return;
 
     addingGoalId = goal.id;
@@ -112,7 +117,8 @@
     <div class="grid-cards mt-2">
       {#each filteredMoves as goal}
         {@const owner = goal.userId ? getUserById(goal.userId) : undefined}
-        {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId}
+        {@const alreadyAddedToMine = mySourceGoalIds.has(goal.id)}
+        {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !alreadyAddedToMine}
         <div class="library-card-wrap">
           <GoalCard
             {goal}
@@ -122,6 +128,9 @@
           <p class="library-meta text-muted text-sm">
             Added by {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}
           </p>
+          {#if isAuthenticated && alreadyAddedToMine}
+            <p class="library-meta library-meta-owned text-sm">In your goals</p>
+          {/if}
           {#if addingGoalId === goal.id}
             <p class="text-sm text-muted">Adding to your goals...</p>
           {/if}
@@ -149,6 +158,11 @@
 
   .library-meta {
     padding-inline: 0.15rem;
+  }
+
+  .library-meta-owned {
+    color: var(--color-success);
+    font-weight: 600;
   }
 
   .library-feedback {

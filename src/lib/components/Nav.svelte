@@ -10,7 +10,7 @@
     { href: '/goals', label: 'Goals' },
     { href: '/lists', label: 'Lists' },
     { href: '/people', label: 'People' },
-    { href: '/inspiration', label: 'Library' },
+    { href: '/library', label: 'Library' },
     { href: '/spots', label: 'Spots' },
   ];
 
@@ -36,6 +36,14 @@
     mobileOpen = false;
   }
 
+  function isActiveLink(href: string, pathname: string) {
+    if (href === '/library') {
+      return pathname === '/library' || pathname.startsWith('/library/') || pathname === '/inspiration' || pathname.startsWith('/inspiration/');
+    }
+
+    return pathname === href || (href !== '/' && pathname.startsWith(href));
+  }
+
   // Close menus on route change
   $: $page.url.pathname, (mobileOpen = false);
   $: $page.url.pathname, (userMenuOpen = false);
@@ -54,8 +62,7 @@
             <a
               href={link.href}
               class="nav-link"
-              class:active={$page.url.pathname === link.href ||
-                (link.href !== '/' && $page.url.pathname.startsWith(link.href))}
+              class:active={isActiveLink(link.href, $page.url.pathname)}
             >
               {link.label}
             </a>
@@ -97,6 +104,7 @@
     {:else}
       <ul class="nav-links nav-links-public" aria-label="Public navigation">
         <li><a href="/" class="nav-link" class:active={$page.url.pathname === '/'}>Explore</a></li>
+        <li><a href="/library" class="nav-link" class:active={isActiveLink('/library', $page.url.pathname)}>Library</a></li>
         <li><a href="/lists" class="nav-link" class:active={$page.url.pathname.startsWith('/lists')}>Lists</a></li>
         <li><a href="/people" class="nav-link" class:active={$page.url.pathname.startsWith('/people')}>People</a></li>
         <li><a href="/spots" class="nav-link" class:active={$page.url.pathname.startsWith('/spots')}>Spots</a></li>
@@ -146,8 +154,7 @@
               <a
                 href={link.href}
                 class="drawer-link"
-                class:active={$page.url.pathname === link.href ||
-                  (link.href !== '/' && $page.url.pathname.startsWith(link.href))}
+                class:active={isActiveLink(link.href, $page.url.pathname)}
                 on:click={closeMobile}
               >
                 {link.label}
@@ -170,6 +177,7 @@
       <nav aria-label="Mobile navigation">
         <ul class="drawer-links">
           <li><a href="/" class="drawer-link" class:active={$page.url.pathname === '/'} on:click={closeMobile}>Explore</a></li>
+          <li><a href="/library" class="drawer-link" class:active={isActiveLink('/library', $page.url.pathname)} on:click={closeMobile}>Library</a></li>
           <li><a href="/lists" class="drawer-link" class:active={$page.url.pathname.startsWith('/lists')} on:click={closeMobile}>Lists</a></li>
           <li><a href="/people" class="drawer-link" class:active={$page.url.pathname.startsWith('/people')} on:click={closeMobile}>People</a></li>
           <li><a href="/spots" class="drawer-link" class:active={$page.url.pathname.startsWith('/spots')} on:click={closeMobile}>Spots</a></li>

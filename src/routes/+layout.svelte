@@ -15,16 +15,25 @@
     { href: '/goals', label: 'Goals' },
     { href: '/lists', label: 'Lists' },
     { href: '/people', label: 'People' },
-    { href: '/inspiration', label: 'Library' },
+    { href: '/library', label: 'Library' },
     { href: '/spots', label: 'Spots' },
   ];
 
   const publicLinks = [
     { href: '/', label: 'Explore' },
+    { href: '/library', label: 'Library' },
     { href: '/lists', label: 'Lists' },
     { href: '/people', label: 'People' },
     { href: '/spots', label: 'Spots' },
   ];
+
+  function isFooterLinkActive(href: string, pathname: string) {
+    if (href === '/library') {
+      return pathname === '/library' || pathname.startsWith('/library/') || pathname === '/inspiration' || pathname.startsWith('/inspiration/');
+    }
+
+    return pathname === href || (href !== '/' && pathname.startsWith(href));
+  }
 </script>
 
 <div class="app-shell">
@@ -49,8 +58,7 @@
         <a
           href={link.href}
           class="footer-mobile-link"
-          class:active={$page.url.pathname === link.href ||
-            (link.href !== '/' && $page.url.pathname.startsWith(link.href))}
+          class:active={isFooterLinkActive(link.href, $page.url.pathname)}
         >
           {link.label}
         </a>

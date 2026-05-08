@@ -19,6 +19,10 @@
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!goalId || !goal) return;
+    if (goal.sourceGoalId) {
+      error = 'This adopted goal is read-only. You can still track check status.';
+      return;
+    }
 
     submitting = true;
     error = undefined;
@@ -70,6 +74,12 @@
     <div class="not-found">
       <h2>Goal not found</h2>
       <a href="/goals" class="btn btn-ghost">← Back to Goals</a>
+    </div>
+  {:else if goal.sourceGoalId}
+    <div class="not-found">
+      <h2>This goal is read-only</h2>
+      <p class="text-muted">Goals added from other athletes can be tracked but not edited.</p>
+      <a href="/goals/{goal.id}" class="btn btn-ghost">← Back to Goal</a>
     </div>
   {:else}
     <div class="page-header">

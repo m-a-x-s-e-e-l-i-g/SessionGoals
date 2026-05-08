@@ -8,6 +8,8 @@ const PUBLIC_PATH_PREFIXES = [
   '/privacy',
   '/terms',
   '/people',
+  '/library',
+  '/inspiration',
   '/lists',
   '/spots'
 ];

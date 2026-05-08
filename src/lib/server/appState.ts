@@ -132,6 +132,7 @@ export async function loadAppStateForRequest(
   const goals: Goal[] = goalsRows.map((row: any) => ({
     id: row.id,
     userId: row.user_id,
+    sourceGoalId: row.source_goal_id ?? undefined,
     type: normalizeGoalType(row.type),
     title: row.title,
     description: row.description ?? undefined,

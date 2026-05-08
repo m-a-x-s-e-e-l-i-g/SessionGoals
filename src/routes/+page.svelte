@@ -123,7 +123,7 @@
       </p>
       <div class="hero-actions">
         <a href="/auth/login" class="btn btn-primary">Sign in with Google</a>
-        <a href="/privacy" class="btn btn-ghost">Privacy Policy</a>
+        <a href="/privacy" class="explore-privacy-link">Privacy Policy</a>
       </div>
     </section>
 
@@ -390,6 +390,24 @@
   .explore-copy {
     color: var(--color-text-muted);
     max-width: 58ch;
+  }
+
+  .explore-privacy-link {
+    align-self: center;
+    color: var(--color-text-muted);
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+    text-decoration-thickness: 1px;
+    opacity: 0.84;
+    transition: color 0.15s, opacity 0.15s;
+  }
+
+  .explore-privacy-link:hover,
+  .explore-privacy-link:focus-visible {
+    color: var(--color-text);
+    opacity: 1;
   }
 
   .public-card {

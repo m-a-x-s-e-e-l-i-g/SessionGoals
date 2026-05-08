@@ -36,6 +36,7 @@ export interface GoalLink {
 export interface Goal {
   id: string;
   userId?: string;
+  sourceGoalId?: string;
   type: GoalType;
   title: string;
   description?: string;
@@ -96,6 +97,7 @@ export interface Spot {
 
 export interface CreateGoalInput {
   type: GoalType;
+  sourceGoalId?: string;
   title: string;
   description?: string;
   status: GoalStatus;

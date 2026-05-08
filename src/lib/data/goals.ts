@@ -24,7 +24,9 @@ export async function createGoal(input: CreateGoalInput): Promise<Goal> {
   const goal = await runDataAction<Goal>('createGoal', { input });
   updateAppState((state) => ({
     ...state,
-    goals: [goal, ...state.goals],
+    goals: state.goals.some((entry) => entry.id === goal.id)
+      ? state.goals.map((entry) => (entry.id === goal.id ? goal : entry))
+      : [goal, ...state.goals],
   }));
   return goal;
 }

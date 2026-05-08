@@ -20,6 +20,11 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
+  $: mySourceGoalIds = new Set(
+    getGoals()
+      .filter((goal) => goal.userId === currentUserId && !!goal.sourceGoalId)
+      .map((goal) => goal.sourceGoalId as string)
+  );
   $: userId = $page.params.userId ?? '';
   $: profile = userId ? getUserById(userId) : undefined;
   $: isOwnProfile = isAuthenticated && !!currentUserId && userId === currentUserId;
@@ -102,19 +107,19 @@
   function toGoalCopyInput(goal: Goal): CreateGoalInput {
     return {
       type: goal.type,
+      sourceGoalId: goal.id,
       title: goal.title,
-      description: goal.description ?? undefined,
       status: 'want_to_try',
-      difficulty: goal.difficulty ?? undefined,
-      spotId: goal.spotId ?? undefined,
-      imageUrl: goal.imageUrl ?? undefined,
-      sourceUrl: goal.sourceUrl ?? undefined,
     };
   }
 
   async function addGoalToMine(goal: Goal) {
     if (!isAuthenticated || !currentUserId) return;
     if (goal.userId && goal.userId === currentUserId) return;
+    if (mySourceGoalIds.has(goal.id)) {
+      goalsFeedback = `"${goal.title}" is already in your goals.`;
+      return;
+    }
     if (addingGoalId) return;
 
     addingGoalId = goal.id;
@@ -364,7 +369,7 @@
       {:else}
         <div class="grid-cards">
           {#each visibleGoals as goal}
-            {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId}
+            {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !mySourceGoalIds.has(goal.id)}
             <div class="goal-card-wrap">
               <GoalCard
                 {goal}

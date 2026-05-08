@@ -77,20 +77,80 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       const input = payload.input as CreateGoalInput | undefined;
       if (!input?.type) return badRequest('Goal type is required.');
+
+      const sourceGoalId = input.sourceGoalId?.trim() || null;
+      let sourceGoalRow: {
+        id: string;
+        user_id: string;
+        type: GoalType;
+        title: string;
+        description: string | null;
+        difficulty: number | null;
+        spot_id: string | null;
+        image_url: string | null;
+        source_url: string | null;
+      } | null = null;
+
+      if (sourceGoalId) {
+        const { data: sourceGoal, error: sourceGoalError } = await locals.supabase
+          .from('goals')
+          .select('id, user_id, type, title, description, difficulty, spot_id, image_url, source_url')
+          .eq('id', sourceGoalId)
+          .maybeSingle();
+
+        if (sourceGoalError) throw new Error(sourceGoalError.message);
+        if (!sourceGoal) {
+          return badRequest('Source goal not found.');
+        }
+
+        if (sourceGoal.user_id === locals.user.id) {
+          return badRequest('You already own this goal.');
+        }
+
+        sourceGoalRow = {
+          id: sourceGoal.id,
+          user_id: sourceGoal.user_id,
+          type: sourceGoal.type as GoalType,
+          title: sourceGoal.title,
+          description: sourceGoal.description,
+          difficulty: sourceGoal.difficulty,
+          spot_id: sourceGoal.spot_id,
+          image_url: sourceGoal.image_url,
+          source_url: sourceGoal.source_url,
+        };
+
+        const { data: existingAdoptedGoal, error: existingAdoptedGoalError } = await locals.supabase
+          .from('goals')
+          .select('id')
+          .eq('user_id', locals.user.id)
+          .eq('source_goal_id', sourceGoalId)
+          .maybeSingle();
+
+        if (existingAdoptedGoalError) throw new Error(existingAdoptedGoalError.message);
+
+        if (existingAdoptedGoal?.id) {
+          const snapshot = await snapshotFor(locals, locals.user.id);
+          const existingGoal = snapshot.goals.find((entry) => entry.id === existingAdoptedGoal.id);
+          if (!existingGoal) throw new Error('Goal exists but failed to load it.');
+          return json({ ok: true, data: existingGoal });
+        }
+      }
+
       const normalizedTitle = input.title?.trim() || (input.type === 'spot' ? 'Spot visit' : 'Untitled goal');
 
       const { data: goalRow, error: goalError } = await locals.supabase
         .from('goals')
         .insert({
           user_id: locals.user.id,
-          type: input.type,
-          title: normalizedTitle,
-          description: input.description ?? null,
+          source_goal_id: sourceGoalId,
+          type: sourceGoalRow?.type ?? input.type,
+          title: sourceGoalRow?.title ?? normalizedTitle,
+          description: sourceGoalRow?.description ?? input.description ?? null,
           status: input.status,
-          difficulty: input.difficulty ?? null,
-          spot_id: input.spotId ?? null,
-          image_url: input.imageUrl ?? null,
-          source_url: input.sourceUrl ?? null,
+          difficulty: sourceGoalRow?.difficulty ?? input.difficulty ?? null,
+          spot_id: sourceGoalRow?.spot_id ?? input.spotId ?? null,
+          image_url: sourceGoalRow?.image_url ?? input.imageUrl ?? null,
+          source_url: sourceGoalRow?.source_url ?? input.sourceUrl ?? null,
         })
         .select('*')
         .single();
@@ -130,6 +190,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const input = payload.input as UpdateGoalInput | undefined;
 
       if (!id || !input?.type) return badRequest('Goal id and input are required.');
+
+      const { data: existingGoal, error: existingGoalError } = await locals.supabase
+        .from('goals')
+        .select('id, source_goal_id')
+        .eq('id', id)
+        .eq('user_id', locals.user.id)
+        .maybeSingle();
+
+      if (existingGoalError) throw new Error(existingGoalError.message);
+      if (!existingGoal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
+      if (existingGoal.source_goal_id) {
+        return forbidden('Adopted goals are read-only. You can still track check status.');
+      }
 
       const normalizedTitle = input.title?.trim() || (input.type === 'spot' ? 'Spot visit' : 'Untitled goal');
 
