@@ -124,13 +124,11 @@
             {goal}
             onAddToMine={canAddToMine ? addGoalToMine : undefined}
             spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+            statusNote={isAuthenticated && alreadyAddedToMine ? 'In your goals' : undefined}
           />
           <p class="library-meta text-muted text-sm">
             Added by {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}
           </p>
-          {#if isAuthenticated && alreadyAddedToMine}
-            <p class="library-meta library-meta-owned text-sm">In your goals</p>
-          {/if}
           {#if addingGoalId === goal.id}
             <p class="text-sm text-muted">Adding to your goals...</p>
           {/if}
@@ -158,11 +156,6 @@
 
   .library-meta {
     padding-inline: 0.15rem;
-  }
-
-  .library-meta-owned {
-    color: var(--color-success);
-    font-weight: 600;
   }
 
   .library-feedback {

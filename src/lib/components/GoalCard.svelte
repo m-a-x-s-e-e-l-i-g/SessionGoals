@@ -8,6 +8,7 @@
   export let onAddToMine: ((goal: Goal) => void) | undefined = undefined;
   export let addToMineLabel = 'Add to my goals';
   export let spotName: string | undefined = undefined;
+  export let statusNote: string | undefined = undefined;
 
   $: goalVisualImageUrl = getGoalVisualImageUrl(goal);
 </script>
@@ -72,6 +73,10 @@
 
     {#if spotName}
       <p class="goal-spot text-sm text-muted">📍 {spotName}</p>
+    {/if}
+
+    {#if statusNote}
+      <p class="goal-status-note text-sm">{statusNote}</p>
     {/if}
 
     {#if goal.difficulty}
@@ -171,6 +176,11 @@
     display: flex;
     gap: 3px;
     font-size: 0.8rem;
+  }
+
+  .goal-status-note {
+    color: var(--color-success);
+    font-weight: 600;
   }
 
   .quick-check {
