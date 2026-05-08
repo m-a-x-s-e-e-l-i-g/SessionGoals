@@ -14,13 +14,79 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id as string | undefined;
+  $: allGoals = getGoals();
+  $: goalById = new Map(allGoals.map((goal) => [goal.id, goal]));
+
+  function resolveLibraryMoveId(goal: Goal): string {
+    let current: Goal = goal;
+    const visited = new Set<string>();
+
+    while (current.sourceGoalId) {
+      if (visited.has(current.sourceGoalId)) {
+        break;
+      }
+      visited.add(current.sourceGoalId);
+
+      const source = goalById.get(current.sourceGoalId);
+      if (!source) {
+        return current.sourceGoalId;
+      }
+
+      current = source;
+    }
+
+    return current.id;
+  }
+
+  $: moveCommunityStats = (() => {
+    const ownersByMoveId = new Map<string, Set<string>>();
+    const checkedByMoveId = new Map<string, Set<string>>();
+
+    for (const goal of allGoals) {
+      if (goal.type !== 'move') continue;
+
+      const moveId = resolveLibraryMoveId(goal);
+      if (!goal.userId) continue;
+
+      const owners = ownersByMoveId.get(moveId) ?? new Set<string>();
+      owners.add(goal.userId);
+      ownersByMoveId.set(moveId, owners);
+
+      if (goal.status === 'done') {
+        const checked = checkedByMoveId.get(moveId) ?? new Set<string>();
+        checked.add(goal.userId);
+        checkedByMoveId.set(moveId, checked);
+      }
+    }
+
+    const stats = new Map<string, { haveCount: number; checkedCount: number }>();
+    for (const [moveId, owners] of ownersByMoveId) {
+      stats.set(moveId, {
+        haveCount: owners.size,
+        checkedCount: checkedByMoveId.get(moveId)?.size ?? 0,
+      });
+    }
+
+    return stats;
+  })();
+
+  function formatMoveCommunityStats(goalId: string): string {
+    const stats = moveCommunityStats.get(goalId);
+    const haveCount = stats?.haveCount ?? 0;
+    const checkedCount = stats?.checkedCount ?? 0;
+    const athleteWord = haveCount === 1 ? 'athlete has' : 'athletes have';
+    const checkedWord = checkedCount === 1 ? 'athlete checked this off' : 'athletes checked this off';
+
+    return `${haveCount} ${athleteWord} this goal · ${checkedCount} ${checkedWord}`;
+  }
+
   $: mySourceGoalIds = new Set(
-    getGoals()
-      .filter((goal) => goal.userId === currentUserId && !!goal.sourceGoalId)
-      .map((goal) => goal.sourceGoalId as string)
+    allGoals
+      .filter((goal) => goal.userId === currentUserId && goal.type === 'move' && !!goal.sourceGoalId)
+      .map((goal) => resolveLibraryMoveId(goal))
   );
 
-  $: libraryMoves = getGoals()
+  $: libraryMoves = allGoals
     .filter((goal) => goal.type === 'move' && !goal.sourceGoalId)
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 
@@ -125,6 +191,7 @@
             onAddToMine={canAddToMine ? addGoalToMine : undefined}
             spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
             statusNote={isAuthenticated && alreadyAddedToMine ? 'In your goals' : undefined}
+            insightNote={formatMoveCommunityStats(goal.id)}
           />
           <p class="library-meta text-muted text-sm">
             Added by {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}

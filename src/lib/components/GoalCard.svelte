@@ -9,6 +9,7 @@
   export let addToMineLabel = 'Add to my goals';
   export let spotName: string | undefined = undefined;
   export let statusNote: string | undefined = undefined;
+  export let insightNote: string | undefined = undefined;
 
   $: goalVisualImageUrl = getGoalVisualImageUrl(goal);
 </script>
@@ -77,6 +78,10 @@
 
     {#if statusNote}
       <p class="goal-status-note text-sm">{statusNote}</p>
+    {/if}
+
+    {#if insightNote}
+      <p class="goal-insight-note text-sm text-muted">{insightNote}</p>
     {/if}
 
     {#if goal.difficulty}
@@ -181,6 +186,11 @@
   .goal-status-note {
     color: var(--color-success);
     font-weight: 600;
+  }
+
+  .goal-insight-note {
+    font-size: 0.8rem;
+    line-height: 1.35;
   }
 
   .quick-check {
