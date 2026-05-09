@@ -52,7 +52,7 @@
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-brand">
-      <span class="nav-name">SessionGoals <span class="nav-preview">[preview]</span></span>
+      <span class="nav-name"><span class="nav-name-session">SESSION</span><span class="nav-name-goals">GOALS</span><span class="nav-preview">[preview]</span></span>
     </a>
 
     {#if user}
@@ -231,10 +231,20 @@
   .nav-name {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.35rem;
+  }
+
+  .nav-name-session {
+    color: var(--color-text);
+    font-family: var(--font-display);
+  }
+
+  .nav-name-goals {
+    color: var(--color-primary);
+    font-family: var(--font-display);
   }
 
   .nav-preview {
+    margin-left: 0.35rem;
     font-size: 0.72em;
     font-weight: 600;
     color: var(--color-text-muted);

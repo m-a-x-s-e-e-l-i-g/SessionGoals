@@ -45,7 +45,7 @@
 
   <footer class="site-footer">
     <div class="container site-footer-inner">
-      <p class="text-sm text-muted">SessionGoals</p>
+      <p class="text-sm text-muted"><span class="footer-brand-session">SESSION</span><span class="footer-brand-goals">GOALS</span></p>
       <div class="site-footer-links">
         <a href="/terms" class="text-sm">Terms of Use</a>
         <a href="/privacy" class="text-sm">Privacy Policy</a>
@@ -91,6 +91,16 @@
     padding-top: 1rem;
     padding-bottom: 1rem;
     flex-wrap: wrap;
+  }
+
+  .footer-brand-session {
+    color: var(--color-text);
+    font-family: var(--font-display);
+  }
+
+  .footer-brand-goals {
+    color: var(--color-primary);
+    font-family: var(--font-display);
   }
 
   .site-footer-links {
