@@ -45,7 +45,10 @@
 
   <footer class="site-footer">
     <div class="container site-footer-inner">
-      <p class="text-sm text-muted"><span class="footer-brand-session">SESSION</span><span class="footer-brand-goals">GOALS</span></p>
+      <p class="footer-brand text-sm text-muted">
+        <img src="/images/sessiongoals-logo-open.svg" class="footer-logo-icon" alt="" aria-hidden="true" width="20" height="20" />
+        <span class="footer-brand-name"><span class="footer-brand-session">SESSION</span><span class="footer-brand-goals">GOALS</span></span>
+      </p>
       <div class="site-footer-links">
         <a href="/terms" class="text-sm">Terms of Use</a>
         <a href="/privacy" class="text-sm">Privacy Policy</a>
@@ -91,6 +94,22 @@
     padding-top: 1rem;
     padding-bottom: 1rem;
     flex-wrap: wrap;
+  }
+
+  .footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .footer-logo-icon {
+    display: block;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .footer-brand-name {
+    line-height: 1;
   }
 
   .footer-brand-session {

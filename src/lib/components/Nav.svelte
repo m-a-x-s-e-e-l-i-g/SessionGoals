@@ -52,6 +52,7 @@
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="nav-brand">
+      <img src="/images/sessiongoals-logo-open-white.svg" class="nav-logo-icon" alt="" aria-hidden="true" width="28" height="28" />
       <span class="nav-name"><span class="nav-name-session">SESSION</span><span class="nav-name-goals">GOALS</span><span class="nav-preview">[preview]</span></span>
     </a>
 
@@ -221,6 +222,13 @@
     font-size: 1.3rem;
     letter-spacing: 0.02em;
     white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .nav-logo-icon {
+    display: block;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
   }
 

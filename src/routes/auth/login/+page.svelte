@@ -18,7 +18,7 @@
 
 <div class="container page auth-page">
   <section class="auth-card card">
-    <p class="auth-kicker">SessionGoals</p>
+    <img src="/images/sessiongoals-logo.svg" class="auth-logo" alt="SessionGoals" width="64" height="64" />
     <h1 class="auth-title">Sign in to track your training.</h1>
     <p class="auth-copy">
       This app is for logged-in athletes only. Continue with Google to create goals, track lists, and log sessions.
@@ -63,12 +63,9 @@
     gap: 1rem;
   }
 
-  .auth-kicker {
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
+  .auth-logo {
+    display: block;
+    border-radius: var(--radius-md);
   }
 
   .auth-title {
