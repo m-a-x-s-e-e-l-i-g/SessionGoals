@@ -21,11 +21,25 @@
     return `/api/image-proxy?url=${encodeURIComponent(normalized)}`;
   }
 
+  function toFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      const parsed = Number(trimmed);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
   function getGoogleMapsUrl(): string | null {
-    const lat = spot.coordinates?.lat;
-    const lng = spot.coordinates?.lng;
-    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const lat = toFiniteNumber(spot.coordinates?.lat);
+    const lng = toFiniteNumber(spot.coordinates?.lng);
+    if (lat === null || lng === null) return null;
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
     if (lat === 0 && lng === 0) return null;
 

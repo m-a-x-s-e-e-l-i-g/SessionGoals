@@ -569,12 +569,21 @@
   }
 
   .your-map {
+    position: relative;
+    z-index: 0;
     width: 100%;
     height: 360px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     overflow: hidden;
     background: var(--color-surface-2);
+  }
+
+  .your-map :global(.leaflet-pane),
+  .your-map :global(.leaflet-control),
+  .your-map :global(.leaflet-top),
+  .your-map :global(.leaflet-bottom) {
+    z-index: 1;
   }
 
   .map-meta {
