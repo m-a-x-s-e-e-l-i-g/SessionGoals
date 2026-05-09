@@ -173,9 +173,9 @@
             <div class="activity-details">
               <div class="activity-meta">
                 <span class="activity-type-badge">{formatActivityType(activity.activityType)}</span>
-                {#if activity.duration}
-                  <span class="activity-duration">{formatDuration(activity.duration)}</span>
-                {/if}
+                <span class="activity-duration">
+                  {activity.duration ? formatDuration(activity.duration) : '— min'}
+                </span>
                 {#if activity.linkedGoalId}
                   <span class="activity-goal">
                     Goal focus: {getGoalLink(activity.linkedGoalId)?.title || 'Goal'}

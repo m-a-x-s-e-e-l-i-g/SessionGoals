@@ -10,6 +10,7 @@
     sessions: number;
     intensity: 'empty' | 'low' | 'medium' | 'high';
     isToday: boolean;
+    isFuture: boolean;
   }
 
   interface WeekRow {
@@ -33,85 +34,100 @@
   }
 
   function generateHeatmap(filteredActivities: Activity[]) {
+    const toLocalDateStr = (d: Date): string =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 364); // 52 weeks
+    const todayStr = toLocalDateStr(today);
+
+    // Today's day Monday-indexed (Mon=0 … Sun=6)
+    const todayJsDay = today.getDay();
+    const todayDayMon = todayJsDay === 0 ? 6 : todayJsDay - 1;
+
+    // Real data window: 364 days back from today
+    const realStart = new Date(today);
+    realStart.setDate(realStart.getDate() - 364);
+
+    // Rewind to the Monday of realStart's week so every column is a full Mon–Sun slice
+    const realStartJsDay = realStart.getDay();
+    const realStartDayMon = realStartJsDay === 0 ? 6 : realStartJsDay - 1;
+    const loopStart = new Date(realStart);
+    loopStart.setDate(loopStart.getDate() - realStartDayMon);
+
+    const toDurationMinutes = (value: unknown): number => {
+      if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value));
+      if (typeof value === 'string') {
+        const parsed = Number(value.trim());
+        if (Number.isFinite(parsed)) return Math.max(0, Math.round(parsed));
+      }
+      return 0;
+    };
 
     const minutesByDate = new Map<string, number>();
     const sessionsByDate = new Map<string, number>();
     filteredActivities.forEach((a) => {
-      const sessionCount = (sessionsByDate.get(a.date) ?? 0) + 1;
-      sessionsByDate.set(a.date, sessionCount);
-
-      const minutes = a.duration ?? 0;
-      const totalMinutes = (minutesByDate.get(a.date) ?? 0) + minutes;
-      minutesByDate.set(a.date, totalMinutes);
+      sessionsByDate.set(a.date, (sessionsByDate.get(a.date) ?? 0) + 1);
+      minutesByDate.set(a.date, (minutesByDate.get(a.date) ?? 0) + toDurationMinutes(a.duration));
     });
 
-    // Build 7 rows (days of week), starting from Monday (1) to Sunday (0)
-    const rows: WeekRow[] = Array.from({ length: 7 }, () => ({
-      cells: [],
-    }));
+    const rows: WeekRow[] = Array.from({ length: 7 }, () => ({ cells: [] }));
+    const monthLabelMap = new Map<number, string>();
+    const emptyCell = (): HeatmapCell => ({ date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false, isFuture: false });
+    const futureCell = (): HeatmapCell => ({ date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false, isFuture: true });
 
-    const monthLabelMap = new Map<number, string>(); // weekIndex -> month name
-    let currentDate = new Date(startDate);
+    let currentDate = new Date(loopStart);
     let weekIndex = 0;
     let lastMonth = '';
 
     while (currentDate <= today) {
-      // JavaScript getDay(): 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-      // We want Monday-Sunday, so shift: Monday=0, Sunday=6
       const jsDay = currentDate.getDay();
-      const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1; // Convert to Mon=0...Sun=6
+      const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1;
+      const dateStr = toLocalDateStr(currentDate);
+      const isFiller = currentDate < realStart;
 
-      const dateStr = currentDate.toISOString().split('T')[0];
-      const minutes = minutesByDate.get(dateStr) ?? 0;
-      const sessions = sessionsByDate.get(dateStr) ?? 0;
-
-      const intensity =
-        minutes === 0 ? 'empty' : minutes < 30 ? 'low' : minutes < 60 ? 'medium' : 'high';
+      const minutes = isFiller ? 0 : (minutesByDate.get(dateStr) ?? 0);
+      const sessions = isFiller ? 0 : (sessionsByDate.get(dateStr) ?? 0);
+      const intensity: HeatmapCell['intensity'] = isFiller
+        ? 'empty'
+        : minutes > 0
+          ? (minutes < 60 ? 'low' : minutes < 120 ? 'medium' : 'high')
+          : (sessions > 0 ? 'low' : 'empty');
 
       rows[dayOfWeek].cells.push({
-        date: dateStr,
+        date: isFiller ? '' : dateStr,
         minutes,
         sessions,
         intensity,
-        isToday: dateStr === todayStr,
+        isToday: !isFiller && dateStr === todayStr,
+        isFuture: false,
       });
 
-      // Track month labels: add at the start of each month (first day of month)
-      const monthKey = dateStr.slice(0, 7);
-      if (monthKey !== lastMonth) {
-        const monthName = new Date(dateStr + 'T00:00:00Z').toLocaleString('en-US', {
-          month: 'short',
-        });
-        monthLabelMap.set(weekIndex, monthName);
-        lastMonth = monthKey;
+      // Track month labels only for real (non-filler) dates
+      if (!isFiller) {
+        const monthKey = dateStr.slice(0, 7);
+        if (monthKey !== lastMonth) {
+          const monthName = new Date(dateStr + 'T00:00:00Z').toLocaleString('en-US', { month: 'short' });
+          monthLabelMap.set(weekIndex, monthName.toUpperCase());
+          lastMonth = monthKey;
+        }
       }
 
       currentDate.setDate(currentDate.getDate() + 1);
-      if (dayOfWeek === 6) weekIndex++; // Move to next week after Sunday
+      if (dayOfWeek === 6) weekIndex++;
     }
 
-    // Ensure all weeks have 7 days
-    const maxWeeks = Math.max(...rows.map((r) => r.cells.length));
-    rows.forEach((row) => {
-      while (row.cells.length < maxWeeks) {
-        row.cells.push({ date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false });
-      }
-    });
+    // Pad the trailing partial week (days after today that haven't happened yet)
+    for (let d = todayDayMon + 1; d <= 6; d++) {
+      rows[d].cells.push(futureCell());
+    }
 
-    // Transpose to weeks x days format
-    heatmapData = Array.from({ length: maxWeeks }, (_, weekIdx) => ({
-      cells: rows.map((row) => row.cells[weekIdx] || { date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false }),
+    const totalWeeks = rows[0].cells.length;
+
+    heatmapData = Array.from({ length: totalWeeks }, (_, wIdx) => ({
+      cells: rows.map((row) => row.cells[wIdx] ?? emptyCell()),
     }));
 
-    // Convert month label map to array, spreading across grid width
-    monthLabels = Array.from(monthLabelMap, ([week, month]) => ({
-      month,
-      weekIndex: week,
-    }));
+    monthLabels = Array.from(monthLabelMap, ([week, month]) => ({ month, weekIndex: week }));
   }
 
   function getTooltip(cell: HeatmapCell): string {
@@ -136,7 +152,7 @@
     <div>
       <p class="heatmap-eyebrow">Attendance board</p>
       <h3 class="heatmap-title">Last 52 weeks</h3>
-      <p class="heatmap-subtitle">Color shows training minutes per day: 0, 1-29, 30-59, then 60+.</p>
+      <p class="heatmap-subtitle">Color shows training minutes per day: 0, 1–60m, 60m–2h, then 2h+.</p>
     </div>
     <div class="heatmap-legend" aria-hidden="true">
       <span class="legend-item">
@@ -145,30 +161,30 @@
       </span>
       <span class="legend-item">
         <span class="cell low"></span>
-        <span>1-29m</span>
+        <span>1–60m</span>
       </span>
       <span class="legend-item">
         <span class="cell medium"></span>
-        <span>30-59m</span>
+        <span>60m–2h</span>
       </span>
       <span class="legend-item">
         <span class="cell high"></span>
-        <span>60m+</span>
+        <span>2h+</span>
       </span>
     </div>
   </div>
 
   <div class="heatmap-wrapper" style={`--weeks: ${Math.max(heatmapData.length, 1)}`}>
     {#if hasActivities}
-      <div class="heatmap-months">
-        {#each monthLabels as label}
-          <div class="month-label" style={`--week-index: ${label.weekIndex}`}>
-            {label.month}
-          </div>
-        {/each}
-      </div>
-
-      <div class="heatmap-grid-container">
+      <div class="heatmap-board">
+        <div class="heatmap-day-spacer"></div>
+        <div class="heatmap-months">
+          {#each monthLabels as label}
+            <div class="month-label" style={`--week-index: ${label.weekIndex}`}>
+              {label.month}
+            </div>
+          {/each}
+        </div>
         <div class="day-labels">
           <div class="day-label">Mon</div>
           <div class="day-label">Tue</div>
@@ -178,14 +194,13 @@
           <div class="day-label">Sat</div>
           <div class="day-label">Sun</div>
         </div>
-
         <div class="heatmap-grid" role="img" aria-label="Activity heatmap for the last 52 weeks">
           {#each heatmapData as week}
             <div class="heatmap-week">
               {#each week.cells as cell}
                 <div
                   class="heatmap-cell cell-{cell.intensity}"
-                  class:cell-today={cell.isToday}
+                  class:cell-future={cell.isFuture}
                   title={getTooltip(cell)}
                   aria-label={getTooltip(cell)}
                 ></div>
@@ -285,16 +300,29 @@
   }
 
   .heatmap-wrapper {
-    overflow: hidden;
     --cell-gap: 2px;
     --day-label-width: 30px;
-    --cell-size: 8px;
-    background:
-      linear-gradient(180deg, color-mix(in oklch, var(--color-surface) 88%, var(--color-primary) 12%), var(--color-surface));
+    --board-col-gap: 0.4rem;
+    --board-row-gap: 0.3rem;
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 1rem;
     min-height: 100%;
+    overflow-x: auto;
+  }
+
+  .heatmap-board {
+    display: grid;
+    grid-template-columns: var(--day-label-width) 1fr;
+    grid-template-rows: auto auto;
+    column-gap: var(--board-col-gap);
+    row-gap: var(--board-row-gap);
+    width: 100%;
+  }
+
+  .heatmap-day-spacer {
+    display: block;
   }
 
   .heatmap-empty {
@@ -320,10 +348,6 @@
   .heatmap-months {
     position: relative;
     height: 1rem;
-    margin-bottom: 0.3rem;
-    display: flex;
-    gap: var(--cell-gap);
-    padding-left: calc(var(--day-label-width) + 20px);
   }
 
   .month-label {
@@ -338,40 +362,28 @@
     top: 0;
   }
 
-  .heatmap-grid-container {
-    --grid-gap: 0.4rem;
-    display: flex;
-    gap: var(--grid-gap);
-    align-items: stretch;
-    width: 100%;
-  }
-
   .day-labels {
-    display: grid;
-    grid-template-rows: repeat(7, var(--cell-size));
+    display: flex;
+    flex-direction: column;
     gap: var(--cell-gap);
-    padding-right: 0.3rem;
-    flex-shrink: 0;
-    width: var(--day-label-width);
+    align-self: stretch;
   }
 
   .day-label {
+    flex: 1;
     font-size: 0.65rem;
     color: var(--color-text-muted);
     font-weight: 600;
     display: flex;
     align-items: center;
-    text-align: right;
-    width: 100%;
     min-height: 0;
   }
 
   .heatmap-grid {
     display: grid;
-    grid-template-columns: repeat(var(--weeks), var(--cell-size));
+    grid-template-columns: repeat(var(--weeks), 1fr);
     gap: var(--cell-gap);
-    flex: 1;
-    min-width: 0;
+    width: 100%;
     align-items: start;
   }
 
@@ -382,8 +394,8 @@
   }
 
   .heatmap-cell {
-    width: var(--cell-size);
-    height: var(--cell-size);
+    width: 100%;
+    aspect-ratio: 1;
     border-radius: 2px;
     cursor: pointer;
     transition: opacity 0.15s, box-shadow 0.15s;
@@ -416,9 +428,8 @@
     background: var(--color-primary);
   }
 
-  .heatmap-cell.cell-today {
-    box-shadow: 0 0 0 2px var(--color-accent);
-    border-radius: 3px;
+  .heatmap-cell.cell-future {
+    opacity: 0.2;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -442,21 +453,14 @@
     .heatmap-wrapper {
       padding: 0.75rem;
       --day-label-width: 24px;
-      --cell-size: 7px;
     }
 
     .day-label {
       font-size: 0.6rem;
     }
 
-    .day-labels {
-      padding-right: 0.2rem;
-    }
-
     .heatmap-months {
-      padding-left: calc(var(--day-label-width) + 10px);
       font-size: 0.6rem;
-      margin-bottom: 0.2rem;
     }
   }
 
@@ -464,7 +468,11 @@
     .heatmap-wrapper {
       padding: 0.55rem;
       --cell-gap: 1px;
-      --cell-size: 5px;
+    }
+
+    .heatmap-board {
+      grid-template-columns: 0 1fr;
+      column-gap: 0;
     }
 
     .day-labels {
@@ -472,26 +480,11 @@
     }
 
     .heatmap-months {
-      padding-left: 0;
-      gap: 1px;
-      margin-bottom: 0.15rem;
       height: 0.8rem;
     }
 
     .month-label {
       font-size: 0.55rem;
-    }
-
-    .heatmap-grid-container {
-      gap: 0.2rem;
-    }
-
-    .heatmap-grid {
-      gap: 1px;
-    }
-
-    .heatmap-week {
-      gap: 1px;
     }
   }
 </style>
