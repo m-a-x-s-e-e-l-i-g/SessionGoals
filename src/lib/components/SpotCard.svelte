@@ -39,15 +39,31 @@
   function getGoogleMapsUrl(): string | null {
     const lat = toFiniteNumber(spot.coordinates?.lat);
     const lng = toFiniteNumber(spot.coordinates?.lng);
-    if (lat === null || lng === null) return null;
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-    if (lat === 0 && lng === 0) return null;
+    const hasValidCoordinates =
+      lat !== null &&
+      lng !== null &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !(lat === 0 && lng === 0);
 
-    const latLng = `${lat},${lng}`;
     const url = new URL('https://www.google.com/maps/search/');
     url.searchParams.set('api', '1');
-    url.searchParams.set('query', latLng);
-    url.searchParams.set('center', latLng);
+
+    if (hasValidCoordinates) {
+      const latLng = `${lat},${lng}`;
+      url.searchParams.set('query', latLng);
+      url.searchParams.set('center', latLng);
+      return url.toString();
+    }
+
+    const fallbackQuery = [spot.name, spot.city, spot.country]
+      .filter((value): value is string => !!value && value.trim().length > 0)
+      .join(', ');
+
+    if (!fallbackQuery) return null;
+    url.searchParams.set('query', fallbackQuery);
     return url.toString();
   }
 
@@ -80,7 +96,7 @@
     <p class="text-sm text-muted spot-desc">{spot.description}</p>
   {/if}
 
-  {#if spot.coordinates || spot.externalId}
+  {#if googleMapsUrl || spot.externalId}
     <div class="spot-ext-links">
       {#if googleMapsUrl}
         <a
