@@ -80,9 +80,10 @@
     return `${haveCount} ${athleteWord} this goal · ${checkedCount} ${checkedWord}`;
   }
 
-  $: mySourceGoalIds = new Set(
+  // Root IDs of every goal the current user owns (originals + tracked copies)
+  $: myGoalRootIds = new Set(
     allGoals
-      .filter((goal) => goal.userId === currentUserId && goal.type === 'move' && !!goal.sourceGoalId)
+      .filter((goal) => goal.userId === currentUserId)
       .map((goal) => resolveLibraryMoveId(goal))
   );
 
@@ -120,7 +121,7 @@
   async function addGoalToMine(goal: Goal) {
     if (!isAuthenticated) return;
     if (goal.userId && goal.userId === currentUserId) return;
-    if (mySourceGoalIds.has(goal.id)) {
+    if (myGoalRootIds.has(resolveLibraryMoveId(goal))) {
       feedback = `"${goal.title}" is already in your goals.`;
       return;
     }
@@ -183,7 +184,7 @@
     <div class="grid-cards mt-2">
       {#each filteredMoves as goal}
         {@const owner = goal.userId ? getUserById(goal.userId) : undefined}
-        {@const alreadyAddedToMine = mySourceGoalIds.has(goal.id)}
+        {@const alreadyAddedToMine = myGoalRootIds.has(resolveLibraryMoveId(goal))}
         {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !alreadyAddedToMine}
         <div class="library-card-wrap">
           <GoalCard

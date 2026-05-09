@@ -20,10 +20,29 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
-  $: mySourceGoalIds = new Set(
-    getGoals()
-      .filter((goal) => goal.userId === currentUserId && !!goal.sourceGoalId)
-      .map((goal) => goal.sourceGoalId as string)
+  $: allGoals = getGoals();
+  $: goalById = new Map(allGoals.map((g) => [g.id, g]));
+
+  // Follow sourceGoalId chain to the root goal, with cycle guard
+  function resolveRootGoalId(goalId: string): string {
+    const visited = new Set<string>();
+    let current = goalId;
+    while (true) {
+      if (visited.has(current)) break;
+      visited.add(current);
+      const g = goalById.get(current);
+      if (!g?.sourceGoalId) break;
+      current = g.sourceGoalId;
+    }
+    return current;
+  }
+
+  // Root IDs of every goal the current user owns — covers both originals and tracked copies.
+  // If any root of a viewed goal matches here, the user already has that move in some form.
+  $: myGoalRootIds = new Set(
+    allGoals
+      .filter((g) => g.userId === currentUserId)
+      .map((g) => resolveRootGoalId(g.id))
   );
   $: userId = $page.params.userId ?? '';
   $: profile = userId ? getUserById(userId) : undefined;
@@ -116,7 +135,7 @@
   async function addGoalToMine(goal: Goal) {
     if (!isAuthenticated || !currentUserId) return;
     if (goal.userId && goal.userId === currentUserId) return;
-    if (mySourceGoalIds.has(goal.id)) {
+    if (myGoalRootIds.has(resolveRootGoalId(goal.id))) {
       goalsFeedback = `"${goal.title}" is already in your goals.`;
       return;
     }
@@ -369,7 +388,7 @@
       {:else}
         <div class="grid-cards">
           {#each visibleGoals as goal}
-            {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !mySourceGoalIds.has(goal.id)}
+            {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
             <div class="goal-card-wrap">
               <GoalCard
                 {goal}

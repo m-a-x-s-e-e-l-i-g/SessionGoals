@@ -21,9 +21,28 @@
   $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
   $: isAdoptedGoal = !!goal?.sourceGoalId;
   $: myGoals = currentUserId ? getGoals().filter((entry) => entry.userId === currentUserId) : [];
-  $: sourceGoalIdForAdd = goal?.id;
-  $: existingMineForCurrentGoal = sourceGoalIdForAdd
-    ? myGoals.find((entry) => entry.sourceGoalId === sourceGoalIdForAdd)
+  $: goalById = new Map(getGoals().map((g) => [g.id, g]));
+
+  // Follow sourceGoalId chain to root, with cycle guard
+  function resolveRootGoalId(goalId: string): string {
+    const visited = new Set<string>();
+    let current = goalId;
+    while (true) {
+      if (visited.has(current)) break;
+      visited.add(current);
+      const g = goalById.get(current);
+      if (!g?.sourceGoalId) break;
+      current = g.sourceGoalId;
+    }
+    return current;
+  }
+
+  // Set of root IDs for every goal the current user owns (originals + tracked copies)
+  $: myGoalRootIds = new Set(myGoals.map((g) => resolveRootGoalId(g.id)));
+
+  // If user already has any goal tracing back to the same root, find it to link to
+  $: existingMineForCurrentGoal = goal
+    ? myGoals.find((entry) => resolveRootGoalId(entry.id) === resolveRootGoalId(goal!.id))
     : undefined;
 
   let showDeleteDialog = false;
