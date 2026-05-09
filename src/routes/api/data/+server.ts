@@ -457,6 +457,37 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ ok: true, data: updated });
     }
 
+    if (action === 'stopTrackingList') {
+      if (!locals.user) return unauthorized();
+      const sourceListId = payload.sourceListId as string | undefined;
+      const userId = payload.userId as string | undefined;
+      if (!sourceListId || !userId) return badRequest('sourceListId and userId are required.');
+      if (userId !== locals.user.id) return forbidden();
+
+      const { data: progress } = await locals.supabase
+        .from('list_progress')
+        .select('id')
+        .eq('source_list_id', sourceListId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!progress) return json({ ok: true, data: { removed: false } });
+
+      const { error: deleteItemsError } = await locals.supabase
+        .from('list_progress_items')
+        .delete()
+        .eq('progress_id', progress.id);
+      if (deleteItemsError) throw new Error(deleteItemsError.message);
+
+      const { error: deleteProgressError } = await locals.supabase
+        .from('list_progress')
+        .delete()
+        .eq('id', progress.id);
+      if (deleteProgressError) throw new Error(deleteProgressError.message);
+
+      return json({ ok: true, data: { removed: true } });
+    }
+
     if (action === 'enrollStudentToPublicList') {
       if (!locals.user) return unauthorized();
       const teacherId = payload.teacherId as string | undefined;

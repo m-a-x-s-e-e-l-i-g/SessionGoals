@@ -361,7 +361,6 @@
             placeholder="Search move name or athlete"
             ariaLabel="Search existing community moves"
             metaText={moveSearchMeta}
-            helperText="Use and customize loads the move into your form. Quick add unchanged creates it immediately."
             preventSubmitOnEnter={true}
             on:clear={clearMoveSearch}
           />
@@ -388,27 +387,22 @@
                     {/if}
                     <p class="text-sm text-muted">By {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}</p>
                     <div class="template-actions">
-                      <div class="template-action-set">
-                        <button type="button" class="btn btn-primary btn-sm" on:click={() => applyMoveTemplate(template)}>
-                          Use and customize
-                        </button>
-                        <p class="template-action-note text-sm text-muted">Loads into the form below so you can edit first.</p>
-                      </div>
-                      <div class="template-action-set">
-                        <button
-                          type="button"
-                          class="btn btn-ghost btn-sm"
-                          on:click={() => addExistingMove(template)}
-                          disabled={submitting || alreadyAddedToMine}
-                        >
-                          {alreadyAddedToMine ? 'In your goals' : 'Quick add unchanged'}
-                        </button>
-                        <p class="template-action-note text-sm text-muted">
-                          {alreadyAddedToMine
-                            ? 'Already added. Open it from your goals to track progress.'
-                            : 'Adds it to your goals as a tracked read-only copy.'}
-                        </p>
-                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        class:btn-primary={!alreadyAddedToMine}
+                        class:btn-ghost={alreadyAddedToMine}
+                        on:click={() => addExistingMove(template)}
+                        disabled={submitting || alreadyAddedToMine}
+                      >
+                        {#if alreadyAddedToMine}
+                          ✓ In your goals
+                        {:else if listId}
+                          Add to your list
+                        {:else}
+                          Add to your goals
+                        {/if}
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -425,6 +419,7 @@
       </div>
     {/if}
 
+    {#if selectedType !== 'move' || moveCreationPath !== 'reuse'}
     <div class="section-block">
       <h2 class="section-title">{selectedType === 'spot' ? 'Spot goal details' : 'Move goal details'}</h2>
 
@@ -548,6 +543,7 @@
         <p class="field-help text-sm text-muted">Add a tutorial, line video, or source that helps future sessions.</p>
       </div>
     </div>
+    {/if}
 
     {#if success}
       <p class="form-success">{success}</p>
@@ -556,6 +552,7 @@
       <p class="form-error">{error}</p>
     {/if}
 
+    {#if selectedType !== 'move' || moveCreationPath !== 'reuse'}
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" disabled={submitDisabled}>
         {submitting ? 'Saving...' : 'Create Goal'}
@@ -563,6 +560,7 @@
       <a href="/goals" class="btn btn-ghost">Cancel</a>
     </div>
     <p class="submit-hint text-sm text-muted" aria-live="polite">{submitting ? 'Saving your goal...' : submitHint}</p>
+    {/if}
   </form>
 </div>
 
@@ -732,20 +730,8 @@
   }
 
   .template-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.65rem;
-  }
-
-  .template-action-set {
     display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
-  }
-
-  .template-action-note {
-    max-width: 30ch;
+    gap: 0.65rem;
   }
 
   .empty-hint {

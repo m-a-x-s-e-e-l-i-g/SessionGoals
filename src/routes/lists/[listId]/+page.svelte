@@ -15,6 +15,7 @@
   import {
     getProgressForList,
     startTrackingList,
+    stopTrackingList,
     toggleListItemProgress,
   } from '$lib/data/listProgress';
   import type { ListProgress, UserProfile, GoalStatus } from '$lib/types';
@@ -39,6 +40,7 @@
   let showDeleteDialog = false;
   let isDeleting = false;
   let showEditForm = false;
+  let isUnfollowing = false;
   let editName = '';
   let editDescription = '';
   let editType: GoalListType = 'general';
@@ -114,6 +116,16 @@
     if (!list || !currentUserId) return;
     await startTrackingList(list, currentUserId);
     // progress re-derives automatically via $appStateStore subscription
+  }
+
+  async function handleStopTracking() {
+    if (!list || !currentUserId) return;
+    isUnfollowing = true;
+    try {
+      await stopTrackingList(list.id, currentUserId);
+    } finally {
+      isUnfollowing = false;
+    }
   }
 
   async function handleToggleProgress(goalId: string) {
@@ -220,6 +232,10 @@
           <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
         {:else if canTrackList && !progress}
           <button class="btn btn-primary" on:click={handleStartTracking}>Track This List</button>
+        {:else if canTrackList && progress}
+          <button class="btn btn-ghost" on:click={handleStopTracking} disabled={isUnfollowing}>
+            {isUnfollowing ? 'Unfollowing...' : 'Unfollow'}
+          </button>
         {:else if !isAuthenticated}
           <a class="btn btn-primary" href="/auth/login?next=/lists/{list.id}">Sign in to Track</a>
         {/if}
@@ -346,9 +362,9 @@
       <EmptyState
         icon="🎯"
         title="No goals in this list"
-        message="Add goals to this list to start planning your session."
-        actionHref="/goals/new?listId={list.id}"
-        actionLabel="Create a Goal"
+        message={isOwnList ? "Add goals to this list to start planning your session." : "This list has no goals yet."}
+        actionHref={isOwnList ? `/goals/new?listId=${list.id}` : undefined}
+        actionLabel={isOwnList ? "Create a Goal" : undefined}
       />
     {:else}
       <ol class="goal-checklist">

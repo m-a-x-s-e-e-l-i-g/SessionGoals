@@ -22,15 +22,17 @@
   ></a>
 
   {#if goalVisualImageUrl}
-    <img
-      class="move-preview"
-      src={goalVisualImageUrl}
-      alt="{goal.title} preview"
-      loading="lazy"
-      on:error={(e) => {
-        (e.currentTarget as HTMLImageElement).style.display = 'none';
-      }}
-    />
+    <div class="move-preview-wrap">
+      <img
+        class="move-preview"
+        src={goalVisualImageUrl}
+        alt="{goal.title} preview"
+        loading="lazy"
+        on:error={(e) => {
+          (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none';
+        }}
+      />
+    </div>
   {/if}
 
   <div class="goal-card-header">
@@ -40,18 +42,6 @@
     <div class="goal-card-header-actions">
       {#if goal.status === 'done'}
         <span class="badge {statusColor(goal.status)}">✓ {formatStatus(goal.status)}</span>
-      {/if}
-      {#if onToggle}
-        <button
-          type="button"
-          class="quick-check"
-          class:is-done={goal.status === 'done'}
-          on:click|stopPropagation={() => onToggle?.(goal.id)}
-          aria-label={goal.status === 'done' ? 'Mark goal as unchecked' : 'Mark goal as checked'}
-          aria-pressed={goal.status === 'done'}
-        >
-          ✓
-        </button>
       {/if}
       {#if onAddToMine}
         <button
@@ -92,6 +82,21 @@
       </div>
     {/if}
   </div>
+
+  {#if onToggle}
+    <div class="goal-card-footer">
+      <button
+        type="button"
+        class="toggle-btn"
+        class:is-done={goal.status === 'done'}
+        on:click|stopPropagation={() => onToggle?.(goal.id)}
+        aria-label={goal.status === 'done' ? 'Mark goal as unchecked' : 'Mark goal as checked'}
+        aria-pressed={goal.status === 'done'}
+      >
+        {goal.status === 'done' ? 'Uncheck' : 'Mark as done'}
+      </button>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -99,19 +104,28 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: var(--space-sm);
     color: var(--color-text);
     transition: border-color 0.18s, transform 0.18s;
   }
 
-  .move-preview {
-    width: 100%;
-    max-height: 240px;
-    object-fit: cover;
-    border-radius: calc(var(--radius-md) - 2px);
+  /* Flush image: bleeds to card edges, fixed 3:2 aspect ratio */
+  .move-preview-wrap {
+    margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-md)) 0;
+    aspect-ratio: 3 / 2;
+    border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+    overflow: hidden;
+    background: var(--color-surface-2);
+    flex-shrink: 0;
     position: relative;
     z-index: 1;
-    background: var(--color-surface-2);
+  }
+
+  .move-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .goal-card-overlay-link {
@@ -193,22 +207,48 @@
     line-height: 1.35;
   }
 
-  .quick-check {
+  .goal-card-footer {
+    position: relative;
+    z-index: 1;
     pointer-events: auto;
-    min-width: 44px;
-    min-height: 44px;
-    width: 44px;
-    height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    display: flex;
+    gap: var(--space-sm);
+  }
+
+  .toggle-btn {
+    pointer-events: auto;
+    flex: 1;
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     color: var(--color-text-muted);
-    font-size: 1rem;
-    font-weight: 700;
-    padding: 0;
+    border-radius: var(--radius-sm);
+    padding: 0.4rem var(--space-sm);
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+
+  .toggle-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .toggle-btn.is-done {
+    border-color: color-mix(in oklch, var(--color-success) 42%, var(--color-border));
+    color: var(--color-success);
+    background: color-mix(in oklch, var(--color-success) 10%, var(--color-surface));
+  }
+
+  .toggle-btn.is-done:hover {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+    background: color-mix(in oklch, var(--color-danger) 8%, var(--color-surface));
   }
 
   .add-goal {
@@ -220,18 +260,15 @@
     padding: 0.35rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 600;
+    font-family: inherit;
     line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
   }
 
   .add-goal:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
-  }
-
-  .quick-check.is-done {
-    background: color-mix(in oklch, var(--color-success) 18%, var(--color-surface));
-    border-color: color-mix(in oklch, var(--color-success) 42%, var(--color-border));
-    color: var(--color-success);
   }
 
   .dot { color: var(--color-border); }

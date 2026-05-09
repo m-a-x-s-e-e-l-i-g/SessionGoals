@@ -72,3 +72,20 @@ export function getTrackedProgress(userId?: string): ListProgress[] {
   if (!effectiveUserId) return [];
   return getAppState().progress.filter((entry) => entry.userId === effectiveUserId);
 }
+
+export async function stopTrackingList(sourceListId: string, userId?: string): Promise<void> {
+  const effectiveUserId = userId ?? getCurrentUserIdFromState();
+  if (!effectiveUserId) throw new Error('Sign in to unfollow lists.');
+
+  await runDataAction<{ removed: boolean }>('stopTrackingList', {
+    sourceListId,
+    userId: effectiveUserId,
+  });
+
+  updateAppState((state) => ({
+    ...state,
+    progress: state.progress.filter(
+      (entry) => !(entry.sourceListId === sourceListId && entry.userId === effectiveUserId)
+    ),
+  }));
+}

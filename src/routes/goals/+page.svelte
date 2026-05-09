@@ -4,43 +4,35 @@
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import SearchBar from '$lib/components/SearchBar.svelte';
+  import { formatGoalType, typeIcon } from '$lib/utils/format';
   import type { GoalStatus } from '$lib/types';
 
   let goals = getMyGoals();
-
-  let filterStatus: GoalStatus | 'all' = 'all';
   let searchQuery = '';
-
-  const FILTERS: { status: GoalStatus; label: string }[] = [
-    { status: 'want_to_try', label: 'Open' },
-    { status: 'done', label: 'Checked' },
-  ];
-
-  $: statusCounts = FILTERS.map((entry) => ({
-    ...entry,
-    count: goals.filter((goal) => goal.status === entry.status).length,
-  }));
+  let archiveOpen = false;
 
   $: moveTotal = goals.filter((g) => g.type === 'move').length;
   $: spotTotal = goals.filter((g) => g.type === 'spot').length;
-
   $: moveDone = goals.filter((g) => g.type === 'move' && g.status === 'done').length;
   $: spotDone = goals.filter((g) => g.type === 'spot' && g.status === 'done').length;
   $: totalDone = goals.filter((g) => g.status === 'done').length;
+  $: openCount = goals.length - totalDone;
 
   $: normalizedQuery = searchQuery.trim().toLowerCase();
-  $: filteredByStatus = goals.filter((g) => {
-    const matchStatus = filterStatus === 'all' || g.status === filterStatus;
-    if (!matchStatus) return false;
-    if (!normalizedQuery) return true;
 
-    const inTitle = g.title.toLowerCase().includes(normalizedQuery);
-    const inDescription = (g.description ?? '').toLowerCase().includes(normalizedQuery);
-    return inTitle || inDescription;
-  });
-  $: moveGoals = filteredByStatus.filter((g) => g.type === 'move');
-  $: spotGoals = filteredByStatus.filter((g) => g.type === 'spot');
-  $: openCount = goals.length - totalDone;
+  function matchesSearch(g: { title: string; description?: string | null }) {
+    if (!normalizedQuery) return true;
+    return (
+      g.title.toLowerCase().includes(normalizedQuery) ||
+      (g.description ?? '').toLowerCase().includes(normalizedQuery)
+    );
+  }
+
+  $: activeGoals = goals.filter((g) => g.status !== 'done' && matchesSearch(g));
+  $: archivedGoals = goals.filter((g) => g.status === 'done' && matchesSearch(g));
+
+  $: activeMoveGoals = activeGoals.filter((g) => g.type === 'move');
+  $: activeSpotGoals = activeGoals.filter((g) => g.type === 'spot');
 
   async function handleToggleGoal(goalId: string) {
     const goal = goals.find((entry) => entry.id === goalId);
@@ -75,12 +67,14 @@
       {/if}
     </div>
     <div class="pipeline-legend" aria-hidden="true">
-      {#each statusCounts as entry}
-        <span class="pipeline-legend-item">
-          <span class="pipeline-legend-dot pipeline-seg--{entry.status}"></span>
-          {entry.label} <strong>{entry.count}</strong>
-        </span>
-      {/each}
+      <span class="pipeline-legend-item">
+        <span class="pipeline-legend-dot pipeline-seg--done"></span>
+        Checked <strong>{totalDone}</strong>
+      </span>
+      <span class="pipeline-legend-item">
+        <span class="pipeline-legend-dot pipeline-seg--want_to_try"></span>
+        Open <strong>{openCount}</strong>
+      </span>
     </div>
   </section>
 
@@ -90,68 +84,87 @@
         bind:value={searchQuery}
         placeholder="Search goals"
         ariaLabel="Search goals"
-        metaText={`Showing ${filteredByStatus.length} of ${goals.length} goals`}
+        metaText={`Showing ${activeGoals.length} active · ${archivedGoals.length} archived`}
       />
-    </div>
-    <div class="filter-chips" role="group" aria-label="Filter by goal completion">
-      <button
-        type="button"
-        class="filter-chip"
-        class:active={filterStatus === 'all'}
-        on:click={() => (filterStatus = 'all')}
-      >All <span class="chip-count">{goals.length}</span></button>
-      {#each statusCounts as stage}
-        <button
-          type="button"
-          class="filter-chip filter-chip--{stage.status}"
-          class:active={filterStatus === stage.status}
-          on:click={() => (filterStatus = stage.status)}
-        >{stage.label} <span class="chip-count">{stage.count}</span></button>
-      {/each}
     </div>
   </div>
 
-  {#if filteredByStatus.length === 0}
+  {#if activeGoals.length === 0 && archivedGoals.length === 0}
     <EmptyState
       icon="🎯"
       title="No goals found"
-      message="Create your first goal or adjust your filters."
+      message="Create your first goal or adjust your search."
+      actionHref="/goals/new"
+    />
+  {:else if activeGoals.length === 0 && !normalizedQuery}
+    <EmptyState
+      icon="🎯"
+      title="No active goals"
+      message="All goals are checked off. Create a new one or uncheck something below."
       actionHref="/goals/new"
     />
   {:else}
-    {#if moveGoals.length > 0}
+    {#if activeMoveGoals.length > 0}
       <section class="goal-section">
         <h2 class="section-title">🤸 Move</h2>
         <div class="grid-cards">
-          {#each moveGoals as goal}
-            <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
-              <GoalCard
-                {goal}
-                spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
-                onToggle={handleToggleGoal}
-              />
-            </div>
+          {#each activeMoveGoals as goal}
+            <GoalCard
+              {goal}
+              spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+              onToggle={handleToggleGoal}
+            />
           {/each}
         </div>
       </section>
     {/if}
 
-    {#if spotGoals.length > 0}
+    {#if activeSpotGoals.length > 0}
       <section class="goal-section">
         <h2 class="section-title">📍 Spot</h2>
         <div class="grid-cards">
-          {#each spotGoals as goal}
-            <div class="goal-card-wrap" class:is-done={goal.status === 'done'}>
-              <GoalCard
-                {goal}
-                spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
-                onToggle={handleToggleGoal}
-              />
-            </div>
+          {#each activeSpotGoals as goal}
+            <GoalCard
+              {goal}
+              spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+              onToggle={handleToggleGoal}
+            />
           {/each}
         </div>
       </section>
     {/if}
+  {/if}
+
+  {#if archivedGoals.length > 0}
+    <section class="archive-section">
+      <button
+        type="button"
+        class="archive-toggle"
+        aria-expanded={archiveOpen}
+        on:click={() => (archiveOpen = !archiveOpen)}
+      >
+        <span class="archive-toggle-label">Checked off</span>
+        <span class="archive-badge">{archivedGoals.length}</span>
+        <span class="archive-chevron" class:open={archiveOpen}>▾</span>
+      </button>
+
+      {#if archiveOpen}
+        <ul class="archive-list">
+          {#each archivedGoals as goal}
+            <li class="archive-item">
+              <a href="/goals/{goal.id}" class="archive-title">{goal.title}</a>
+              <span class="archive-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+              <button
+                type="button"
+                class="archive-uncheck btn btn-ghost btn-sm"
+                on:click={() => handleToggleGoal(goal.id)}
+                aria-label="Uncheck {goal.title}"
+              >Uncheck</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
   {/if}
 </div>
 
@@ -246,53 +259,6 @@
     max-width: none;
   }
 
-  .filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  .filter-chip {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: 999px;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text-muted);
-    font-size: 0.8rem;
-    font-weight: 500;
-    min-height: 44px;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-    white-space: nowrap;
-  }
-
-  .filter-chip:hover {
-    background: var(--color-surface-2);
-    color: var(--color-text);
-  }
-
-  .filter-chip.active {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: var(--color-on-primary);
-  }
-
-  .filter-chip--want_to_try.active{ background: var(--badge-want-bg);     border-color: var(--badge-want-text);     color: var(--badge-want-text); }
-  .filter-chip--done.active       { background: var(--badge-done-bg);     border-color: var(--badge-done-text);     color: var(--badge-done-text); }
-
-  .chip-count {
-    font-weight: 700;
-    opacity: 0.75;
-  }
-
-  .filter-chip.active .chip-count {
-    opacity: 1;
-  }
-
-  /* ─── Goal sections ────────────────────────────────────────────────── */
   .goal-section {
     margin-bottom: 2.25rem;
   }
@@ -304,27 +270,109 @@
     margin-bottom: 0.8rem;
   }
 
-  .goal-card-wrap {
-    transition: border-color 0.18s ease;
+  /* ─── Archive ──────────────────────────────────────────────────────── */
+  .archive-section {
+    margin-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.75rem;
   }
 
-  .goal-card-wrap.is-done :global(.goal-card) {
-    border-color: var(--color-success);
+  .archive-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem 0;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    width: 100%;
+    text-align: left;
+  }
+
+  .archive-toggle:hover {
+    color: var(--color-text);
+  }
+
+  .archive-toggle-label {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .archive-badge {
+    background: var(--color-surface-2);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+  }
+
+  .archive-chevron {
+    margin-left: auto;
+    font-size: 1rem;
+    transition: transform 0.15s;
+    display: inline-block;
+  }
+
+  .archive-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .archive-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .archive-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.875rem;
+  }
+
+  .archive-item:last-child {
+    border-bottom: none;
+  }
+
+  .archive-title {
+    flex: 1;
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .archive-title:hover {
+    text-decoration: underline;
+  }
+
+  .archive-type {
+    font-size: 0.78rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .archive-uncheck {
+    flex-shrink: 0;
   }
 
   @media (max-width: 640px) {
     .pipeline-header {
       flex-direction: column;
       align-items: flex-start;
-    }
-
-    .filter-chips {
-      width: 100%;
-    }
-
-    .filter-chip {
-      flex: 1 1 auto;
-      justify-content: center;
     }
   }
 </style>
