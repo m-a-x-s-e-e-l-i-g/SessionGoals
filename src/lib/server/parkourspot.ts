@@ -90,6 +90,49 @@ function pickCoordinatePair(raw: any): { lat: number; lng: number } | null {
   return null;
 }
 
+function pickImageUrl(raw: any): string | undefined {
+  const candidates: unknown[] = [
+    Array.isArray(raw?.imageUrls) ? raw.imageUrls[0] : null,
+    Array.isArray(raw?.images) ? raw.images[0] : null,
+    raw?.imageUrl,
+    raw?.image_url,
+    raw?.image,
+    raw?.thumbnail,
+    raw?.thumbnailUrl,
+    raw?.thumbnail_url,
+    raw?.photo,
+    raw?.photoUrl,
+    raw?.photo_url,
+    raw?.cover,
+    raw?.coverUrl,
+    raw?.cover_url,
+    raw?.media?.imageUrl,
+    raw?.media?.image_url,
+    raw?.media?.thumbnail,
+    raw?.media?.thumbnailUrl,
+    raw?.media?.thumbnail_url,
+  ];
+
+  for (const candidate of candidates) {
+    const direct = asTrimmedString(candidate);
+    if (direct) return direct;
+
+    if (candidate && typeof candidate === 'object') {
+      const fromObject =
+        asTrimmedString((candidate as any).url) ??
+        asTrimmedString((candidate as any).src) ??
+        asTrimmedString((candidate as any).imageUrl) ??
+        asTrimmedString((candidate as any).image_url) ??
+        asTrimmedString((candidate as any).thumbnail) ??
+        asTrimmedString((candidate as any).thumbnailUrl) ??
+        asTrimmedString((candidate as any).thumbnail_url);
+      if (fromObject) return fromObject;
+    }
+  }
+
+  return undefined;
+}
+
 function getApiBase(): string {
   return asTrimmedString(env.PARKOUR_SPOT_API_URL) ?? DEFAULT_API_BASE;
 }
@@ -173,13 +216,7 @@ function normalizeSpot(raw: any, index: number): Spot | null {
       asTrimmedString(raw?.address?.country) ??
       undefined,
     coordinates: coordinates ?? undefined,
-    imageUrl:
-      asTrimmedString(Array.isArray(raw?.imageUrls) ? raw.imageUrls[0] : null) ??
-      asTrimmedString(raw?.imageUrl) ??
-      asTrimmedString(raw?.image_url) ??
-      asTrimmedString(raw?.image) ??
-      asTrimmedString(raw?.thumbnail) ??
-      undefined,
+    imageUrl: pickImageUrl(raw),
     createdAt: createdAt || new Date(Date.now() + index).toISOString()
   };
 }

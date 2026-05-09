@@ -59,6 +59,10 @@
     return getNormalizedCoordinates(spot) !== null;
   }
 
+  function hasUsableImageUrl(spot: Spot): boolean {
+    return typeof spot.imageUrl === 'string' && spot.imageUrl.trim().length > 0;
+  }
+
   function escapeHtml(value: string): string {
     return value
       .replaceAll('&', '&amp;')
@@ -193,9 +197,11 @@
       return null;
     };
 
-    const targets = savedActionSpots.filter(
-      (spot) => !hasUsableCoordinates(spot) && !hydratedSpotBySavedId.has(spot.id)
-    );
+    const targets = savedActionSpots.filter((savedSpot) => {
+      const hydratedSpot = hydratedSpotBySavedId.get(savedSpot.id);
+      const spotForHydration = hydratedSpot ?? savedSpot;
+      return !hasUsableCoordinates(spotForHydration) || !hasUsableImageUrl(spotForHydration);
+    });
 
     if (targets.length === 0) return;
 
@@ -211,9 +217,17 @@
             const exact = await findApiSpotForSavedSpot(spot);
             if (!exact) return;
 
-            hydratedSpotBySavedId = new Map(hydratedSpotBySavedId).set(spot.id, exact);
-            if (exact.externalId) {
-              hydratedSpotByExternalId = new Map(hydratedSpotByExternalId).set(exact.externalId, exact);
+            const previous = hydratedSpotBySavedId.get(spot.id) ?? spot;
+            const merged: Spot = {
+              ...previous,
+              ...exact,
+              coordinates: exact.coordinates ?? previous.coordinates,
+              imageUrl: exact.imageUrl ?? previous.imageUrl,
+            };
+
+            hydratedSpotBySavedId = new Map(hydratedSpotBySavedId).set(spot.id, merged);
+            if (merged.externalId) {
+              hydratedSpotByExternalId = new Map(hydratedSpotByExternalId).set(merged.externalId, merged);
             }
           } catch {
             // Ignore per-spot hydration failures; UI falls back gracefully.
