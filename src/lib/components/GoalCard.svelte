@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Goal } from '$lib/types';
   import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
-  import { getGoalVisualImageUrl } from '$lib/utils/media';
+  import { getGoalVisualImageUrl, proxyLibraryImageUrl } from '$lib/utils/media';
 
   export let goal: Goal;
   export let onToggle: ((id: string) => void) | undefined = undefined;
@@ -11,7 +11,7 @@
   export let statusNote: string | undefined = undefined;
   export let insightNote: string | undefined = undefined;
 
-  $: goalVisualImageUrl = getGoalVisualImageUrl(goal);
+  $: goalVisualImageUrl = proxyLibraryImageUrl(getGoalVisualImageUrl(goal));
 </script>
 
 <div class="goal-card card">

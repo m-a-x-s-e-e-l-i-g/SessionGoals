@@ -68,6 +68,17 @@ export function getGoalVisualImageUrl(goal: Pick<Goal, 'type' | 'imageUrl' | 'so
   return null;
 }
 
+/**
+ * Wraps an external http/https image URL through the local caching proxy.
+ * data: URLs are returned as-is. Pass the result of getGoalVisualImageUrl here.
+ */
+export function proxyLibraryImageUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith('data:')) return url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return url;
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
 export function getMovePreviewImageUrl(goal: Pick<Goal, 'type' | 'imageUrl' | 'sourceUrl' | 'links'>): string | null {
   return getGoalVisualImageUrl(goal);
 }

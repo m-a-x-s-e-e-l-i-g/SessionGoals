@@ -1,39 +1,94 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+// ─── Server-side in-memory image cache ───────────────────────────────────────
+
+interface CacheEntry {
+  buffer: ArrayBuffer;
+  contentType: string;
+  cachedAt: number;
+}
+
+const IMAGE_CACHE = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_CACHE_ENTRIES = 500;
+
+function getCached(url: string): CacheEntry | null {
+  const entry = IMAGE_CACHE.get(url);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > CACHE_TTL_MS) {
+    IMAGE_CACHE.delete(url);
+    return null;
+  }
+  return entry;
+}
+
+function setCached(url: string, entry: CacheEntry): void {
+  // Evict oldest entries when the cache is full
+  if (IMAGE_CACHE.size >= MAX_CACHE_ENTRIES) {
+    const oldest = [...IMAGE_CACHE.entries()].sort((a, b) => a[1].cachedAt - b[1].cachedAt);
+    for (const [key] of oldest.slice(0, Math.ceil(MAX_CACHE_ENTRIES * 0.1))) {
+      IMAGE_CACHE.delete(key);
+    }
+  }
+  IMAGE_CACHE.set(url, entry);
+}
+
+// ─── Allowed domains ─────────────────────────────────────────────────────────
+
+const ALLOWED_DOMAINS = [
+  'parkour.spot',
+  'cdn.parkour.spot',
+  'images.parkour.spot',
+  'media.giphy.com',
+  'media0.giphy.com',
+  'media1.giphy.com',
+  'media2.giphy.com',
+  'media3.giphy.com',
+  'media4.giphy.com',
+  'i.giphy.com',
+];
+
+function isAllowedDomain(hostname: string): boolean {
+  return ALLOWED_DOMAINS.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+  );
+}
+
+export const GET: RequestHandler = async ({ url }) => {
   const imageUrl = url.searchParams.get('url');
 
   if (!imageUrl) {
     return json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
-  // Only allow proxying URLs from parkour.spot domain or similar trusted CDNs
-  const allowedDomains = [
-    'parkour.spot',
-    'cdn.parkour.spot',
-    'images.parkour.spot',
-    // Add other CDN domains as needed
-  ];
-
+  let imageUrlObj: URL;
   try {
-    const imageUrlObj = new URL(imageUrl);
-    const isAllowed = allowedDomains.some(domain => 
-      imageUrlObj.hostname === domain || imageUrlObj.hostname.endsWith(`.${domain}`)
-    );
-
-    if (!isAllowed) {
-      return json({ error: 'Image URL not from allowed domain' }, { status: 403 });
-    }
+    imageUrlObj = new URL(imageUrl);
   } catch {
     return json({ error: 'Invalid image URL' }, { status: 400 });
   }
 
+  if (!isAllowedDomain(imageUrlObj.hostname)) {
+    return json({ error: 'Image URL not from allowed domain' }, { status: 403 });
+  }
+
+  // Serve from cache if available
+  const cached = getCached(imageUrl);
+  if (cached) {
+    return new Response(cached.buffer, {
+      status: 200,
+      headers: {
+        'content-type': cached.contentType,
+        'cache-control': 'public, max-age=86400',
+        'x-cache': 'HIT',
+      },
+    });
+  }
+
   try {
     const response = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'SessionGoals/1.0'
-      }
+      headers: { 'User-Agent': 'SessionGoals/1.0' },
     });
 
     if (!response.ok) {
@@ -49,20 +104,18 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     }
 
     const buffer = await response.arrayBuffer();
+    setCached(imageUrl, { buffer, contentType, cachedAt: Date.now() });
 
     return new Response(buffer, {
       status: 200,
       headers: {
         'content-type': contentType,
-        'cache-control': 'public, max-age=86400', // Cache for 24 hours
-        'access-control-allow-origin': '*'
-      }
+        'cache-control': 'public, max-age=86400',
+        'x-cache': 'MISS',
+      },
     });
   } catch (err: any) {
     console.error('Image proxy error:', err);
-    return json(
-      { error: 'Failed to fetch image' },
-      { status: 500 }
-    );
+    return json({ error: 'Failed to fetch image' }, { status: 500 });
   }
 };
