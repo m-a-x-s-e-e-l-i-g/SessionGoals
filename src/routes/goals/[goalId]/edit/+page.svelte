@@ -42,7 +42,6 @@
       title,
       description: (data.get('description') as string)?.trim() || undefined,
       status: (data.get('status') as GoalStatus) ?? 'want_to_try',
-      difficulty: data.get('difficulty') ? Number(data.get('difficulty')) : undefined,
       spotId: (data.get('spotId') as string)?.trim() || undefined,
       imageUrl: (data.get('imageUrl') as string)?.trim() || undefined,
       sourceUrl: (data.get('sourceUrl') as string)?.trim() || undefined,
@@ -105,7 +104,6 @@
             title: goal.title,
             description: goal.description,
             status: goal.status,
-            difficulty: goal.difficulty,
             imageUrl: goal.imageUrl,
             sourceUrl: goal.sourceUrl,
           }}

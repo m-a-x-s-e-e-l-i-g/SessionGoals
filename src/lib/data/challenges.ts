@@ -21,7 +21,7 @@ export async function createChallenge(input: CreateChallengeInput): Promise<Chal
 
 export async function updateChallenge(
   id: string,
-  patch: Partial<Pick<Challenge, 'title' | 'description' | 'status' | 'difficulty' | 'spotIds' | 'goalIds'>>,
+  patch: Partial<Pick<Challenge, 'title' | 'description' | 'status' | 'spotIds' | 'goalIds'>>,
 ): Promise<Challenge | undefined> {
   const challenge = await runDataAction<Challenge>('updateChallenge', { id, patch });
   updateAppState((state) => ({

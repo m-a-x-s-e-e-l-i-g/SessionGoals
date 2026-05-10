@@ -231,10 +231,6 @@
     }
   }
 
-  function difficultyLabel(d: number) {
-    return ['', '★', '★★', '★★★', '★★★★', '★★★★★'][d] ?? '';
-  }
-
   function isStudentEnrolled(studentId: string): boolean {
     if (!list) return false;
     return !!getProgressForList(list.id, studentId);
@@ -555,9 +551,6 @@
                       {#if goal.type !== 'move'}
                         <span class="badge type-{goal.type}">{goal.type}</span>
                       {/if}
-                      {#if goal.difficulty}
-                        <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
-                      {/if}
                     </span>
                   </span>
                 </button>
@@ -577,9 +570,6 @@
                       {/if}
                       {#if goal.type !== 'move'}
                         <span class="badge type-{goal.type}">{goal.type}</span>
-                      {/if}
-                      {#if goal.difficulty}
-                        <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
                       {/if}
                     </span>
                   </span>

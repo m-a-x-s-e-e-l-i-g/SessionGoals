@@ -11,7 +11,6 @@
     title: string;
     description?: string;
     status: GoalStatus;
-    difficulty?: number;
     imageUrl?: string;
     sourceUrl?: string;
   } = {
@@ -19,7 +18,6 @@
     title: '',
     description: '',
     status: 'want_to_try',
-    difficulty: undefined,
     imageUrl: '',
     sourceUrl: '',
   };
@@ -114,20 +112,6 @@
         <option value="move">Move</option>
         <option value="spot">Spot</option>
       </select>
-    </div>
-
-    <div class="form-group">
-      <label for="difficulty">Difficulty (1–5)</label>
-      <input
-        id="difficulty"
-        name="difficulty"
-        type="number"
-        min="1"
-        max="5"
-        step="1"
-        placeholder="3"
-        value={initial.difficulty ?? ''}
-      />
     </div>
   </div>
 

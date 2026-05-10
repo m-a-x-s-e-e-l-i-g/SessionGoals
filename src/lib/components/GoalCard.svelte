@@ -89,14 +89,6 @@
     {#if insightNote}
       <p class="goal-insight-note text-sm text-muted">{insightNote}</p>
     {/if}
-
-    {#if goal.difficulty}
-      <div class="goal-difficulty mt-1" title="Difficulty: {goal.difficulty} out of 5" aria-label="Difficulty {goal.difficulty} out of 5">
-        {#each Array(5) as _, i}
-          <span class="dot" class:filled={i < (goal.difficulty ?? 0)}>●</span>
-        {/each}
-      </div>
-    {/if}
   </div>
 
   {#if onToggle}
@@ -205,12 +197,6 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  .goal-difficulty {
-    display: flex;
-    gap: 3px;
-    font-size: 0.8rem;
   }
 
   .goal-status-note {

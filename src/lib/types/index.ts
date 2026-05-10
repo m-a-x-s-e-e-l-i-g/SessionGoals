@@ -43,7 +43,6 @@ export interface Goal {
   title: string;
   description?: string;
   status: GoalStatus;
-  difficulty?: number; // 1–5
   spotId?: string;
   imageUrl?: string;
   sourceUrl?: string;
@@ -103,7 +102,6 @@ export interface CreateGoalInput {
   title: string;
   description?: string;
   status: GoalStatus;
-  difficulty?: number;
   spotId?: string;
   imageUrl?: string;
   sourceUrl?: string;
@@ -114,7 +112,6 @@ export interface UpdateGoalInput {
   title: string;
   description?: string;
   status: GoalStatus;
-  difficulty?: number;
   spotId?: string;
   imageUrl?: string;
   sourceUrl?: string;
@@ -163,7 +160,6 @@ export interface Challenge {
   title: string;
   description?: string;
   status: GoalStatus;
-  difficulty?: number; // 1–5
   spotIds: string[];   // spots involved in the challenge
   goalIds: string[];   // component goals / moves that make up the challenge
   links: GoalLink[];
@@ -175,7 +171,6 @@ export interface CreateChallengeInput {
   title: string;
   description?: string;
   status: GoalStatus;
-  difficulty?: number;
   spotIds?: string[];
   goalIds?: string[];
 }

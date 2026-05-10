@@ -22,7 +22,6 @@
 
   let title = '';
   let description = '';
-  let difficulty = '';
   let isDone = false;
   let imageUrl = '';
   let sourceUrl = '';
@@ -188,7 +187,6 @@
   function applyMoveTemplate(goal: Goal) {
     title = goal.title;
     description = goal.description ?? '';
-    difficulty = goal.difficulty ? String(goal.difficulty) : '';
     imageUrl = goal.imageUrl ?? '';
     sourceUrl = goal.sourceUrl ?? '';
     selectedType = 'move';
@@ -269,7 +267,6 @@
       title: resolvedTitle,
       description: description.trim() || undefined,
       status: isDone ? 'done' : 'want_to_try',
-      difficulty: difficulty ? Number(difficulty) : undefined,
       spotId: selectedType === 'spot' ? selectedSpot?.id : undefined,
       imageUrl: imageUrl.trim() || undefined,
       sourceUrl: sourceUrl.trim() || undefined,
@@ -530,14 +527,8 @@
         {/if}
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="difficulty">Difficulty (1-5)</label>
-          <input id="difficulty" name="difficulty" type="number" min="1" max="5" step="1" bind:value={difficulty} placeholder="3" />
-          <p class="field-help text-sm text-muted">1 = beginner, 3 = solid challenge, 5 = elite difficulty.</p>
-        </div>
-        <div class="form-group form-check-group">
-          <label class="check-option" for="isDone">
+      <div class="form-group form-check-group">
+        <label class="check-option" for="isDone">
             <input id="isDone" type="checkbox" bind:checked={isDone} />
             <span>
               <strong>Checked off</strong>
@@ -545,7 +536,6 @@
             </span>
           </label>
         </div>
-      </div>
 
       <div class="form-group">
         <label for="description">{selectedType === 'spot' ? 'Spot objective' : 'Move notes'}</label>

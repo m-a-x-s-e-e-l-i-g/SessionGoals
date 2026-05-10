@@ -86,7 +86,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         type: GoalType;
         title: string;
         description: string | null;
-        difficulty: number | null;
         spot_id: string | null;
         image_url: string | null;
         source_url: string | null;
@@ -95,7 +94,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       if (sourceGoalId) {
         const { data: sourceGoal, error: sourceGoalError } = await locals.supabase
           .from('goals')
-          .select('id, user_id, type, title, description, difficulty, spot_id, image_url, source_url')
+          .select('id, user_id, type, title, description, spot_id, image_url, source_url')
           .eq('id', sourceGoalId)
           .maybeSingle();
 
@@ -114,7 +113,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           type: sourceGoal.type as GoalType,
           title: sourceGoal.title,
           description: sourceGoal.description,
-          difficulty: sourceGoal.difficulty,
           spot_id: sourceGoal.spot_id,
           image_url: sourceGoal.image_url,
           source_url: sourceGoal.source_url,
@@ -148,7 +146,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           title: sourceGoalRow?.title ?? normalizedTitle,
           description: sourceGoalRow?.description ?? input.description ?? null,
           status: input.status,
-          difficulty: sourceGoalRow?.difficulty ?? input.difficulty ?? null,
           spot_id: sourceGoalRow?.spot_id ?? input.spotId ?? null,
           image_url: sourceGoalRow?.image_url ?? input.imageUrl ?? null,
           source_url: sourceGoalRow?.source_url ?? input.sourceUrl ?? null,
@@ -214,7 +211,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           title: normalizedTitle,
           description: input.description ?? null,
           status: input.status,
-          difficulty: input.difficulty ?? null,
           spot_id: input.spotId ?? null,
           image_url: input.imageUrl ?? null,
           source_url: input.sourceUrl ?? null,
@@ -280,7 +276,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           title: sourceGoal.title,
           description: sourceGoal.description,
           status: 'want_to_try',
-          difficulty: sourceGoal.difficulty,
           spot_id: sourceGoal.spot_id,
           image_url: sourceGoal.image_url,
           source_url: sourceGoal.source_url,
@@ -338,7 +333,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           type: input.type,
           title: normalizedTitle,
           description: input.description ?? null,
-          difficulty: input.difficulty ?? null,
           spot_id: input.spotId ?? null,
           image_url: input.imageUrl ?? null,
           source_url: input.sourceUrl ?? null,
@@ -878,7 +872,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           title: input.title,
           description: input.description ?? null,
           status: input.status,
-          difficulty: input.difficulty ?? null,
         })
         .select('id')
         .single();
@@ -917,9 +910,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         challengePatch.description = patch.description ?? null;
       }
       if (typeof patch.status === 'string') challengePatch.status = patch.status;
-      if (typeof patch.difficulty === 'number' || patch.difficulty === undefined) {
-        challengePatch.difficulty = patch.difficulty ?? null;
-      }
 
       const { error: challengeError } = await locals.supabase
         .from('challenges')

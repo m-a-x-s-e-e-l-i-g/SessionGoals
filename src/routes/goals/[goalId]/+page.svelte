@@ -490,17 +490,6 @@
           {/if}
         </div>
 
-        {#if goal.difficulty}
-          <div class="sidebar-item">
-            <span class="sidebar-label">Difficulty</span>
-            <div class="difficulty-dots">
-              {#each Array(5) as _, i}
-                <span class="dot" class:filled={i < (goal.difficulty ?? 0)}>●</span>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
         <div class="sidebar-item">
           <span class="sidebar-label">Created</span>
           <span class="text-sm text-muted">{new Date(goal.createdAt).toLocaleDateString()}</span>
@@ -813,21 +802,6 @@
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--color-text-muted);
-  }
-
-  .difficulty-dots {
-    display: flex;
-    gap: 4px;
-    font-size: 0.9rem;
-  }
-
-  .dot {
-    color: var(--color-border);
-    transition: color 0.15s;
-  }
-
-  .dot.filled {
-    color: var(--color-primary);
   }
 
   .lists-chips {
