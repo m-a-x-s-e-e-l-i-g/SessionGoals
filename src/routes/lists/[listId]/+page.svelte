@@ -12,6 +12,7 @@
   import { getStudentsForTeacher, getUserById, isTeacher } from '$lib/data/users';
   import { getSpotById } from '$lib/data/spots';
   import { updateGoalStatus } from '$lib/data/goals';
+  import { getGoalVisualImageUrl, proxyLibraryImageUrl } from '$lib/utils/media';
   import {
     getProgressForList,
     startTrackingList,
@@ -377,6 +378,7 @@
             {@const spot = goal.spotId ? getSpotById(goal.spotId) : undefined}
             {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0)}
             {@const expanded = canExpand && expandedGoalIds.has(item.goalId)}
+            {@const thumbUrl = proxyLibraryImageUrl(getGoalVisualImageUrl(goal))}
             <li class="checklist-row" class:is-done={done} class:is-expanded={expanded}>
               <!-- tick -->
               {#if isOwnList}
@@ -420,37 +422,49 @@
               <!-- main row body: click to expand -->
               {#if canExpand}
                 <button type="button" class="checklist-body" on:click={() => toggleExpand(item.goalId)}>
-                  <span class="checklist-top-row">
-                    <span class="checklist-goal-title">{goal.title}</span>
-                    <span class="checklist-chevron" class:open={expanded} aria-hidden="true">›</span>
-                  </span>
-                  <span class="checklist-goal-meta">
-                    {#if done}
-                      <span class="badge status-done">Checked</span>
-                    {/if}
-                    {#if goal.type !== 'move'}
-                      <span class="badge type-{goal.type}">{goal.type}</span>
-                    {/if}
-                    {#if goal.difficulty}
-                      <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
-                    {/if}
+                  {#if thumbUrl}
+                    <img class="checklist-thumb" src={thumbUrl} alt="" loading="lazy"
+                      on:error={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  {/if}
+                  <span class="checklist-text">
+                    <span class="checklist-top-row">
+                      <span class="checklist-goal-title">{goal.title}</span>
+                      <span class="checklist-chevron" class:open={expanded} aria-hidden="true">›</span>
+                    </span>
+                    <span class="checklist-goal-meta">
+                      {#if done}
+                        <span class="badge status-done">Checked</span>
+                      {/if}
+                      {#if goal.type !== 'move'}
+                        <span class="badge type-{goal.type}">{goal.type}</span>
+                      {/if}
+                      {#if goal.difficulty}
+                        <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
+                      {/if}
+                    </span>
                   </span>
                 </button>
               {:else}
                 <div class="checklist-body checklist-body--static">
-                  <span class="checklist-top-row">
-                    <span class="checklist-goal-title">{goal.title}</span>
-                  </span>
-                  <span class="checklist-goal-meta">
-                    {#if done}
-                      <span class="badge status-done">Checked</span>
-                    {/if}
-                    {#if goal.type !== 'move'}
-                      <span class="badge type-{goal.type}">{goal.type}</span>
-                    {/if}
-                    {#if goal.difficulty}
-                      <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
-                    {/if}
+                  {#if thumbUrl}
+                    <img class="checklist-thumb" src={thumbUrl} alt="" loading="lazy"
+                      on:error={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  {/if}
+                  <span class="checklist-text">
+                    <span class="checklist-top-row">
+                      <span class="checklist-goal-title">{goal.title}</span>
+                    </span>
+                    <span class="checklist-goal-meta">
+                      {#if done}
+                        <span class="badge status-done">Checked</span>
+                      {/if}
+                      {#if goal.type !== 'move'}
+                        <span class="badge type-{goal.type}">{goal.type}</span>
+                      {/if}
+                      {#if goal.difficulty}
+                        <span class="difficulty-stars">{difficultyLabel(goal.difficulty)}</span>
+                      {/if}
+                    </span>
                   </span>
                 </div>
               {/if}
@@ -606,8 +620,7 @@
     color: var(--color-border);
     transition: color 0.2s, transform 0.15s;
     padding: 0;
-    align-self: start;
-    padding-top: 17px;
+    align-self: center;
   }
 
   .tick-btn svg {
@@ -651,17 +664,17 @@
     font-size: 0.78rem;
     font-weight: 700;
     color: var(--color-text-muted);
-    align-self: start;
+    align-self: center;
   }
 
   .checklist-body {
     grid-area: body;
     display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.9rem 0.5rem 0.9rem 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 0.5rem 0.75rem 0;
     min-height: 56px;
-    justify-content: center;
     text-align: left;
     background: none;
     border: none;
@@ -673,6 +686,29 @@
 
   .checklist-body--static {
     cursor: default;
+  }
+
+  .checklist-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+    transition: width 0.2s ease, height 0.2s ease, border-radius 0.2s ease;
+  }
+
+  .is-expanded .checklist-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-md);
+  }
+
+  .checklist-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+    min-width: 0;
   }
 
   .checklist-body:hover .checklist-goal-title {
@@ -732,8 +768,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    align-self: start;
-    padding-top: 19px;
+    align-self: center;
     color: var(--color-text-muted);
     text-decoration: none;
     transition: color 0.15s;
