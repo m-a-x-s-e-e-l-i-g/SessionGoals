@@ -476,6 +476,36 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ ok: true, data: list });
     }
 
+    if (action === 'reorderListItems') {
+      if (!locals.user) return unauthorized();
+      const listId = payload.listId as string | undefined;
+      const orderedGoalIds = payload.orderedGoalIds as string[] | undefined;
+      if (!listId || !Array.isArray(orderedGoalIds)) return badRequest('listId and orderedGoalIds are required.');
+
+      const { data: ownedList } = await locals.supabase
+        .from('goal_lists')
+        .select('id')
+        .eq('id', listId)
+        .eq('user_id', locals.user.id)
+        .maybeSingle();
+
+      if (!ownedList) return forbidden('Only the list owner can reorder list items.');
+
+      for (let i = 0; i < orderedGoalIds.length; i++) {
+        const { error } = await locals.supabase
+          .from('goal_list_items')
+          .update({ position: i + 1 })
+          .eq('list_id', listId)
+          .eq('goal_id', orderedGoalIds[i]);
+        if (error) throw new Error(error.message);
+      }
+
+      const snapshot = await snapshotFor(locals, locals.user.id);
+      const list = snapshot.lists.find((entry) => entry.id === listId);
+      if (!list) return json({ ok: false, error: 'List not found.' }, { status: 404 });
+      return json({ ok: true, data: list });
+    }
+
     if (action === 'updateList') {
       if (!locals.user) return unauthorized();
       const id = payload.id as string | undefined;

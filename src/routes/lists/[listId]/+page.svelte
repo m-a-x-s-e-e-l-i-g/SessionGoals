@@ -18,8 +18,8 @@
     stopTrackingList,
     toggleListItemProgress,
   } from '$lib/data/listProgress';
-  import { removeGoalFromList } from '$lib/data/lists';
-  import type { ListProgress, UserProfile, GoalStatus } from '$lib/types';
+  import { removeGoalFromList, reorderListItems } from '$lib/data/lists';
+  import type { ListProgress, UserProfile, GoalStatus, GoalListItem } from '$lib/types';
   import { appStateStore } from '$lib/data/state';
 
   $: isAuthenticated = !!$page.data.user;
@@ -150,6 +150,64 @@
     const next: GoalStatus = currentStatus === 'done' ? 'want_to_try' : 'done';
     await updateGoalStatus(goalId, next);
     // list + progress re-derive automatically via $appStateStore subscription
+  }
+
+  // Local ordered items for optimistic reordering (synced from list.items)
+  let localItems: GoalListItem[] = [];
+  let reorderPending = false;
+  $: {
+    if (!reorderPending && list) {
+      localItems = [...list.items].sort((a, b) => a.position - b.position);
+    }
+  }
+
+  let editMode = false;
+  let dragGoalId: string | null = null;
+  let dragOverGoalId: string | null = null;
+
+  function handleDragStart(e: DragEvent, goalId: string) {
+    dragGoalId = goalId;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', goalId);
+    }
+  }
+
+  function handleDragOver(e: DragEvent, goalId: string) {
+    if (!dragGoalId || dragGoalId === goalId) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    dragOverGoalId = goalId;
+  }
+
+  function handleDragLeave() {
+    dragOverGoalId = null;
+  }
+
+  function handleDrop(e: DragEvent, targetGoalId: string) {
+    e.preventDefault();
+    dragOverGoalId = null;
+    if (!dragGoalId || dragGoalId === targetGoalId) {
+      dragGoalId = null;
+      return;
+    }
+    const fromIdx = localItems.findIndex((i) => i.goalId === dragGoalId);
+    const toIdx = localItems.findIndex((i) => i.goalId === targetGoalId);
+    dragGoalId = null;
+    if (fromIdx < 0 || toIdx < 0) return;
+    const updated = [...localItems];
+    const [moved] = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, moved);
+    localItems = updated;
+    reorderPending = true;
+    reorderListItems(list!.id, updated.map((i) => i.goalId)).finally(() => {
+      reorderPending = false;
+    });
+  }
+
+  function handleDragEnd() {
+    dragGoalId = null;
+    dragOverGoalId = null;
   }
 
   let removingGoalId: string | null = null;
@@ -388,6 +446,20 @@
 
     {#if isOwnList}
       <div class="list-add-bar">
+        <button
+          type="button"
+          class="btn btn-ghost list-edit-mode-btn"
+          class:is-active={editMode}
+          on:click={() => (editMode = !editMode)}
+        >
+          {#if editMode}
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="13" height="13"><path d="M3 8l4 4 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Done
+          {:else}
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="13" height="13"><path d="M2 5h12M2 8h12M2 11h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Edit items
+          {/if}
+        </button>
         <a href="/goals/new?listId={list.id}" class="btn btn-ghost list-add-btn">+ Add goal to list</a>
       </div>
     {/if}
@@ -402,7 +474,7 @@
       />
     {:else}
       <ol class="goal-checklist">
-        {#each list.items.sort((a, b) => a.position - b.position) as item}
+        {#each localItems as item, idx (item.goalId)}
           {#if item.goal}
             {@const goal = item.goal}
             {@const done = isOwnList
@@ -412,7 +484,19 @@
             {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0 || isOwnList)}
             {@const expanded = canExpand && expandedGoalIds.has(item.goalId)}
             {@const thumbUrl = proxyLibraryImageUrl(getGoalVisualImageUrl(goal))}
-            <li class="checklist-row" class:is-done={done} class:is-expanded={expanded}>
+            <li
+              class="checklist-row"
+              class:is-done={done}
+              class:is-expanded={expanded}
+              class:is-dragging={editMode && dragGoalId === item.goalId}
+              class:is-drag-over={editMode && dragOverGoalId === item.goalId}
+              draggable={editMode}
+              on:dragstart={(e) => handleDragStart(e, item.goalId)}
+              on:dragover={(e) => handleDragOver(e, item.goalId)}
+              on:dragleave={handleDragLeave}
+              on:drop={(e) => handleDrop(e, item.goalId)}
+              on:dragend={handleDragEnd}
+            >
               <!-- tick -->
               {#if isOwnList}
                 <button
@@ -509,6 +593,19 @@
                 </svg>
               </a>
 
+              {#if isOwnList && editMode}
+                <div class="drag-handle" aria-label="Drag to reorder">
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="14" height="14">
+                    <circle cx="5.5" cy="4" r="1.1" fill="currentColor"/>
+                    <circle cx="10.5" cy="4" r="1.1" fill="currentColor"/>
+                    <circle cx="5.5" cy="8" r="1.1" fill="currentColor"/>
+                    <circle cx="10.5" cy="8" r="1.1" fill="currentColor"/>
+                    <circle cx="5.5" cy="12" r="1.1" fill="currentColor"/>
+                    <circle cx="10.5" cy="12" r="1.1" fill="currentColor"/>
+                  </svg>
+                </div>
+              {/if}
+
               <!-- expanded details -->
               {#if expanded}
                 <div class="checklist-details">
@@ -537,7 +634,7 @@
                       </span>
                     </div>
                   {/if}
-                  {#if isOwnList}
+                  {#if isOwnList && editMode}
                     <div class="detail-remove-row">
                       <button
                         type="button"
@@ -640,9 +737,9 @@
 
   .checklist-row {
     display: grid;
-    grid-template-columns: 52px 1fr 36px;
+    grid-template-columns: 52px 1fr 36px auto;
     grid-template-rows: auto;
-    grid-template-areas: 'tick body open';
+    grid-template-areas: 'tick body open reorder';
     border-bottom: 1px solid var(--color-border);
     background: var(--color-surface);
     transition: background 0.12s;
@@ -834,6 +931,38 @@
 
   .remove-btn {
     display: none;
+  }
+
+  .drag-handle {
+    grid-area: reorder;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    padding: 0 8px;
+    color: var(--color-text-muted);
+    cursor: grab;
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .drag-handle:hover {
+    opacity: 1;
+    color: var(--color-primary);
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .checklist-row.is-dragging {
+    opacity: 0.4;
+  }
+
+  .checklist-row.is-drag-over {
+    box-shadow: 0 -2px 0 0 var(--color-primary) inset;
   }
 
   .detail-remove-row {
@@ -1065,12 +1194,27 @@
 
   .list-add-bar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 1rem;
   }
 
   .list-add-btn {
     font-size: 0.88rem;
+  }
+
+  .list-edit-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+  }
+
+  .list-edit-mode-btn.is-active {
+    color: var(--color-primary);
+    border-color: color-mix(in oklch, var(--color-primary) 60%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
   }
 
   @media (max-width: 640px) {
