@@ -192,7 +192,12 @@
       <div class="profile-header">
         <div>
           <a href="/people" class="back-link text-muted text-sm">← People</a>
-          <h1 class="page-title">{profile.displayName}</h1>
+          <div class="profile-name-row">
+            <h1 class="page-title">{profile.displayName}</h1>
+            {#if profile.isAdmin}
+              <span class="admin-badge">Admin</span>
+            {/if}
+          </div>
           <p class="text-muted text-sm">@{profile.username}</p>
           <p class="text-muted text-sm role-line">
             Role: {profile.role === 'athlete_teacher' ? 'Athlete + Teacher' : profile.role === 'teacher' ? 'Teacher' : 'Athlete'}
@@ -481,6 +486,26 @@
   .back-link {
     display: inline-block;
     margin-bottom: 0.2rem;
+  }
+
+  .profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .admin-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-surface);
+    background: var(--color-primary);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    line-height: 1.4;
+    flex-shrink: 0;
   }
 
   .profile-bio {

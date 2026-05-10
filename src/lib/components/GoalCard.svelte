@@ -23,7 +23,12 @@
   ></a>
 
   {#if goalVisualImageUrl}
-    <div class="move-preview-wrap">
+    <a
+      href="/goals/{goal.id}"
+      class="move-preview-wrap"
+      aria-label="Open goal: {goal.title}"
+      tabindex="-1"
+    >
       <img
         class="move-preview"
         src={goalVisualImageUrl}
@@ -33,7 +38,7 @@
           (e.currentTarget as HTMLImageElement).parentElement!.style.display = 'none';
         }}
       />
-    </div>
+    </a>
   {/if}
 
   <div class="goal-card-header">

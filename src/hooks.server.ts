@@ -1,5 +1,7 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { createServerSupabaseClient, isSupabaseConfigured } from '$lib/server/supabase';
+import { env } from '$env/dynamic/private';
+import type { User } from '@supabase/supabase-js';
 
 const PUBLIC_PATH_PREFIXES = [
   '/',
@@ -73,9 +75,9 @@ export const handle: Handle = async ({ event, resolve }) => {
     data: { user }
   } = await event.locals.supabase.auth.getUser();
 
-  event.locals.user = user;
+  event.locals.user = user ?? (env.DEV_BYPASS_USER_ID ? ({ id: env.DEV_BYPASS_USER_ID } as User) : null);
 
-  if (!user && !isPublic) {
+  if (!event.locals.user && !isPublic) {
     const next = sanitizeNextPath(`${pathname}${event.url.search}`);
     throw redirect(303, `/auth/login?next=${encodeURIComponent(next)}`);
   }

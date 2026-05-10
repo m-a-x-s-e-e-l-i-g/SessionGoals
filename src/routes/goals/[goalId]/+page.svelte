@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { commitToLibrary, createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
+  import { commitToLibrary, deleteLibraryMove, createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
   import { getGoalVisualImageUrl } from '$lib/utils/media';
@@ -22,7 +22,7 @@
   $: isAdoptedGoal = !!goal?.sourceGoalId;
   $: myGoals = currentUserId ? getGoals().filter((entry) => entry.userId === currentUserId) : [];
   $: goalById = new Map(getGoals().map((g) => [g.id, g]));
-  $: allUsers = ($page.data.users ?? []) as import('$lib/types').UserProfile[];
+  $: allUsers = ($page.data.appState?.users ?? []) as import('$lib/types').UserProfile[];
   $: isAdmin = allUsers.some((u) => u.id === currentUserId && u.isAdmin);
 
   // Follow sourceGoalId chain to root, with cycle guard
@@ -171,6 +171,22 @@
       committingToLibrary = false;
     }
   }
+
+  let removingFromLibrary = false;
+
+  async function handleRemoveFromLibrary() {
+    if (!goal || !isAdmin) return;
+    if (!confirm(`Remove "${goal.title}" from the permanent library?`)) return;
+    removingFromLibrary = true;
+    try {
+      await deleteLibraryMove(goal.id);
+      goto('/inspiration');
+    } catch {
+      commitFeedback = 'Failed to remove this library entry.';
+    } finally {
+      removingFromLibrary = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -218,10 +234,17 @@
             </button>
           {/if}
         {/if}
-        {#if isAdmin && goal.type === 'move' && !goal.isLibraryEntry && !isOwnGoal}
-          <button class="btn btn-ghost" on:click={handleCommitToLibrary} disabled={committingToLibrary}>
-            {committingToLibrary ? 'Committing…' : '📌 Commit to Library'}
-          </button>
+        {#if isAdmin && goal.type === 'move'}
+          {#if goal.isLibraryEntry}
+            <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit Library Entry</a>
+            <button class="btn btn-danger" on:click={handleRemoveFromLibrary} disabled={removingFromLibrary}>
+              {removingFromLibrary ? 'Removing…' : 'Remove from Library'}
+            </button>
+          {:else}
+            <button class="btn btn-ghost" on:click={handleCommitToLibrary} disabled={committingToLibrary}>
+              {committingToLibrary ? 'Committing…' : '📌 Commit to Library'}
+            </button>
+          {/if}
         {/if}
       </div>
     </div>

@@ -275,6 +275,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         .insert({
           user_id: null,
           is_library_entry: true,
+          source_goal_id: sourceGoalId,
           type: sourceGoal.type,
           title: sourceGoal.title,
           description: sourceGoal.description,

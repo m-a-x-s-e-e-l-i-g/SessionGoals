@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { commitToLibrary, createGoal, deleteLibraryMove, getGoals } from '$lib/data/goals';
+  import { commitToLibrary, createGoal, deleteLibraryMove } from '$lib/data/goals';
+  import { appStateStore } from '$lib/data/state';
   import { getUserById } from '$lib/data/users';
   import { getSpotById } from '$lib/data/spots';
   import GoalCard from '$lib/components/GoalCard.svelte';
@@ -14,11 +15,13 @@
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id as string | undefined;
-  $: allGoals = getGoals();
+  $: allGoals = $appStateStore.goals;
   $: goalById = new Map(allGoals.map((goal) => [goal.id, goal]));
 
   // Is the current user an admin?
-  $: currentUser = currentUserId ? $page.data.users?.find((u: { id: string }) => u.id === currentUserId) : undefined;
+  $: currentUser = currentUserId
+    ? ($page.data.appState?.users as import('$lib/types').UserProfile[] ?? []).find((u) => u.id === currentUserId)
+    : undefined;
   $: isAdmin = !!currentUser?.isAdmin;
 
   function resolveLibraryMoveId(goal: Goal): string {
@@ -88,9 +91,21 @@
     .filter((goal) => goal.type === 'move' && goal.isLibraryEntry)
     .sort((a, b) => a.title.localeCompare(b.title));
 
-  // Community goals (user-owned, original, not a library entry)
+  // IDs of community goals that have already been committed to the library
+  $: committedSourceIds = new Set(
+    permanentMoves.map((g) => g.sourceGoalId).filter((id): id is string => !!id),
+  );
+
+  // Community goals (user-owned, original, not a library entry, not yet committed)
   $: communityMoves = allGoals
-    .filter((goal) => goal.type === 'move' && !goal.sourceGoalId && !goal.isLibraryEntry && goal.userId)
+    .filter(
+      (goal) =>
+        goal.type === 'move' &&
+        !goal.sourceGoalId &&
+        !goal.isLibraryEntry &&
+        goal.userId &&
+        !committedSourceIds.has(goal.id),
+    )
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   $: allDisplayMoves = [...permanentMoves, ...communityMoves];
@@ -214,17 +229,6 @@
               statusNote={isAuthenticated && alreadyAddedToMine ? 'In your goals' : undefined}
               insightNote={formatMoveCommunityStats(goal.id)}
             />
-            <div class="library-meta-row">
-              <span class="library-badge">Library</span>
-              {#if isAdmin}
-                <a href="/goals/{goal.id}/edit" class="meta-action">Edit</a>
-                <button
-                  type="button"
-                  class="meta-action meta-action--danger"
-                  on:click={() => handleDeleteLibraryMove(goal)}
-                >Remove</button>
-              {/if}
-            </div>
             {#if addingGoalId === goal.id}
               <p class="text-sm text-muted">Adding to your goals…</p>
             {/if}
@@ -305,41 +309,6 @@
 
   .library-meta {
     padding-inline: 0.15rem;
-  }
-
-  .library-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-inline: 0.15rem;
-  }
-
-  .library-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-    border-radius: 999px;
-    padding: 0.15rem 0.55rem;
-  }
-
-  .meta-action {
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-muted, var(--color-muted));
-    font-family: inherit;
-    padding: 0;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .meta-action--danger {
-    color: var(--color-danger, #ef4444);
   }
 
   .library-feedback {
