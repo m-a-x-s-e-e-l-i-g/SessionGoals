@@ -3,6 +3,8 @@
   import { goto } from '$app/navigation';
   import { commitToLibrary, deleteLibraryMove, createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
+  import { addGoalToList } from '$lib/data/lists';
+  import { appStateStore } from '$lib/data/state';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
   import { getGoalVisualImageUrl } from '$lib/utils/media';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -47,11 +49,43 @@
     ? myGoals.find((entry) => resolveRootGoalId(entry.id) === resolveRootGoalId(goal!.id))
     : undefined;
 
+  // Lists containing this goal
+  $: myLists = isAuthenticated && currentUserId
+    ? $appStateStore.lists.filter((l) => l.userId === currentUserId)
+    : [];
+  $: listsContainingGoal = goal
+    ? $appStateStore.lists.filter((l) => l.items.some((item) => item.goalId === goal!.id))
+    : [];
+  $: myListsContaining = listsContainingGoal.filter((l) => l.userId === currentUserId);
+  $: publicListsContaining = listsContainingGoal.filter(
+    (l) => l.visibility === 'public' && l.userId !== currentUserId,
+  );
+  $: addableMyLists = myLists.filter(
+    (l) => !l.items.some((item) => item.goalId === goal?.id),
+  );
+
   let showDeleteDialog = false;
   let isDeleting = false;
   let justChecked = false;
   let addError: string | undefined;
   let addingToMine = false;
+  let showListPicker = false;
+  let addingToListId: string | null = null;
+  let addToListError: string | undefined;
+
+  async function handleAddToList(listId: string) {
+    if (!goal) return;
+    addingToListId = listId;
+    addToListError = undefined;
+    try {
+      await addGoalToList(listId, goal);
+      showListPicker = false;
+    } catch {
+      addToListError = 'Failed to add to list.';
+    } finally {
+      addingToListId = null;
+    }
+  }
 
   // Normalize image URL - handle relative paths and ensure it's proxied
   function getProxiedImageUrl(imageUrl: string | undefined): string | undefined {
@@ -400,6 +434,62 @@
       </div>
 
       <div class="detail-sidebar">
+        <!-- Lists section -->
+        <div class="sidebar-item">
+          <span class="sidebar-label">Lists</span>
+          {#if myListsContaining.length > 0 || publicListsContaining.length > 0}
+            <div class="lists-chips">
+              {#each myListsContaining as list}
+                <a href="/lists/{list.id}" class="list-chip list-chip--mine">{list.name}</a>
+              {/each}
+              {#each publicListsContaining as list}
+                <a href="/lists/{list.id}" class="list-chip list-chip--public">{list.name}</a>
+              {/each}
+            </div>
+          {:else}
+            <span class="text-sm text-muted">Not in any list</span>
+          {/if}
+          {#if isAuthenticated}
+            {#if !showListPicker}
+              <button
+                class="btn btn-sm btn-ghost list-add-btn"
+                on:click={() => (showListPicker = true)}
+              >+ Add to list</button>
+            {:else}
+              <div class="list-picker">
+                {#if myLists.length === 0}
+                  <span class="text-sm text-muted">You have no lists yet.</span>
+                  <a href="/lists/new" class="btn btn-sm btn-ghost">Create a list</a>
+                {:else if addableMyLists.length === 0}
+                  <span class="text-sm text-muted">Already in all your lists.</span>
+                {:else}
+                  {#each addableMyLists as list}
+                    <button
+                      class="list-pick-btn"
+                      disabled={addingToListId === list.id}
+                      on:click={() => handleAddToList(list.id)}
+                    >
+                      <span class="list-pick-name">{list.name}</span>
+                      {#if addingToListId === list.id}
+                        <span class="text-muted">…</span>
+                      {:else}
+                        <span class="list-pick-add">+</span>
+                      {/if}
+                    </button>
+                  {/each}
+                {/if}
+                {#if addToListError}
+                  <p class="list-pick-error">{addToListError}</p>
+                {/if}
+                <button
+                  class="btn btn-sm btn-ghost"
+                  on:click={() => { showListPicker = false; addToListError = undefined; }}
+                >Cancel</button>
+              </div>
+            {/if}
+          {/if}
+        </div>
+
         {#if goal.difficulty}
           <div class="sidebar-item">
             <span class="sidebar-label">Difficulty</span>
@@ -738,6 +828,104 @@
 
   .dot.filled {
     color: var(--color-primary);
+  }
+
+  .lists-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .list-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .list-chip:hover {
+    opacity: 0.8;
+    text-decoration: none;
+  }
+
+  .list-chip--mine {
+    background: color-mix(in oklch, var(--color-primary) 14%, var(--color-surface-2));
+    color: color-mix(in oklch, var(--color-primary) 70%, black);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 35%, var(--color-border));
+  }
+
+  .list-chip--public {
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+  }
+
+  .list-add-btn {
+    align-self: flex-start;
+    margin-top: 0.25rem;
+  }
+
+  .list-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+    padding: 0.75rem;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .list-pick-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.65rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .list-pick-btn:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    background: color-mix(in oklch, var(--color-primary) 6%, var(--color-surface));
+  }
+
+  .list-pick-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .list-pick-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .list-pick-add {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .list-pick-error {
+    font-size: 0.8rem;
+    color: var(--color-danger);
+    margin: 0;
   }
 
   @media (max-width: 900px) {

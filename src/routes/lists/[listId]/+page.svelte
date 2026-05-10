@@ -13,12 +13,12 @@
   import { getSpotById } from '$lib/data/spots';
   import { updateGoalStatus } from '$lib/data/goals';
   import { getGoalVisualImageUrl, proxyLibraryImageUrl } from '$lib/utils/media';
-  import {
-    getProgressForList,
+  import { getProgressForList,
     startTrackingList,
     stopTrackingList,
     toggleListItemProgress,
   } from '$lib/data/listProgress';
+  import { removeGoalFromList } from '$lib/data/lists';
   import type { ListProgress, UserProfile, GoalStatus } from '$lib/types';
   import { appStateStore } from '$lib/data/state';
 
@@ -152,6 +152,27 @@
     // list + progress re-derive automatically via $appStateStore subscription
   }
 
+  let removingGoalId: string | null = null;
+  let goalToRemove: { id: string; title: string } | null = null;
+
+  function promptRemoveGoal(goalId: string, goalTitle: string) {
+    goalToRemove = { id: goalId, title: goalTitle };
+  }
+
+  async function confirmRemoveGoal() {
+    if (!list || !goalToRemove) return;
+    const { id } = goalToRemove;
+    goalToRemove = null;
+    removingGoalId = id;
+    try {
+      await removeGoalFromList(list.id, id);
+    } catch {
+      // list re-derives automatically; silently swallow
+    } finally {
+      removingGoalId = null;
+    }
+  }
+
   function difficultyLabel(d: number) {
     return ['', '★', '★★', '★★★', '★★★★', '★★★★★'][d] ?? '';
   }
@@ -198,6 +219,18 @@
   isLoading={isDeleting}
   on:confirm={confirmDelete}
   on:cancel={() => (showDeleteDialog = false)}
+/>
+
+<ConfirmDialog
+  isOpen={!!goalToRemove}
+  title="Remove from list?"
+  message={goalToRemove ? `Remove "${goalToRemove.title}" from this list? The goal itself won't be deleted.` : ''}
+  confirmLabel="Remove"
+  cancelLabel="Cancel"
+  isDangerous={true}
+  isLoading={removingGoalId !== null}
+  on:confirm={confirmRemoveGoal}
+  on:cancel={() => (goalToRemove = null)}
 />
 
 <svelte:head>
@@ -376,7 +409,7 @@
               ? goal.status === 'done'
               : !!progress?.items.find((p) => p.goalId === item.goalId)?.done}
             {@const spot = goal.spotId ? getSpotById(goal.spotId) : undefined}
-            {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0)}
+            {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0 || isOwnList)}
             {@const expanded = canExpand && expandedGoalIds.has(item.goalId)}
             {@const thumbUrl = proxyLibraryImageUrl(getGoalVisualImageUrl(goal))}
             <li class="checklist-row" class:is-done={done} class:is-expanded={expanded}>
@@ -502,6 +535,26 @@
                           <a href={link.url} class="detail-link" target="_blank" rel="noopener">{link.title ?? link.platform ?? link.url}</a>
                         {/each}
                       </span>
+                    </div>
+                  {/if}
+                  {#if isOwnList}
+                    <div class="detail-remove-row">
+                      <button
+                        type="button"
+                        class="btn-remove-from-list"
+                        aria-label="Remove from list"
+                        title="Remove from list"
+                        disabled={removingGoalId === item.goalId}
+                        on:click|stopPropagation={() => promptRemoveGoal(item.goalId, goal.title)}
+                      >
+                        {#if removingGoalId === item.goalId}
+                          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="15" height="15"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" opacity="0.5"/></svg>
+                        {:else}
+                          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="15" height="15">
+                            <path d="M2.5 4.5h11M6 4.5V3a.5.5 0 01.5-.5h3a.5.5 0 01.5.5v1.5M10 7.5v4M6 7.5v4M3.5 4.5l.75 8a.5.5 0 00.5.5h6.5a.5.5 0 00.5-.5l.75-8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        {/if}
+                      </button>
                     </div>
                   {/if}
                 </div>
@@ -777,6 +830,44 @@
   .open-link:hover {
     color: var(--color-primary);
     text-decoration: none;
+  }
+
+  .remove-btn {
+    display: none;
+  }
+
+  .detail-remove-row {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn-remove-from-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    padding: 0;
+  }
+
+  .btn-remove-from-list:hover:not(:disabled) {
+    color: var(--color-danger, #e53e3e);
+    border-color: color-mix(in oklch, var(--color-danger, #e53e3e) 40%, var(--color-border));
+    background: color-mix(in oklch, var(--color-danger, #e53e3e) 8%, transparent);
+  }
+
+  .btn-remove-from-list:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   /* Expanded details panel — spans all columns */

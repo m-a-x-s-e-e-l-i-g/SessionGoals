@@ -47,6 +47,15 @@ export async function addGoalToList(listId: string, goal: Goal): Promise<GoalLis
   return list;
 }
 
+export async function removeGoalFromList(listId: string, goalId: string): Promise<GoalList | undefined> {
+  const list = await runDataAction<GoalList>('removeGoalFromList', { listId, goalId });
+  updateAppState((state) => ({
+    ...state,
+    lists: state.lists.map((entry) => (entry.id === list.id ? list : entry)),
+  }));
+  return list;
+}
+
 export async function updateList(id: string, input: UpdateGoalListInput): Promise<GoalList> {
   const list = await runDataAction<GoalList>('updateList', { id, ...input });
   updateAppState((state) => ({

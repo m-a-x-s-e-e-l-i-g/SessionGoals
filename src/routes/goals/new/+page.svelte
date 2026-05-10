@@ -55,8 +55,15 @@
   }
 
   $: moveTemplates = getGoals().filter(
-    (goal) => goal.type === 'move' && !goal.sourceGoalId && goal.userId !== currentUserId
+    (goal) => goal.type === 'move' && !goal.sourceGoalId && !goal.isLibraryEntry && goal.userId !== currentUserId
   );
+  $: libraryMoves = getGoals().filter(
+    (goal) => goal.type === 'move' && goal.isLibraryEntry
+  );
+
+  type MoveTab = 'library' | 'community';
+  let moveTab: MoveTab = 'library';
+
   $: normalizedMoveQuery = moveQuery.trim().toLowerCase();
   $: filteredMoveTemplates = moveTemplates
     .filter((goal) => {
@@ -70,11 +77,24 @@
       );
     })
     .slice(0, 12);
+  $: filteredLibraryMoves = libraryMoves
+    .filter((goal) => {
+      if (!normalizedMoveQuery) return true;
+      return (
+        goal.title.toLowerCase().includes(normalizedMoveQuery)
+        || (goal.description ?? '').toLowerCase().includes(normalizedMoveQuery)
+      );
+    })
+    .slice(0, 12);
   $: moveSearchMeta = normalizedMoveQuery
-    ? `${filteredMoveTemplates.length} matches from ${moveTemplates.length} community moves`
-    : `${moveTemplates.length} community moves ready to reuse`;
+    ? moveTab === 'library'
+      ? `${filteredLibraryMoves.length} matches in library`
+      : `${filteredMoveTemplates.length} matches from ${moveTemplates.length} community moves`
+    : moveTab === 'library'
+      ? `${libraryMoves.length} moves in the permanent library`
+      : `${moveTemplates.length} community moves ready to reuse`;
 
-  $: if (selectedType === 'move' && moveTemplates.length === 0 && moveCreationPath === 'reuse') {
+  $: if (selectedType === 'move' && libraryMoves.length === 0 && moveTemplates.length === 0 && moveCreationPath === 'reuse') {
     moveCreationPath = 'new';
   }
 
@@ -104,7 +124,7 @@
     error = undefined;
     success = undefined;
 
-    if (type === 'move' && moveTemplates.length > 0 && !title.trim()) {
+    if (type === 'move' && (libraryMoves.length > 0 || moveTemplates.length > 0) && !title.trim()) {
       moveCreationPath = 'reuse';
     }
   }
@@ -355,63 +375,133 @@
         </div>
 
         {#if moveCreationPath === 'reuse'}
+          <!-- Library / Community tabs -->
+          <div class="move-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              class="move-tab"
+              class:is-active={moveTab === 'library'}
+              aria-selected={moveTab === 'library'}
+              on:click={() => { moveTab = 'library'; moveQuery = ''; }}
+            >Permanent Library {libraryMoves.length > 0 ? `(${libraryMoves.length})` : ''}</button>
+            <button
+              type="button"
+              role="tab"
+              class="move-tab"
+              class:is-active={moveTab === 'community'}
+              aria-selected={moveTab === 'community'}
+              on:click={() => { moveTab = 'community'; moveQuery = ''; }}
+            >Community {moveTemplates.length > 0 ? `(${moveTemplates.length})` : ''}</button>
+          </div>
+
           <SearchBar
             id="moveTemplateSearch"
             bind:value={moveQuery}
-            placeholder="Search move name or athlete"
-            ariaLabel="Search existing community moves"
+            placeholder={moveTab === 'library' ? 'Search library moves' : 'Search move name or athlete'}
+            ariaLabel="Search existing moves"
             metaText={moveSearchMeta}
             preventSubmitOnEnter={true}
             on:clear={clearMoveSearch}
           />
 
-          {#if filteredMoveTemplates.length > 0}
-            <div class="template-list">
-              {#each filteredMoveTemplates as template}
-                {@const owner = template.userId ? getUserById(template.userId) : undefined}
-                {@const preview = getGoalVisualImageUrl(template)}
-                {@const alreadyAddedToMine = mySourceGoalIds.has(template.id)}
-                <article class="template-item">
-                  {#if preview}
-                    <img
-                      src={preview}
-                      alt="{template.title} preview"
-                      class="template-preview"
-                      loading="lazy"
-                    />
-                  {/if}
-                  <div class="template-content">
-                    <p class="template-title">{template.title}</p>
-                    {#if template.description}
-                      <p class="text-sm text-muted template-description">{template.description}</p>
+          {#if moveTab === 'library'}
+            {#if filteredLibraryMoves.length > 0}
+              <div class="template-list">
+                {#each filteredLibraryMoves as template}
+                  {@const preview = getGoalVisualImageUrl(template)}
+                  {@const alreadyAddedToMine = mySourceGoalIds.has(template.id)}
+                  <article class="template-item">
+                    {#if preview}
+                      <img src={preview} alt="{template.title} preview" class="template-preview" loading="lazy" />
                     {/if}
-                    <p class="text-sm text-muted">By {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}</p>
-                    <div class="template-actions">
-                      <button
-                        type="button"
-                        class="btn btn-sm"
-                        class:btn-primary={!alreadyAddedToMine}
-                        class:btn-ghost={alreadyAddedToMine}
-                        on:click={() => addExistingMove(template)}
-                        disabled={submitting || alreadyAddedToMine}
-                      >
-                        {#if alreadyAddedToMine}
-                          ✓ In your goals
-                        {:else if listId}
-                          Add to your list
-                        {:else}
-                          Add to your goals
-                        {/if}
-                      </button>
+                    <div class="template-content">
+                      <p class="template-title">{template.title}</p>
+                      {#if template.description}
+                        <p class="text-sm text-muted template-description">{template.description}</p>
+                      {/if}
+                      <p class="text-sm text-muted">📌 Permanent library</p>
+                      <div class="template-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          class:btn-primary={!alreadyAddedToMine}
+                          class:btn-ghost={alreadyAddedToMine}
+                          on:click={() => addExistingMove(template)}
+                          disabled={submitting || alreadyAddedToMine}
+                        >
+                          {#if alreadyAddedToMine}
+                            ✓ In your goals
+                          {:else if listId}
+                            Add to your list
+                          {:else}
+                            Add to your goals
+                          {/if}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-ghost"
+                          on:click={() => applyMoveTemplate(template)}
+                        >Customize</button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              {/each}
-            </div>
-          {:else if normalizedMoveQuery}
-            <p class="text-sm text-muted empty-hint">No moves match this search. Try another term or switch to Create from scratch.</p>
+                  </article>
+                {/each}
+              </div>
+            {:else if normalizedMoveQuery}
+              <p class="text-sm text-muted empty-hint">No library moves match this search.</p>
+            {:else}
+              <p class="text-sm text-muted empty-hint">The permanent library is empty. Admins can commit moves via the goal detail page.</p>
+            {/if}
           {:else}
-            <p class="text-sm text-muted empty-hint">No community moves yet. Switch to Create from scratch to add the first one.</p>
+            {#if filteredMoveTemplates.length > 0}
+              <div class="template-list">
+                {#each filteredMoveTemplates as template}
+                  {@const owner = template.userId ? getUserById(template.userId) : undefined}
+                  {@const preview = getGoalVisualImageUrl(template)}
+                  {@const alreadyAddedToMine = mySourceGoalIds.has(template.id)}
+                  <article class="template-item">
+                    {#if preview}
+                      <img
+                        src={preview}
+                        alt="{template.title} preview"
+                        class="template-preview"
+                        loading="lazy"
+                      />
+                    {/if}
+                    <div class="template-content">
+                      <p class="template-title">{template.title}</p>
+                      {#if template.description}
+                        <p class="text-sm text-muted template-description">{template.description}</p>
+                      {/if}
+                      <p class="text-sm text-muted">By {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}</p>
+                      <div class="template-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm"
+                          class:btn-primary={!alreadyAddedToMine}
+                          class:btn-ghost={alreadyAddedToMine}
+                          on:click={() => addExistingMove(template)}
+                          disabled={submitting || alreadyAddedToMine}
+                        >
+                          {#if alreadyAddedToMine}
+                            ✓ In your goals
+                          {:else if listId}
+                            Add to your list
+                          {:else}
+                            Add to your goals
+                          {/if}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                {/each}
+              </div>
+            {:else if normalizedMoveQuery}
+              <p class="text-sm text-muted empty-hint">No moves match this search. Try another term or switch to Create from scratch.</p>
+            {:else}
+              <p class="text-sm text-muted empty-hint">No community moves yet. Switch to Create from scratch to add the first one.</p>
+            {/if}
           {/if}
         {:else}
           <p class="path-copy text-sm text-muted">You are creating a custom move from scratch. Fill the form below to define it your way.</p>
@@ -642,6 +732,35 @@
   .section-copy {
     margin-top: -0.35rem;
     max-width: 62ch;
+  }
+
+  .move-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 0.75rem;
+  }
+
+  .move-tab {
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .move-tab:hover {
+    color: var(--color-text);
+  }
+
+  .move-tab.is-active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
   }
 
   .path-switch {
