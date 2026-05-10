@@ -6,6 +6,7 @@
   export let goal: Goal;
   export let onToggle: ((id: string) => void) | undefined = undefined;
   export let onAddToMine: ((goal: Goal) => void) | undefined = undefined;
+  export let onCommitToLibrary: ((goal: Goal) => void) | undefined = undefined;
   export let addToMineLabel = 'Add to my goals';
   export let spotName: string | undefined = undefined;
   export let statusNote: string | undefined = undefined;
@@ -42,6 +43,16 @@
     <div class="goal-card-header-actions">
       {#if goal.status === 'done'}
         <span class="badge {statusColor(goal.status)}">✓ {formatStatus(goal.status)}</span>
+      {/if}
+      {#if onCommitToLibrary}
+        <button
+          type="button"
+          class="commit-library-btn"
+          on:click|stopPropagation={() => onCommitToLibrary?.(goal)}
+          title="Commit to Movement Library"
+        >
+          📌 Commit
+        </button>
       {/if}
       {#if onAddToMine}
         <button
@@ -269,6 +280,26 @@
   .add-goal:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
+  }
+
+  .commit-library-btn {
+    pointer-events: auto;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .commit-library-btn:hover {
+    border-color: var(--color-warning, #f59e0b);
+    color: var(--color-warning, #f59e0b);
   }
 
   .dot { color: var(--color-border); }

@@ -22,6 +22,7 @@ export interface UserProfile {
   city?: string;
   country?: string;
   isPublic: boolean;
+  isAdmin: boolean;
   joinedAt: string;
 }
 
@@ -37,6 +38,7 @@ export interface Goal {
   id: string;
   userId?: string;
   sourceGoalId?: string;
+  isLibraryEntry: boolean;
   type: GoalType;
   title: string;
   description?: string;

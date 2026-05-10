@@ -243,6 +243,142 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ ok: true, data: { id } });
     }
 
+    // ── Admin: commit a goal/move to the permanent library ──────────────────
+    if (action === 'commitToLibrary') {
+      if (!locals.user) return unauthorized();
+
+      const { data: adminCheck } = await locals.supabase
+        .from('users')
+        .select('is_admin')
+        .eq('id', locals.user.id)
+        .maybeSingle();
+      if (!adminCheck?.is_admin) return forbidden('Only admins can commit moves to the library.');
+
+      const sourceGoalId = payload.goalId as string | undefined;
+      if (!sourceGoalId) return badRequest('goalId is required.');
+
+      // Use the service-role client so we can read private goals too
+      const adminClient = createAdminSupabaseClient();
+      if (!adminClient) return json({ ok: false, error: 'Service role key not configured.' }, { status: 500 });
+      const { data: sourceGoal, error: sourceGoalError } = await adminClient
+        .from('goals')
+        .select('*')
+        .eq('id', sourceGoalId)
+        .maybeSingle();
+
+      if (sourceGoalError) throw new Error(sourceGoalError.message);
+      if (!sourceGoal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
+      if (sourceGoal.is_library_entry) return badRequest('This goal is already a library entry.');
+
+      const { data: libraryGoal, error: libraryError } = await adminClient
+        .from('goals')
+        .insert({
+          user_id: null,
+          is_library_entry: true,
+          type: sourceGoal.type,
+          title: sourceGoal.title,
+          description: sourceGoal.description,
+          status: 'want_to_try',
+          difficulty: sourceGoal.difficulty,
+          spot_id: sourceGoal.spot_id,
+          image_url: sourceGoal.image_url,
+          source_url: sourceGoal.source_url,
+        })
+        .select('*')
+        .single();
+
+      if (libraryError || !libraryGoal) throw new Error(libraryError?.message ?? 'Failed to create library entry.');
+
+      // Copy goal links
+      const { data: sourceLinks } = await adminClient
+        .from('goal_links')
+        .select('url, platform, title')
+        .eq('goal_id', sourceGoalId);
+
+      if (sourceLinks && sourceLinks.length > 0) {
+        await adminClient.from('goal_links').insert(
+          sourceLinks.map((link: { url: string; platform: string | null; title: string | null }) => ({
+            goal_id: libraryGoal.id,
+            url: link.url,
+            platform: link.platform,
+            title: link.title,
+          })),
+        );
+      }
+
+      const snapshot = await snapshotFor(locals, locals.user.id);
+      const goal = snapshot.goals.find((entry) => entry.id === libraryGoal.id);
+      if (!goal) throw new Error('Library entry created but failed to load it.');
+      return json({ ok: true, data: goal });
+    }
+
+    // ── Admin: update a permanent library entry ──────────────────────────────
+    if (action === 'updateLibraryMove') {
+      if (!locals.user) return unauthorized();
+
+      const { data: adminCheck } = await locals.supabase
+        .from('users')
+        .select('is_admin')
+        .eq('id', locals.user.id)
+        .maybeSingle();
+      if (!adminCheck?.is_admin) return forbidden('Only admins can edit library entries.');
+
+      const id = payload.id as string | undefined;
+      const input = payload.input as UpdateGoalInput | undefined;
+      if (!id || !input?.type) return badRequest('id and input are required.');
+
+      const adminClient = createAdminSupabaseClient();
+      if (!adminClient) return json({ ok: false, error: 'Service role key not configured.' }, { status: 500 });
+      const normalizedTitle = input.title?.trim() || 'Untitled move';
+
+      const { error } = await adminClient
+        .from('goals')
+        .update({
+          type: input.type,
+          title: normalizedTitle,
+          description: input.description ?? null,
+          difficulty: input.difficulty ?? null,
+          spot_id: input.spotId ?? null,
+          image_url: input.imageUrl ?? null,
+          source_url: input.sourceUrl ?? null,
+        })
+        .eq('id', id)
+        .eq('is_library_entry', true);
+
+      if (error) throw new Error(error.message);
+
+      const snapshot = await snapshotFor(locals, locals.user.id);
+      const goal = snapshot.goals.find((entry) => entry.id === id);
+      if (!goal) return json({ ok: false, error: 'Library entry not found.' }, { status: 404 });
+      return json({ ok: true, data: goal });
+    }
+
+    // ── Admin: delete a permanent library entry ──────────────────────────────
+    if (action === 'deleteLibraryMove') {
+      if (!locals.user) return unauthorized();
+
+      const { data: adminCheck } = await locals.supabase
+        .from('users')
+        .select('is_admin')
+        .eq('id', locals.user.id)
+        .maybeSingle();
+      if (!adminCheck?.is_admin) return forbidden('Only admins can delete library entries.');
+
+      const id = payload.id as string | undefined;
+      if (!id) return badRequest('id is required.');
+
+      const adminClient = createAdminSupabaseClient();
+      if (!adminClient) return json({ ok: false, error: 'Service role key not configured.' }, { status: 500 });
+      const { error } = await adminClient
+        .from('goals')
+        .delete()
+        .eq('id', id)
+        .eq('is_library_entry', true);
+
+      if (error) throw new Error(error.message);
+      return json({ ok: true, data: { id } });
+    }
+
     if (action === 'createList') {
       if (!locals.user) return unauthorized();
       await ensureCurrentUserProfile(locals);

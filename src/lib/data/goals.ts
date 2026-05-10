@@ -73,3 +73,31 @@ export async function deleteGoal(id: string): Promise<void> {
     activities: state.activities.filter((activity) => activity.linkedGoalId !== id),
   }));
 }
+
+export async function commitToLibrary(goalId: string): Promise<Goal> {
+  const goal = await runDataAction<Goal>('commitToLibrary', { goalId });
+  updateAppState((state) => ({
+    ...state,
+    goals: state.goals.some((entry) => entry.id === goal.id)
+      ? state.goals.map((entry) => (entry.id === goal.id ? goal : entry))
+      : [goal, ...state.goals],
+  }));
+  return goal;
+}
+
+export async function updateLibraryMove(id: string, input: import('$lib/types').UpdateGoalInput): Promise<Goal> {
+  const goal = await runDataAction<Goal>('updateLibraryMove', { id, input });
+  updateAppState((state) => ({
+    ...state,
+    goals: state.goals.map((entry) => (entry.id === id ? goal : entry)),
+  }));
+  return goal;
+}
+
+export async function deleteLibraryMove(id: string): Promise<void> {
+  await runDataAction<{ id: string }>('deleteLibraryMove', { id });
+  updateAppState((state) => ({
+    ...state,
+    goals: state.goals.filter((goal) => goal.id !== id),
+  }));
+}

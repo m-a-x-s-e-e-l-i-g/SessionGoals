@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
+  import { commitToLibrary, createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
   import { formatGoalType, typeIcon } from '$lib/utils/format';
   import { getGoalVisualImageUrl } from '$lib/utils/media';
@@ -22,6 +22,8 @@
   $: isAdoptedGoal = !!goal?.sourceGoalId;
   $: myGoals = currentUserId ? getGoals().filter((entry) => entry.userId === currentUserId) : [];
   $: goalById = new Map(getGoals().map((g) => [g.id, g]));
+  $: allUsers = ($page.data.users ?? []) as import('$lib/types').UserProfile[];
+  $: isAdmin = allUsers.some((u) => u.id === currentUserId && u.isAdmin);
 
   // Follow sourceGoalId chain to root, with cycle guard
   function resolveRootGoalId(goalId: string): string {
@@ -152,6 +154,23 @@
       addingToMine = false;
     }
   }
+
+  let committingToLibrary = false;
+  let commitFeedback: string | undefined = undefined;
+
+  async function handleCommitToLibrary() {
+    if (!goal || !isAdmin) return;
+    committingToLibrary = true;
+    commitFeedback = undefined;
+    try {
+      await commitToLibrary(goal.id);
+      commitFeedback = `"${goal.title}" has been committed to the permanent library.`;
+    } catch (err: unknown) {
+      commitFeedback = err instanceof Error ? err.message : 'Failed to commit this move.';
+    } finally {
+      committingToLibrary = false;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -199,8 +218,17 @@
             </button>
           {/if}
         {/if}
+        {#if isAdmin && goal.type === 'move' && !goal.isLibraryEntry && !isOwnGoal}
+          <button class="btn btn-ghost" on:click={handleCommitToLibrary} disabled={committingToLibrary}>
+            {committingToLibrary ? 'Committing…' : '📌 Commit to Library'}
+          </button>
+        {/if}
       </div>
     </div>
+
+    {#if commitFeedback}
+      <p class="form-hint">{commitFeedback}</p>
+    {/if}
 
     {#if addError}
       <p class="form-error">{addError}</p>

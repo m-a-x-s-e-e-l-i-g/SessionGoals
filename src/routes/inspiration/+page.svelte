@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { createGoal, getGoals } from '$lib/data/goals';
+  import { commitToLibrary, createGoal, deleteLibraryMove, getGoals } from '$lib/data/goals';
   import { getUserById } from '$lib/data/users';
   import { getSpotById } from '$lib/data/spots';
   import GoalCard from '$lib/components/GoalCard.svelte';
@@ -17,21 +17,19 @@
   $: allGoals = getGoals();
   $: goalById = new Map(allGoals.map((goal) => [goal.id, goal]));
 
+  // Is the current user an admin?
+  $: currentUser = currentUserId ? $page.data.users?.find((u: { id: string }) => u.id === currentUserId) : undefined;
+  $: isAdmin = !!currentUser?.isAdmin;
+
   function resolveLibraryMoveId(goal: Goal): string {
     let current: Goal = goal;
     const visited = new Set<string>();
 
     while (current.sourceGoalId) {
-      if (visited.has(current.sourceGoalId)) {
-        break;
-      }
+      if (visited.has(current.sourceGoalId)) break;
       visited.add(current.sourceGoalId);
-
       const source = goalById.get(current.sourceGoalId);
-      if (!source) {
-        return current.sourceGoalId;
-      }
-
+      if (!source) return current.sourceGoalId;
       current = source;
     }
 
@@ -44,7 +42,6 @@
 
     for (const goal of allGoals) {
       if (goal.type !== 'move') continue;
-
       const moveId = resolveLibraryMoveId(goal);
       if (!goal.userId) continue;
 
@@ -76,7 +73,6 @@
     const checkedCount = stats?.checkedCount ?? 0;
     const athleteWord = haveCount === 1 ? 'athlete has' : 'athletes have';
     const checkedWord = checkedCount === 1 ? 'athlete checked this off' : 'athletes checked this off';
-
     return `${haveCount} ${athleteWord} this goal · ${checkedCount} ${checkedWord}`;
   }
 
@@ -84,38 +80,43 @@
   $: myGoalRootIds = new Set(
     allGoals
       .filter((goal) => goal.userId === currentUserId)
-      .map((goal) => resolveLibraryMoveId(goal))
+      .map((goal) => resolveLibraryMoveId(goal)),
   );
 
-  $: libraryMoves = allGoals
-    .filter((goal) => goal.type === 'move' && !goal.sourceGoalId)
-    .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+  // Permanent library entries (no user owner, is_library_entry = true)
+  $: permanentMoves = allGoals
+    .filter((goal) => goal.type === 'move' && goal.isLibraryEntry)
+    .sort((a, b) => a.title.localeCompare(b.title));
+
+  // Community goals (user-owned, original, not a library entry)
+  $: communityMoves = allGoals
+    .filter((goal) => goal.type === 'move' && !goal.sourceGoalId && !goal.isLibraryEntry && goal.userId)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  $: allDisplayMoves = [...permanentMoves, ...communityMoves];
 
   $: normalizedQuery = query.trim().toLowerCase();
-  $: filteredMoves = libraryMoves.filter((goal) => {
-    if (!normalizedQuery) return true;
+  $: filteredPermanent = permanentMoves.filter((goal) => matchesQuery(goal));
+  $: filteredCommunity = communityMoves.filter((goal) => matchesQuery(goal));
+  $: totalShown = filteredPermanent.length + filteredCommunity.length;
 
+  function matchesQuery(goal: Goal): boolean {
+    if (!normalizedQuery) return true;
     const owner = goal.userId ? getUserById(goal.userId) : undefined;
     const title = goal.title.toLowerCase();
     const description = (goal.description ?? '').toLowerCase();
     const ownerName = (owner?.displayName ?? '').toLowerCase();
     const ownerHandle = (owner?.username ?? '').toLowerCase();
-
     return (
-      title.includes(normalizedQuery)
-      || description.includes(normalizedQuery)
-      || ownerName.includes(normalizedQuery)
-      || ownerHandle.includes(normalizedQuery)
+      title.includes(normalizedQuery) ||
+      description.includes(normalizedQuery) ||
+      ownerName.includes(normalizedQuery) ||
+      ownerHandle.includes(normalizedQuery)
     );
-  });
+  }
 
   function toGoalCopyInput(goal: Goal): CreateGoalInput {
-    return {
-      type: goal.type,
-      sourceGoalId: goal.id,
-      title: goal.title,
-      status: 'want_to_try',
-    };
+    return { type: goal.type, sourceGoalId: goal.id, title: goal.title, status: 'want_to_try' };
   }
 
   async function addGoalToMine(goal: Goal) {
@@ -132,11 +133,33 @@
 
     try {
       await createGoal(toGoalCopyInput(goal));
-      feedback = `Added \"${goal.title}\" to your goals.`;
+      feedback = `Added "${goal.title}" to your goals.`;
     } catch {
       feedback = 'Could not add this move right now. Please try again.';
     } finally {
       addingGoalId = null;
+    }
+  }
+
+  async function handleCommitToLibrary(goal: Goal) {
+    if (!isAdmin) return;
+    feedback = undefined;
+    try {
+      await commitToLibrary(goal.id);
+      feedback = `"${goal.title}" committed to the permanent library.`;
+    } catch (err: unknown) {
+      feedback = err instanceof Error ? err.message : 'Could not commit this move.';
+    }
+  }
+
+  async function handleDeleteLibraryMove(goal: Goal) {
+    if (!isAdmin) return;
+    if (!confirm(`Remove "${goal.title}" from the permanent library? This cannot be undone.`)) return;
+    try {
+      await deleteLibraryMove(goal.id);
+      feedback = `"${goal.title}" removed from the library.`;
+    } catch {
+      feedback = 'Could not remove this entry.';
     }
   }
 </script>
@@ -152,58 +175,105 @@
   </div>
 
   <p class="intro text-muted">
-    Shared movement library with all moves. Browse ideas, inspect details, and build your own progression.
+    The permanent movement library grows as admins commit notable moves. Community goals are shown below as inspiration.
   </p>
 
   <SearchBar
     bind:value={query}
     placeholder="Search moves or athlete name"
     ariaLabel="Search movement library"
-    metaText={`Showing ${filteredMoves.length} of ${libraryMoves.length} moves`}
+    metaText={`Showing ${totalShown} of ${allDisplayMoves.length} moves`}
   />
 
   {#if feedback}
     <p class="library-feedback text-sm">{feedback}</p>
   {/if}
 
-  {#if libraryMoves.length === 0}
-    <EmptyState
-      icon="🤸"
-      title="No moves yet"
-      message="Moves from everyone will appear here in one shared library."
-      actionHref="/goals/new?type=move"
-      actionLabel="Add your first move"
-    />
-  {:else if filteredMoves.length === 0}
-    <EmptyState
-      icon="🔎"
-      title="No moves match your search"
-      message="Try a different move name or athlete."
-    />
-  {:else}
-    <div class="grid-cards mt-2">
-      {#each filteredMoves as goal}
-        {@const owner = goal.userId ? getUserById(goal.userId) : undefined}
-        {@const alreadyAddedToMine = myGoalRootIds.has(resolveLibraryMoveId(goal))}
-        {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !alreadyAddedToMine}
-        <div class="library-card-wrap">
-          <GoalCard
-            {goal}
-            onAddToMine={canAddToMine ? addGoalToMine : undefined}
-            spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
-            statusNote={isAuthenticated && alreadyAddedToMine ? 'In your goals' : undefined}
-            insightNote={formatMoveCommunityStats(goal.id)}
-          />
-          <p class="library-meta text-muted text-sm">
-            Added by {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}
-          </p>
-          {#if addingGoalId === goal.id}
-            <p class="text-sm text-muted">Adding to your goals...</p>
-          {/if}
-        </div>
-      {/each}
-    </div>
-  {/if}
+  <!-- ── Permanent Library ───────────────────────────────── -->
+  <section class="library-section">
+    <h2 class="section-heading">📌 Permanent Library</h2>
+
+    {#if permanentMoves.length === 0}
+      <EmptyState
+        icon="📌"
+        title="No permanent moves yet"
+        message="Admins can commit moves from the community goals below."
+      />
+    {:else if filteredPermanent.length === 0}
+      <EmptyState icon="🔎" title="No permanent moves match your search" message="" />
+    {:else}
+      <div class="grid-cards mt-2">
+        {#each filteredPermanent as goal}
+          {@const alreadyAddedToMine = myGoalRootIds.has(resolveLibraryMoveId(goal))}
+          {@const canAddToMine = isAuthenticated && !alreadyAddedToMine}
+          <div class="library-card-wrap">
+            <GoalCard
+              {goal}
+              onAddToMine={canAddToMine ? addGoalToMine : undefined}
+              spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+              statusNote={isAuthenticated && alreadyAddedToMine ? 'In your goals' : undefined}
+              insightNote={formatMoveCommunityStats(goal.id)}
+            />
+            <div class="library-meta-row">
+              <span class="library-badge">Library</span>
+              {#if isAdmin}
+                <a href="/goals/{goal.id}/edit" class="meta-action">Edit</a>
+                <button
+                  type="button"
+                  class="meta-action meta-action--danger"
+                  on:click={() => handleDeleteLibraryMove(goal)}
+                >Remove</button>
+              {/if}
+            </div>
+            {#if addingGoalId === goal.id}
+              <p class="text-sm text-muted">Adding to your goals…</p>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </section>
+
+  <!-- ── Community Moves ────────────────────────────────── -->
+  <section class="library-section mt-3">
+    <h2 class="section-heading">🌍 Community Moves</h2>
+
+    {#if communityMoves.length === 0}
+      <EmptyState
+        icon="🤸"
+        title="No community moves yet"
+        message="When athletes add move goals, they appear here."
+        actionHref="/goals/new?type=move"
+        actionLabel="Add your first move"
+      />
+    {:else if filteredCommunity.length === 0}
+      <EmptyState icon="🔎" title="No community moves match your search" message="Try a different move name or athlete." />
+    {:else}
+      <div class="grid-cards mt-2">
+        {#each filteredCommunity as goal}
+          {@const owner = goal.userId ? getUserById(goal.userId) : undefined}
+          {@const alreadyAddedToMine = myGoalRootIds.has(resolveLibraryMoveId(goal))}
+          {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !alreadyAddedToMine}
+          <div class="library-card-wrap">
+            <GoalCard
+              {goal}
+              onAddToMine={canAddToMine ? addGoalToMine : undefined}
+              onCommitToLibrary={isAdmin ? handleCommitToLibrary : undefined}
+              spotName={goal.spotId ? getSpotById(goal.spotId)?.name : undefined}
+              statusNote={isAuthenticated && alreadyAddedToMine ? 'In your goals' : undefined}
+              insightNote={formatMoveCommunityStats(goal.id)}
+            />
+            <p class="library-meta text-muted text-sm">
+              Added by {owner?.displayName ?? owner?.username ?? 'Unknown athlete'}
+            </p>
+            {#if addingGoalId === goal.id}
+              <p class="text-sm text-muted">Adding to your goals…</p>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </section>
 </div>
 
 <style>
@@ -216,6 +286,17 @@
     margin-bottom: 1.4rem;
   }
 
+  .library-section {
+    margin-top: 1.5rem;
+  }
+
+  .section-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+
   .library-card-wrap {
     display: flex;
     flex-direction: column;
@@ -226,8 +307,44 @@
     padding-inline: 0.15rem;
   }
 
+  .library-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-inline: 0.15rem;
+  }
+
+  .library-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+  }
+
+  .meta-action {
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted, var(--color-muted));
+    font-family: inherit;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .meta-action--danger {
+    color: var(--color-danger, #ef4444);
+  }
+
   .library-feedback {
     margin: -0.55rem 0 1rem;
     color: var(--color-success);
   }
 </style>
+

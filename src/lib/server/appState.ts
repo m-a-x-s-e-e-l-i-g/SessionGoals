@@ -99,6 +99,7 @@ export async function loadAppStateForRequest(
     city: row.city ?? undefined,
     country: row.country ?? undefined,
     isPublic: !!row.is_public,
+    isAdmin: !!row.is_admin,
     joinedAt: toIsoString(row.joined_at),
   }));
 
@@ -131,8 +132,9 @@ export async function loadAppStateForRequest(
 
   const goals: Goal[] = goalsRows.map((row: any) => ({
     id: row.id,
-    userId: row.user_id,
+    userId: row.user_id ?? undefined,
     sourceGoalId: row.source_goal_id ?? undefined,
+    isLibraryEntry: !!row.is_library_entry,
     type: normalizeGoalType(row.type),
     title: row.title,
     description: row.description ?? undefined,
