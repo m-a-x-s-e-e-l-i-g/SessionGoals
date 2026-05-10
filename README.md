@@ -1,103 +1,57 @@
-# SessionGoals
+<p align="center">
+  <img src="static/images/brand/sessiongoals-brand-cobalt.svg" alt="SessionGoals" width="320" />
+</p>
 
-SessionGoals is a SvelteKit app for planning parkour and freerunning progression.
+<p align="center"><em>Train what's next. Plan your session.</em></p>
 
-Create personal goals, explore and track list-based challenges, log daily activity, and search parkour spots. The app now uses Supabase for persistence and auth-backed data ownership.
+---
 
-Tagline: Train what's next. Plan your session.
+SessionGoals is a training companion for parkour and freerunning athletes. Set goals, track your sessions, follow challenge lists, and keep an eye on your favourite spots — all in one place.
 
-## What is implemented
+---
 
-- Dashboard with recent goals, lists, activity summary, and action spots
-- Authentication via Supabase Auth (Google sign-in only)
-- Goals flow: browse, filter by status, search, create, and view goal detail pages
-- Lists flow: browse lists, follow/explore, create lists, and view list detail pages
-- Activity flow: log parkour and support training types, view streak and weekly stats, review recent session history, and inspect a heatmap
-- People and inspiration views for discovery and profile-level browsing
-- Public legal pages for Terms of Use and Privacy Policy
-- Spots flow:
-- Your action spots section from goals tied to spots
-- parkour.spot-backed search (when API key is configured)
-- API route proxy for spot search with cache headers
+## What you can do
 
-## Tech stack
+### Dashboard
 
-| Layer | Technology |
-| --- | --- |
-| App framework | SvelteKit 2 |
-| Language | TypeScript 5 |
-| Build tool | Vite 5 |
-| UI | Svelte components + custom CSS tokens |
-| Data | Supabase (Postgres + RLS) |
-| Server integration | SvelteKit server routes |
-| External APIs | parkour.spot (optional, env-gated) |
-| Planned persistence | Supabase |
+Get a quick overview of your active goals, upcoming sessions, and recent activity as soon as you open the app.
 
-## Project structure
+---
 
-Key areas:
+### Goals
 
-- `src/routes`: pages and API endpoints
-- `src/routes/api/parkour-spot/spots/+server.ts`: server endpoint for spot search
-- `src/lib/data`: client data modules backed by server API + Supabase
-- `src/lib/components`: reusable UI components
-- `src/lib/server`: server-only integration helpers (parkour.spot, Supabase)
-- `supabase/migrations`: SQL schema and auth/profile sync migrations
+Create and manage personal training goals. Filter by status, search by name, and drill into a goal to see all the details. Goals can be tied to a specific spot so you always know where to train next.
 
-## Getting started
+---
 
-### Prerequisites
+### Activity
 
-- Node.js 18+
-- npm 9+
+Log every session — parkour, conditioning, or other training. See your current streak, weekly stats, and a full year heatmap of your training history.
 
-### Install
+---
 
-```bash
-npm install
-```
+### Lists
 
-### Environment setup (optional for local MVP)
+Create curated goal lists and share them publicly. Follow lists from other athletes to add a structured challenge to your training.
 
-Copy `.env.example` to `.env` and fill what you need.
+---
 
-macOS/Linux:
+### Spots
 
-```bash
-cp .env.example .env
-```
+Browse your action spots on a map and search for new places to train via [parkour.spot](https://parkour.spot). Link spots to goals so your training always has a location.
 
-PowerShell:
+---
 
-```powershell
-Copy-Item .env.example .env
-```
+### People & Library
 
-Supabase auth env vars are required to sign in.
+Discover other athletes, explore their public profiles, and browse a shared movement library for inspiration and reference.
 
-### Run development server
+---
 
-```bash
-npm run dev
-```
+## Sign in
 
-Open http://localhost:5173
+SessionGoals uses Google sign-in. Create an account to start tracking your progress.
 
-## Available scripts
-
-- `npm run dev`: start local dev server
-- `npm run build`: create production build
-- `npm run preview`: preview production build locally
-- `npm run check`: run `svelte-check` with project tsconfig
-- `npm run check:watch`: run type checks in watch mode
-
-## Environment variables
-
-Defined in `.env.example`:
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `PUBLIC_SUPABASE_URL` | Yes | Supabase project URL used by auth |
 | `PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key used by auth |
 | `PARKOUR_SPOT_API_URL` | No | Base URL for parkour.spot API (defaults to `https://parkour.spot/api/v1`) |
 | `PARKOUR_SPOT_API_KEY` | Yes (for spot search) | API key used by server-side spot search |
@@ -148,9 +102,3 @@ npm run check
 ```
 
 This validates Svelte + TypeScript types across routes and components.
-
-## Roadmap ideas
-
-- Add authentication and per-user data ownership
-- Add richer spot ingestion/sync workflows
-- Add tests for data modules and critical routes
