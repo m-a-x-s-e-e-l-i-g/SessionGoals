@@ -454,7 +454,7 @@
         >
           {#if editMode}
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="13" height="13"><path d="M3 8l4 4 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Done
+            Done editing
           {:else}
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="13" height="13"><path d="M2 5h12M2 8h12M2 11h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Edit items
