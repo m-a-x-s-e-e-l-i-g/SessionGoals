@@ -1,11 +1,13 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import {
     getUserById,
     getTeacherForStudent,
     getStudentsForTeacher,
     getStudentTrackingSummary,
     updateUserProfile,
+    deleteAccount,
     isTeacher,
   } from '$lib/data/users';
   import { createGoal, getGoals } from '$lib/data/goals';
@@ -15,6 +17,7 @@
   import ListCard from '$lib/components/ListCard.svelte';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { CreateGoalInput, Goal, UserProfile } from '$lib/types';
   import { formatActivityType } from '$lib/utils/format';
 
@@ -61,6 +64,8 @@
   let editCountry = '';
   let editIsPublic = true;
   let editRole: UserProfile['role'] = 'athlete';
+  let showDeleteAccountDialog = false;
+  let deletingAccount = false;
 
   function startEdit() {
     if (!profile) return;
@@ -90,6 +95,18 @@
     // re-read updated profile
     profile = getUserById(userId);
     editing = false;
+  }
+
+  async function confirmDeleteAccount() {
+    if (!userId || deletingAccount) return;
+    deletingAccount = true;
+    try {
+      await deleteAccount(userId);
+      await goto('/auth/login');
+    } catch {
+      deletingAccount = false;
+      showDeleteAccountDialog = false;
+    }
   }
 
   $: visibleGoals = getGoals().filter((g) => {
@@ -243,7 +260,26 @@
             <button type="submit" class="btn btn-primary btn-sm">Save</button>
             <button type="button" class="btn btn-ghost btn-sm" on:click={cancelEdit}>Cancel</button>
           </div>
+          <div class="delete-account-section">
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              on:click={() => (showDeleteAccountDialog = true)}
+            >
+              Delete account
+            </button>
+          </div>
         </form>
+
+        <ConfirmDialog
+          bind:isOpen={showDeleteAccountDialog}
+          title="Delete account"
+          message="This will permanently delete your account and all your data. This action cannot be undone."
+          confirmLabel="Delete my account"
+          isDangerous={true}
+          isLoading={deletingAccount}
+          on:confirm={confirmDeleteAccount}
+        />
       {:else}
         {#if profile.bio}
           <p class="profile-bio">{profile.bio}</p>
@@ -615,6 +651,12 @@
     display: flex;
     gap: 0.55rem;
     margin-top: 0.25rem;
+  }
+
+  .delete-account-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border, #e5e7eb);
   }
 
   .btn-sm {

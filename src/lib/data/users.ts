@@ -72,6 +72,10 @@ export function getStudentTrackingSummary(studentId: string): {
   };
 }
 
+export async function deleteAccount(userId: string): Promise<void> {
+  await runDataAction<{ deleted: boolean }>('deleteAccount', { userId });
+}
+
 export function searchPeople(query: string): UserProfile[] {
   const currentUserId = getCurrentUserIdFromState();
   const currentUser = currentUserId ? getUserById(currentUserId) : undefined;

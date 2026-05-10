@@ -19,6 +19,7 @@ import type {
 import type { EnrollStudentResult } from '$lib/data/coaching';
 import { normalizeActivityType } from '$lib/types';
 import { loadAppStateForRequest } from '$lib/server/appState';
+import { createAdminSupabaseClient } from '$lib/server/supabase';
 
 interface ActionBody {
   action: string;
@@ -740,6 +741,23 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const challenge = snapshot.challenges.find((entry) => entry.id === id);
       if (!challenge) return json({ ok: false, error: 'Challenge not found.' }, { status: 404 });
       return json({ ok: true, data: challenge });
+    }
+
+    if (action === 'deleteAccount') {
+      if (!locals.user) return unauthorized();
+
+      const adminClient = createAdminSupabaseClient();
+      if (!adminClient) {
+        return json({ ok: false, error: 'Account deletion is not configured on this server.' }, { status: 501 });
+      }
+
+      // Sign out first to invalidate current session cookies
+      await locals.supabase!.auth.signOut();
+
+      const { error } = await adminClient.auth.admin.deleteUser(locals.user.id);
+      if (error) throw new Error(error.message);
+
+      return json({ ok: true, data: { deleted: true } });
     }
 
     return badRequest(`Unknown action: ${action}`);
