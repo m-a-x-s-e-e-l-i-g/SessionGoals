@@ -491,6 +491,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       if (!ownedList) return forbidden('Only the list owner can reorder list items.');
 
+      // Shift all items to high temporary positions to avoid unique constraint conflicts
+      // during the reorder (the (list_id, position) unique index would reject an update
+      // if the target position is already occupied by another row).
+      const offset = orderedGoalIds.length + 1000;
+      for (let i = 0; i < orderedGoalIds.length; i++) {
+        const { error } = await locals.supabase
+          .from('goal_list_items')
+          .update({ position: offset + i })
+          .eq('list_id', listId)
+          .eq('goal_id', orderedGoalIds[i]);
+        if (error) throw new Error(error.message);
+      }
+
+      // Now assign final 1-based positions (all temp positions are out of the way)
       for (let i = 0; i < orderedGoalIds.length; i++) {
         const { error } = await locals.supabase
           .from('goal_list_items')
