@@ -55,7 +55,7 @@ function isAllowedDomain(hostname: string): boolean {
   );
 }
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request }) => {
   const imageUrl = url.searchParams.get('url');
 
   if (!imageUrl) {
@@ -73,14 +73,27 @@ export const GET: RequestHandler = async ({ url }) => {
     return json({ error: 'Image URL not from allowed domain' }, { status: 403 });
   }
 
-  // Serve from cache if available
+  // Derive a stable ETag from the URL — content is fully determined by the URL
+  const etag = `"${Buffer.from(imageUrl).toString('base64url').slice(0, 40)}"`;
+  const cacheControl = 'public, max-age=604800, immutable'; // 7 days, never revalidate
+
+  // Honour conditional GET — return 304 if client already has a fresh copy
+  if (request.headers.get('if-none-match') === etag) {
+    return new Response(null, {
+      status: 304,
+      headers: { 'cache-control': cacheControl, 'etag': etag },
+    });
+  }
+
+  // Serve from server-side memory cache if available
   const cached = getCached(imageUrl);
   if (cached) {
     return new Response(cached.buffer, {
       status: 200,
       headers: {
         'content-type': cached.contentType,
-        'cache-control': 'public, max-age=86400',
+        'cache-control': cacheControl,
+        'etag': etag,
         'x-cache': 'HIT',
       },
     });
@@ -110,7 +123,8 @@ export const GET: RequestHandler = async ({ url }) => {
       status: 200,
       headers: {
         'content-type': contentType,
-        'cache-control': 'public, max-age=86400',
+        'cache-control': cacheControl,
+        'etag': etag,
         'x-cache': 'MISS',
       },
     });
