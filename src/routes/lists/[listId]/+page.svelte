@@ -314,10 +314,14 @@
           </p>
         {/if}
       </div>
-      <div style="display:flex;gap:0.5rem;">
+      <div style="display:flex;gap:0.5rem;align-items:center;">
         {#if isOwnList}
-          <button class="btn btn-ghost" on:click={openEditForm}>Edit</button>
-          <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+          <button class="btn-icon" on:click={openEditForm} aria-label="Edit list">
+            <img src="/images/icons/edit.svg" alt="" width="18" height="18" />
+          </button>
+          <button class="btn-icon btn-icon-danger" on:click={handleDelete} aria-label="Delete list">
+            <img src="/images/icons/trash.svg" alt="" width="18" height="18" />
+          </button>
         {:else if canTrackList && !progress}
           <button class="btn btn-primary" on:click={handleStartTracking}>Track This List</button>
         {:else if canTrackList && progress}
@@ -1210,6 +1214,45 @@
   @media (max-width: 640px) {
     .edit-row {
       grid-template-columns: 1fr;
+    }
+  }
+
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .btn-icon:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+  }
+
+  .btn-icon img {
+    filter: var(--icon-filter, none);
+  }
+
+  .btn-icon-danger {
+    border-color: color-mix(in oklch, var(--color-danger, #e53e3e) 40%, var(--color-border));
+  }
+
+  .btn-icon-danger:hover {
+    background: color-mix(in oklch, var(--color-danger, #e53e3e) 10%, transparent);
+    border-color: var(--color-danger, #e53e3e);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .btn-icon img {
+      filter: invert(1) brightness(0.85);
     }
   }
 </style>

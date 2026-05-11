@@ -130,6 +130,28 @@
     monthLabels = Array.from(monthLabelMap, ([week, month]) => ({ month, weekIndex: week }));
   }
 
+  // ── Responsive week slicing ─────────────────────────────────────────────
+  let wrapperWidth = 0;
+
+  // Compute how many weeks we can fit at the minimum comfortable cell size
+  $: visibleWeekCount = (() => {
+    if (!wrapperWidth || !heatmapData.length) return heatmapData.length;
+    const paddingH = 32;        // 1rem each side
+    const dayLabelWidth = 30;   // desktop; hidden on mobile so conservative
+    const colGap = 6;           // ~0.4rem
+    const cellGap = 2;
+    const minCellSize = 9;
+    const available = Math.max(60, wrapperWidth - paddingH - dayLabelWidth - colGap);
+    const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
+    return Math.min(heatmapData.length, Math.max(12, maxWeeks));
+  })();
+
+  $: weekOffset = heatmapData.length - visibleWeekCount;
+  $: displayData = heatmapData.slice(-visibleWeekCount);
+  $: displayMonthLabels = monthLabels
+    .filter((l) => l.weekIndex >= weekOffset)
+    .map((l) => ({ month: l.month, weekIndex: l.weekIndex - weekOffset }));
+
   function getTooltip(cell: HeatmapCell): string {
     if (!cell.date) return '';
     const date = new Date(cell.date + 'T00:00:00Z');
@@ -174,12 +196,12 @@
     </div>
   </div>
 
-  <div class="heatmap-wrapper" style={`--weeks: ${Math.max(heatmapData.length, 1)}`}>
+  <div class="heatmap-wrapper" bind:clientWidth={wrapperWidth} style={`--weeks: ${Math.max(displayData.length, 1)}`}>
     {#if hasActivities}
       <div class="heatmap-board">
         <div class="heatmap-day-spacer"></div>
         <div class="heatmap-months">
-          {#each monthLabels as label}
+          {#each displayMonthLabels as label}
             <div class="month-label" style={`--week-index: ${label.weekIndex}`}>
               {label.month}
             </div>
@@ -195,7 +217,7 @@
           <div class="day-label">Sun</div>
         </div>
         <div class="heatmap-grid" role="img" aria-label="Activity heatmap for the last 52 weeks">
-          {#each heatmapData as week}
+          {#each displayData as week}
             <div class="heatmap-week">
               {#each week.cells as cell}
                 <div
@@ -309,7 +331,7 @@
     border-radius: var(--radius-md);
     padding: 1rem;
     min-height: 100%;
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .heatmap-board {
@@ -462,23 +484,16 @@
     .heatmap-months {
       font-size: 0.6rem;
     }
-
-    /* Ensure cells are large enough to tap; board scrolls horizontally */
-    .heatmap-board {
-      min-width: 540px;
-    }
   }
 
   @media (max-width: 480px) {
     .heatmap-wrapper {
       padding: 0.55rem;
-      --cell-gap: 1.5px;
     }
 
     .heatmap-board {
       grid-template-columns: 0 1fr;
       column-gap: 0;
-      min-width: 500px;
     }
 
     .day-labels {

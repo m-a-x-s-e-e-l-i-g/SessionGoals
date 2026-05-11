@@ -598,6 +598,7 @@
 
   .section-block {
     margin-bottom: 2rem;
+    scroll-margin-top: 72px;
   }
 
   .section-header {

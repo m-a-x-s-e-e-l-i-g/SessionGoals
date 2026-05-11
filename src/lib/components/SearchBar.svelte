@@ -141,6 +141,7 @@
     min-height: 42px;
     border: none;
     background: transparent;
+    color: var(--color-text);
     padding: 0.25rem 0.2rem;
     min-width: 0;
   }
