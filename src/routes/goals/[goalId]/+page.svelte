@@ -248,7 +248,7 @@
   {:else}
     <div class="page-header">
       <div>
-        <a href="/goals" class="back-link text-muted text-sm" on:click|preventDefault={() => history.length > 1 ? history.back() : goto('/goals')}>← Back</a>
+        <a href="/goals" class="back-link text-muted text-sm" on:click|preventDefault={() => history.back()}>← Back</a>
         <h1 class="page-title">{goal.title}</h1>
       </div>
       <div class="header-actions">

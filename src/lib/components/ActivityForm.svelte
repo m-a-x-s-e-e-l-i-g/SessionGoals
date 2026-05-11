@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import { addActivity } from '$lib/data/activities';
@@ -24,8 +24,16 @@
   let successMessage = '';
   let isSubmitting = false;
 
-  // Collapsed by default on mobile
-  let collapsed = browser ? window.matchMedia('(max-width: 640px)').matches : false;
+  // Collapsed by default on mobile; reactively updates when viewport crosses the breakpoint
+  const mobileQuery = browser ? window.matchMedia('(max-width: 640px)') : null;
+  let collapsed = mobileQuery?.matches ?? false;
+
+  function onBreakpointChange(e: MediaQueryListEvent) {
+    collapsed = e.matches;
+  }
+
+  if (mobileQuery) mobileQuery.addEventListener('change', onBreakpointChange);
+  onDestroy(() => mobileQuery?.removeEventListener('change', onBreakpointChange));
 
   $: activeGoals = getMyGoals().filter((g) => g.status !== 'done');
 
