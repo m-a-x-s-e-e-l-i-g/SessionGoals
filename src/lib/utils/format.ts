@@ -85,6 +85,7 @@ export function shortenUrl(url: string, maxLen = 55): string {
     display = url;
   }
   if (display.length <= maxLen) return display;
-  const half = Math.floor((maxLen - 1) / 2);
-  return `${display.slice(0, half)}…${display.slice(-half)}`;
+  const suffixLen = Math.floor((maxLen - 1) / 2);
+  const prefixLen = maxLen - 1 - suffixLen;
+  return `${display.slice(0, prefixLen)}…${display.slice(-suffixLen)}`;
 }
