@@ -295,10 +295,26 @@
           {/if}
           <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
         </div>
+        <div class="profile-quick-stats">
+          <a href="#goals" class="quick-stat">
+            <span class="quick-stat-value">{visibleGoals.length}</span>
+            <span class="quick-stat-label">goal{visibleGoals.length === 1 ? '' : 's'}</span>
+          </a>
+          <a href="#lists" class="quick-stat">
+            <span class="quick-stat-value">{visibleLists.length}</span>
+            <span class="quick-stat-label">list{visibleLists.length === 1 ? '' : 's'}</span>
+          </a>
+          {#if activityStats.streak > 0}
+            <a href="#activity" class="quick-stat">
+              <span class="quick-stat-value">{activityStats.streak}</span>
+              <span class="quick-stat-label">day streak</span>
+            </a>
+          {/if}
+        </div>
       {/if}
     </div>
 
-    <section class="section-block">
+    <section class="section-block" id="activity">
       <div class="section-header">
         <div>
           <p class="activity-eyebrow">Activity</p>
@@ -413,51 +429,53 @@
       </section>
     {/if}
 
-    <section class="section-block">
-      <div class="section-header">
-        <h2 class="section-title">Goals</h2>
-      </div>
-      {#if goalsFeedback}
-        <p class="goals-feedback text-sm">{goalsFeedback}</p>
-      {/if}
-      {#if visibleGoals.length === 0}
-        <EmptyState
-          icon="🎯"
-          title="No goals yet"
-          message="No visible goals on this profile right now."
-        />
-      {:else}
-        <div class="grid-cards">
-          {#each visibleGoals as goal}
-            {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-            <div class="goal-card-wrap">
-              <GoalCard
-                {goal}
-                onAddToMine={canAddToMine ? addGoalToMine : undefined}
-              />
-              {#if addingGoalId === goal.id}
-                <p class="text-sm text-muted">Adding to your goals...</p>
-              {/if}
-            </div>
-          {/each}
+    <div class="goals-lists-wrapper">
+      <section class="section-block section-goals" id="goals">
+        <div class="section-header">
+          <h2 class="section-title">Goals</h2>
         </div>
-      {/if}
-    </section>
+        {#if goalsFeedback}
+          <p class="goals-feedback text-sm">{goalsFeedback}</p>
+        {/if}
+        {#if visibleGoals.length === 0}
+          <EmptyState
+            icon="🎯"
+            title="No goals yet"
+            message="No visible goals on this profile right now."
+          />
+        {:else}
+          <div class="grid-cards">
+            {#each visibleGoals as goal}
+              {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+              <div class="goal-card-wrap">
+                <GoalCard
+                  {goal}
+                  onAddToMine={canAddToMine ? addGoalToMine : undefined}
+                />
+                {#if addingGoalId === goal.id}
+                  <p class="text-sm text-muted">Adding to your goals...</p>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </section>
 
-    <section class="section-block">
-      <div class="section-header">
-        <h2 class="section-title">Lists</h2>
-      </div>
-      {#if visibleLists.length === 0}
-        <p class="text-muted">No visible lists yet.</p>
-      {:else}
-        <div class="grid-cards">
-          {#each visibleLists as list}
-            <ListCard {list} />
-          {/each}
+      <section class="section-block section-lists" id="lists">
+        <div class="section-header">
+          <h2 class="section-title">Lists</h2>
         </div>
-      {/if}
-    </section>
+        {#if visibleLists.length === 0}
+          <p class="text-muted">No visible lists yet.</p>
+        {:else}
+          <div class="grid-cards">
+            {#each visibleLists as list}
+              <ListCard {list} />
+            {/each}
+          </div>
+        {/if}
+      </section>
+    </div>
   {/if}
 </div>
 
@@ -517,6 +535,61 @@
     display: flex;
     gap: 0.9rem;
     flex-wrap: wrap;
+  }
+
+  .profile-quick-stats {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
+  }
+
+  .quick-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.4rem 0.85rem;
+    background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .quick-stat:hover {
+    background: color-mix(in oklch, var(--color-primary) 18%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+    text-decoration: none;
+  }
+
+  .quick-stat-value {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .quick-stat-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: lowercase;
+  }
+
+  .goals-lists-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (max-width: 768px) {
+    .section-goals {
+      order: 2;
+    }
+    .section-lists {
+      order: 1;
+    }
   }
 
   .role-line {

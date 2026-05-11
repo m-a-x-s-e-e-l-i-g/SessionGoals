@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import { addActivity } from '$lib/data/activities';
   import { getMyGoals } from '$lib/data/goals';
@@ -22,6 +23,9 @@
   let formError = '';
   let successMessage = '';
   let isSubmitting = false;
+
+  // Collapsed by default on mobile
+  let collapsed = browser ? window.matchMedia('(max-width: 640px)').matches : false;
 
   $: activeGoals = getMyGoals().filter((g) => g.status !== 'done');
 
@@ -101,87 +105,102 @@
   }
 </script>
 
-<div class="activity-form-card card">
+<div class="activity-form-card card" class:is-collapsed={collapsed}>
   <div class="form-header">
     <div>
       <p class="form-eyebrow">Quick log</p>
       <h3 class="form-title">Capture the session while it still feels fresh</h3>
     </div>
+    <div class="form-header-right">
+      {#if successMessage}
+        <span class="success-badge">Ready</span>
+      {/if}
+      <button
+        type="button"
+        class="collapse-toggle"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? 'Expand quick log form' : 'Collapse quick log form'}
+        on:click={() => (collapsed = !collapsed)}
+      >
+        <svg class="collapse-icon" class:rotated={!collapsed} viewBox="0 0 16 16" fill="none" aria-hidden="true" width="16" height="16">
+          <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {#if !collapsed}
+    <p class="form-subtitle text-muted text-sm">
+      Log parkour or support work like running, gym, bouldering, and calisthenics. Any training type keeps the streak alive.
+    </p>
+
     {#if successMessage}
-      <span class="success-badge">Ready</span>
+      <p class="form-status form-status-success" role="status">{successMessage}</p>
     {/if}
-  </div>
 
-  <p class="form-subtitle text-muted text-sm">
-    Log parkour or support work like running, gym, bouldering, and calisthenics. Any training type keeps the streak alive.
-  </p>
+    {#if formError}
+      <p class="form-status form-status-error" role="alert">{formError}</p>
+    {/if}
 
-  {#if successMessage}
-    <p class="form-status form-status-success" role="status">{successMessage}</p>
-  {/if}
+    <div class="form-row">
+      <div class="form-group">
+        <label for="activityType">Training Type</label>
+        <select id="activityType" bind:value={activityType} disabled={isSubmitting}>
+          {#each activityTypes as option}
+            <option value={option.value}>{option.label}</option>
+          {/each}
+        </select>
+      </div>
 
-  {#if formError}
-    <p class="form-status form-status-error" role="alert">{formError}</p>
-  {/if}
+      <div class="form-group">
+        <label for="activityDate">Session Date</label>
+        <input id="activityDate" type="date" bind:value={activityDate} max={today} disabled={isSubmitting} />
+      </div>
 
-  <div class="form-row">
-    <div class="form-group">
-      <label for="activityType">Training Type</label>
-      <select id="activityType" bind:value={activityType} disabled={isSubmitting}>
-        {#each activityTypes as option}
-          <option value={option.value}>{option.label}</option>
-        {/each}
-      </select>
+      <div class="form-group">
+        <label for="duration">Duration (minutes)</label>
+        <input
+          id="duration"
+          type="number"
+          bind:value={duration}
+          min="1"
+          max="480"
+          placeholder="30"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="linkedGoal">Goal Focus</label>
+        <select id="linkedGoal" bind:value={linkedGoalId} disabled={isSubmitting}>
+          <option value="">None</option>
+          {#each activeGoals as goal}
+            <option value={goal.id}>{goal.title}</option>
+          {/each}
+        </select>
+      </div>
     </div>
 
     <div class="form-group">
-      <label for="activityDate">Session Date</label>
-      <input id="activityDate" type="date" bind:value={activityDate} max={today} disabled={isSubmitting} />
-    </div>
-
-    <div class="form-group">
-      <label for="duration">Duration (minutes)</label>
-      <input
-        id="duration"
-        type="number"
-        bind:value={duration}
-        min="1"
-        max="480"
-        placeholder="30"
+      <label for="notes">Notes</label>
+      <textarea
+        id="notes"
+        bind:value={notes}
+        placeholder="How did it feel? What should you chase next time?"
+        rows="3"
         disabled={isSubmitting}
-      />
+      ></textarea>
     </div>
 
-    <div class="form-group">
-      <label for="linkedGoal">Goal Focus</label>
-      <select id="linkedGoal" bind:value={linkedGoalId} disabled={isSubmitting}>
-        <option value="">None</option>
-        {#each activeGoals as goal}
-          <option value={goal.id}>{goal.title}</option>
-        {/each}
-      </select>
-    </div>
-  </div>
-
-  <div class="form-group">
-    <label for="notes">Notes</label>
-    <textarea
-      id="notes"
-      bind:value={notes}
-      placeholder="How did it feel? What should you chase next time?"
-      rows="3"
+    <button
+      class="btn btn-primary form-submit"
+      on:click={handleLog}
       disabled={isSubmitting}
-    ></textarea>
-  </div>
-
-  <button
-    class="btn btn-primary form-submit"
-    on:click={handleLog}
-    disabled={isSubmitting}
-    aria-busy={isSubmitting}
-  >
-    {isSubmitting ? 'Logging session…' : 'Log Session'}
-  </button>
+      aria-busy={isSubmitting}
+    >
+      {isSubmitting ? 'Logging session…' : 'Log Session'}
+    </button>
+  {/if}
 </div>
 
 <style>
@@ -195,6 +214,46 @@
     align-items: flex-start;
     gap: 1rem;
     margin-bottom: 0.5rem;
+  }
+
+  .form-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+  }
+
+  .collapse-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .collapse-toggle:hover {
+    background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-border));
+    color: var(--color-primary);
+  }
+
+  .collapse-icon {
+    transition: transform 0.2s ease;
+  }
+
+  .collapse-icon.rotated {
+    transform: rotate(180deg);
+  }
+
+  .is-collapsed {
+    padding-bottom: 0.85rem;
   }
 
   .form-eyebrow {

@@ -282,14 +282,17 @@
       {:else}
         <p class="activity-prompt">No session logged today yet.</p>
       {/if}
-      <a href="/activity" class="activity-link">Open activity board →</a>
+      <div class="activity-cta-links">
+        <a href="/activity" class="activity-link">Add activity →</a>
+        <a href="/activity" class="activity-link activity-link--secondary">Open activity board →</a>
+      </div>
       <p class="activity-caption">Quick log, heatmap, and recent sessions in one place.</p>
     </div>
   </section>
 
   <section class="section">
     <div class="section-header">
-      <h2 class="section-title section-title--goals">Recent Goals</h2>
+      <h2 class="section-title section-title--goals">Your Goals</h2>
       <a href="/goals" class="text-sm">View all →</a>
     </div>
       <div class="grid-cards">
@@ -333,7 +336,7 @@
 
     <section class="section">
       <div class="section-header">
-        <h2 class="section-title">Spots</h2>
+        <h2 class="section-title">Your Spots</h2>
         <a href="/spots" class="text-sm">Explore →</a>
       </div>
       {#if spots.length === 0}
@@ -647,6 +650,12 @@
     color: color-mix(in oklch, var(--color-success) 72%, var(--color-text));
   }
 
+  .activity-cta-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
   .activity-link {
     color: var(--color-primary);
     font-weight: 600;
@@ -657,6 +666,12 @@
   .activity-link:hover {
     opacity: 0.8;
     text-decoration: underline;
+  }
+
+  .activity-link--secondary {
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
   }
 
   .activity-caption {

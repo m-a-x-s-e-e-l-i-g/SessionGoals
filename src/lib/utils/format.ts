@@ -69,3 +69,22 @@ export function formatDuration(minutes: number): string {
   const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
+
+/**
+ * Shortens a URL for display. Removes the protocol prefix and,
+ * if the result is longer than `maxLen`, shows the beginning and
+ * end parts separated by an ellipsis.
+ */
+export function shortenUrl(url: string, maxLen = 55): string {
+  let display: string;
+  try {
+    const parsed = new URL(url);
+    // Drop protocol, strip leading www.
+    display = parsed.hostname.replace(/^www\./, '') + parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    display = url;
+  }
+  if (display.length <= maxLen) return display;
+  const half = Math.floor((maxLen - 1) / 2);
+  return `${display.slice(0, half)}…${display.slice(-half)}`;
+}

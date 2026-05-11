@@ -5,7 +5,7 @@
   import { getSpotById } from '$lib/data/spots';
   import { addGoalToList } from '$lib/data/lists';
   import { appStateStore } from '$lib/data/state';
-  import { formatGoalType, typeIcon } from '$lib/utils/format';
+  import { formatGoalType, typeIcon, shortenUrl } from '$lib/utils/format';
   import { getGoalVisualImageUrl } from '$lib/utils/media';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { CreateGoalInput, GoalStatus } from '$lib/types';
@@ -248,7 +248,7 @@
   {:else}
     <div class="page-header">
       <div>
-        <a href="/goals" class="back-link text-muted text-sm">← Goals</a>
+        <a href="/goals" class="back-link text-muted text-sm" on:click|preventDefault={() => history.back()}>← Back</a>
         <h1 class="page-title">{goal.title}</h1>
       </div>
       <div class="header-actions">
@@ -401,16 +401,7 @@
           <div class="section">
             <h3 class="section-label">Reference</h3>
             <a href={goal.sourceUrl} target="_blank" rel="noopener noreferrer" class="link-item">
-              <span class="link-url-text">
-                {(() => {
-                  try {
-                    const parsed = new URL(goal.sourceUrl);
-                    return `${parsed.hostname}${parsed.pathname}`;
-                  } catch {
-                    return goal.sourceUrl;
-                  }
-                })()}
-              </span>
+              <span class="link-url-text">{shortenUrl(goal.sourceUrl)}</span>
               <span class="text-muted text-sm">↗</span>
             </a>
           </div>

@@ -6,7 +6,7 @@
   import GoalCard from '$lib/components/GoalCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import { formatListType, formatListVisibility } from '$lib/utils/format';
+  import { formatListType, formatListVisibility, shortenUrl } from '$lib/utils/format';
   import { getUserDisplayName } from '$lib/data/session';
   import { enrollStudentToPublicList } from '$lib/data/coaching';
   import { getStudentsForTeacher, getUserById, isTeacher } from '$lib/data/users';
@@ -611,7 +611,7 @@
                   {#if goal.sourceUrl}
                     <div class="detail-row">
                       <span class="detail-label">Reference</span>
-                      <a href={goal.sourceUrl} class="detail-value detail-link" target="_blank" rel="noopener">{goal.sourceUrl}</a>
+                      <a href={goal.sourceUrl} class="detail-value detail-link" target="_blank" rel="noopener">{shortenUrl(goal.sourceUrl)}</a>
                     </div>
                   {/if}
                   {#if goal.links.length > 0}

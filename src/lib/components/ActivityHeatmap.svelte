@@ -462,17 +462,23 @@
     .heatmap-months {
       font-size: 0.6rem;
     }
+
+    /* Ensure cells are large enough to tap; board scrolls horizontally */
+    .heatmap-board {
+      min-width: 540px;
+    }
   }
 
   @media (max-width: 480px) {
     .heatmap-wrapper {
       padding: 0.55rem;
-      --cell-gap: 1px;
+      --cell-gap: 1.5px;
     }
 
     .heatmap-board {
       grid-template-columns: 0 1fr;
       column-gap: 0;
+      min-width: 500px;
     }
 
     .day-labels {
