@@ -141,6 +141,7 @@
     min-height: 42px;
     border: none;
     background: transparent;
+    color: var(--color-text);
     padding: 0.25rem 0.2rem;
     min-width: 0;
   }
@@ -200,10 +201,18 @@
 
     .search-input-wrap {
       padding: 0.2rem 0.3rem;
+      flex-wrap: wrap;
+      border-radius: var(--radius-md);
     }
 
     .search-input {
       min-height: 40px;
+    }
+
+    .search-actions {
+      width: 100%;
+      justify-content: flex-end;
+      padding-bottom: 0.15rem;
     }
   }
 </style>

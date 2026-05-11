@@ -2,7 +2,6 @@
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
   import 'leaflet/dist/leaflet.css';
   import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png?url';
   import markerIconUrl from 'leaflet/dist/images/marker-icon.png?url';
@@ -531,11 +530,7 @@
           />
           <span>Search parkour.spot</span>
         </button>
-        {#if query}
-          <button type="button" class="btn btn-ghost search-action-btn" on:click={() => goto('/spots')}>
-            Reset
-          </button>
-        {/if}
+
       </svelte:fragment>
     </SearchBar>
   </form>

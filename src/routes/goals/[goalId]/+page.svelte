@@ -5,7 +5,7 @@
   import { getSpotById } from '$lib/data/spots';
   import { addGoalToList } from '$lib/data/lists';
   import { appStateStore } from '$lib/data/state';
-  import { formatGoalType, typeIcon } from '$lib/utils/format';
+  import { formatGoalType, typeIcon, shortenUrl } from '$lib/utils/format';
   import { getGoalVisualImageUrl } from '$lib/utils/media';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { CreateGoalInput, GoalStatus } from '$lib/types';
@@ -248,16 +248,22 @@
   {:else}
     <div class="page-header">
       <div>
-        <a href="/goals" class="back-link text-muted text-sm">← Goals</a>
+        <a href="/goals" class="back-link text-muted text-sm" on:click|preventDefault={() => history.back()}>← Back</a>
         <h1 class="page-title">{goal.title}</h1>
       </div>
       <div class="header-actions">
         {#if isOwnGoal}
           {#if !isAdoptedGoal}
-            <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit</a>
-            <button class="btn btn-danger" on:click={handleDelete}>Delete</button>
+            <a href="/goals/{goal.id}/edit" class="btn-icon" aria-label="Edit goal">
+              <img src="/images/icons/edit.svg" alt="" width="18" height="18" />
+            </a>
+            <button class="btn-icon btn-icon-danger" on:click={handleDelete} aria-label="Delete goal">
+              <img src="/images/icons/trash.svg" alt="" width="18" height="18" />
+            </button>
           {:else}
-            <button class="btn btn-danger" on:click={handleDelete}>Remove</button>
+            <button class="btn-icon btn-icon-danger" on:click={handleDelete} aria-label="Remove goal">
+              <img src="/images/icons/trash.svg" alt="" width="18" height="18" />
+            </button>
           {/if}
         {:else if isAuthenticated}
           {#if existingMineForCurrentGoal}
@@ -270,13 +276,15 @@
         {/if}
         {#if isAdmin && goal.type === 'move'}
           {#if goal.isLibraryEntry}
-            <a href="/goals/{goal.id}/edit" class="btn btn-ghost">Edit Library Entry</a>
-            <button class="btn btn-danger" on:click={handleRemoveFromLibrary} disabled={removingFromLibrary}>
-              {removingFromLibrary ? 'Removing…' : 'Remove from Library'}
+            <a href="/goals/{goal.id}/edit" class="btn-icon" aria-label="Edit library entry">
+              <img src="/images/icons/edit.svg" alt="" width="18" height="18" />
+            </a>
+            <button class="btn-icon btn-icon-danger" on:click={handleRemoveFromLibrary} disabled={removingFromLibrary} aria-label="Remove from Library">
+              <img src="/images/icons/trash.svg" alt="" width="18" height="18" />
             </button>
-          {:else}
-            <button class="btn btn-ghost" on:click={handleCommitToLibrary} disabled={committingToLibrary}>
-              {committingToLibrary ? 'Committing…' : '📌 Commit to Library'}
+          {:else if !goal.sourceGoalId}
+            <button class="btn-icon" on:click={handleCommitToLibrary} disabled={committingToLibrary} aria-label="Commit to Library">
+              <img src="/images/icons/folder-star.svg" alt="" width="18" height="18" />
             </button>
           {/if}
         {/if}
@@ -401,16 +409,7 @@
           <div class="section">
             <h3 class="section-label">Reference</h3>
             <a href={goal.sourceUrl} target="_blank" rel="noopener noreferrer" class="link-item">
-              <span class="link-url-text">
-                {(() => {
-                  try {
-                    const parsed = new URL(goal.sourceUrl);
-                    return `${parsed.hostname}${parsed.pathname}`;
-                  } catch {
-                    return goal.sourceUrl;
-                  }
-                })()}
-              </span>
+              <span class="link-url-text">{shortenUrl(goal.sourceUrl)}</span>
               <span class="text-muted text-sm">↗</span>
             </a>
           </div>
@@ -517,6 +516,7 @@
   .header-actions {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
 
   .form-error {
@@ -938,9 +938,53 @@
       gap: 0.4rem;
     }
 
-    .btn {
+    .spot-actions .btn {
       flex: 1;
       justify-content: center;
+    }
+
+    .header-actions .btn {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-decoration: none;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .btn-icon:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+  }
+
+  .btn-icon-danger {
+    border-color: color-mix(in oklch, var(--color-danger, #e53e3e) 40%, var(--color-border));
+  }
+
+  .btn-icon-danger:hover {
+    background: color-mix(in oklch, var(--color-danger, #e53e3e) 10%, transparent);
+    border-color: var(--color-danger, #e53e3e);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .btn-icon img {
+      filter: invert(1) brightness(0.85);
     }
   }
 </style>
