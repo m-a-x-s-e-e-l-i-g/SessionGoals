@@ -22,6 +22,8 @@
   $: currentUserId = $page.data.user?.id as string | undefined;
   $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
   $: isAdoptedGoal = !!goal?.sourceGoalId;
+  $: isLibraryEntry = !!goal?.isLibraryEntry;
+  $: sourceGoalIsLibrary = goal?.sourceGoalId ? (goalById.get(goal.sourceGoalId)?.isLibraryEntry ?? false) : false;
   $: myGoals = currentUserId ? getGoals().filter((entry) => entry.userId === currentUserId) : [];
   $: goalById = new Map(getGoals().map((g) => [g.id, g]));
   $: allUsers = ($page.data.appState?.users ?? []) as import('$lib/types').UserProfile[];
@@ -269,8 +271,8 @@
           {#if existingMineForCurrentGoal}
             <a href="/goals/{existingMineForCurrentGoal.id}" class="btn btn-ghost">In My Goals</a>
           {:else}
-            <button class="btn btn-primary" on:click={handleAddToMine} disabled={addingToMine}>
-              {addingToMine ? 'Adding...' : '+ Add To My Goals'}
+            <button class="btn btn-sm btn-primary" on:click={handleAddToMine} disabled={addingToMine}>
+              {addingToMine ? 'Adding...' : (isLibraryEntry ? '+ Track' : '+ Add To My Goals')}
             </button>
           {/if}
         {/if}
@@ -318,7 +320,7 @@
         </div>
 
         {#if isOwnGoal && isAdoptedGoal}
-          <p class="text-muted text-sm">This goal was added from another athlete. You can track it, but details are read-only.</p>
+          <p class="text-muted text-sm">{sourceGoalIsLibrary ? 'This is a permanent library move. You can check it off or untrack it, but details are managed by admins.' : 'This goal was added from another athlete. You can track it, but details are read-only.'}</p>
         {/if}
 
         {#if justChecked}

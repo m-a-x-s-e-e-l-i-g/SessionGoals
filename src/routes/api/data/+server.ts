@@ -253,9 +253,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const sourceGoalId = payload.goalId as string | undefined;
       if (!sourceGoalId) return badRequest('goalId is required.');
 
-      // Use the service-role client so we can read private goals too
+      // Use the service-role client so we can read/write private goals
       const adminClient = createAdminSupabaseClient();
       if (!adminClient) return json({ ok: false, error: 'Service role key not configured.' }, { status: 500 });
+
       const { data: sourceGoal, error: sourceGoalError } = await adminClient
         .from('goals')
         .select('*')
@@ -265,47 +266,65 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       if (sourceGoalError) throw new Error(sourceGoalError.message);
       if (!sourceGoal) return json({ ok: false, error: 'Goal not found.' }, { status: 404 });
       if (sourceGoal.is_library_entry) return badRequest('This goal is already a library entry.');
+      if (sourceGoal.source_goal_id) return badRequest('Cannot commit an adopted goal to the permanent library.');
 
-      const { data: libraryGoal, error: libraryError } = await adminClient
+      const originalOwnerId = sourceGoal.user_id as string | null;
+      const originalStatus = sourceGoal.status as string;
+
+      // Promote the existing goal row in-place — no duplication
+      const { error: promoteError } = await adminClient
         .from('goals')
-        .insert({
-          user_id: null,
-          is_library_entry: true,
-          source_goal_id: sourceGoalId,
-          type: sourceGoal.type,
-          title: sourceGoal.title,
-          description: sourceGoal.description,
-          status: 'want_to_try',
-          spot_id: sourceGoal.spot_id,
-          image_url: sourceGoal.image_url,
-          source_url: sourceGoal.source_url,
-        })
-        .select('*')
-        .single();
+        .update({ user_id: null, is_library_entry: true, source_goal_id: null })
+        .eq('id', sourceGoalId);
 
-      if (libraryError || !libraryGoal) throw new Error(libraryError?.message ?? 'Failed to create library entry.');
+      if (promoteError) throw new Error(promoteError.message);
 
-      // Copy goal links
-      const { data: sourceLinks } = await adminClient
-        .from('goal_links')
-        .select('url, platform, title')
-        .eq('goal_id', sourceGoalId);
+      // If there was an original owner, create a personal tracking copy so they still see the goal
+      let trackingCopyId: string | null = null;
+      if (originalOwnerId) {
+        // Avoid creating a duplicate tracking copy if one already exists
+        const { data: existingCopy } = await adminClient
+          .from('goals')
+          .select('id')
+          .eq('user_id', originalOwnerId)
+          .eq('source_goal_id', sourceGoalId)
+          .maybeSingle();
 
-      if (sourceLinks && sourceLinks.length > 0) {
-        await adminClient.from('goal_links').insert(
-          sourceLinks.map((link: { url: string; platform: string | null; title: string | null }) => ({
-            goal_id: libraryGoal.id,
-            url: link.url,
-            platform: link.platform,
-            title: link.title,
-          })),
-        );
+        if (existingCopy?.id) {
+          trackingCopyId = existingCopy.id;
+        } else {
+          const { data: newCopy, error: copyError } = await adminClient
+            .from('goals')
+            .insert({
+              user_id: originalOwnerId,
+              source_goal_id: sourceGoalId,
+              is_library_entry: false,
+              type: sourceGoal.type,
+              title: sourceGoal.title,
+              description: sourceGoal.description,
+              status: originalStatus,
+              spot_id: sourceGoal.spot_id,
+              image_url: sourceGoal.image_url,
+              source_url: sourceGoal.source_url,
+            })
+            .select('id')
+            .single();
+
+          if (copyError || !newCopy) throw new Error(copyError?.message ?? 'Failed to create tracking copy for original owner.');
+          trackingCopyId = newCopy.id;
+        }
       }
 
+      // Admins can see all goals via RLS, so one snapshot covers both the library entry and the tracking copy
       const snapshot = await snapshotFor(locals, locals.user.id);
-      const goal = snapshot.goals.find((entry) => entry.id === libraryGoal.id);
-      if (!goal) throw new Error('Library entry created but failed to load it.');
-      return json({ ok: true, data: goal });
+      const libraryEntry = snapshot.goals.find((entry) => entry.id === sourceGoalId);
+      if (!libraryEntry) throw new Error('Library entry promotion failed to load.');
+
+      const trackingCopy: Goal | null = trackingCopyId
+        ? (snapshot.goals.find((entry) => entry.id === trackingCopyId) ?? null)
+        : null;
+
+      return json({ ok: true, data: { libraryEntry, trackingCopy } });
     }
 
     // ── Admin: update a permanent library entry ──────────────────────────────

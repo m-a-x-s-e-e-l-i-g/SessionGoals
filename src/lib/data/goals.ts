@@ -75,14 +75,20 @@ export async function deleteGoal(id: string): Promise<void> {
 }
 
 export async function commitToLibrary(goalId: string): Promise<Goal> {
-  const goal = await runDataAction<Goal>('commitToLibrary', { goalId });
-  updateAppState((state) => ({
-    ...state,
-    goals: state.goals.some((entry) => entry.id === goal.id)
-      ? state.goals.map((entry) => (entry.id === goal.id ? goal : entry))
-      : [goal, ...state.goals],
-  }));
-  return goal;
+  const { libraryEntry, trackingCopy } = await runDataAction<{ libraryEntry: Goal; trackingCopy: Goal | null }>(
+    'commitToLibrary',
+    { goalId },
+  );
+  updateAppState((state) => {
+    // Replace the original goal row with its promoted library-entry form (same ID, no duplication)
+    let goals = state.goals.map((entry) => (entry.id === libraryEntry.id ? libraryEntry : entry));
+    // Add the original owner's tracking copy if it was returned and is not already in state
+    if (trackingCopy && !goals.some((entry) => entry.id === trackingCopy.id)) {
+      goals = [trackingCopy, ...goals];
+    }
+    return { ...state, goals };
+  });
+  return libraryEntry;
 }
 
 export async function updateLibraryMove(id: string, input: import('$lib/types').UpdateGoalInput): Promise<Goal> {

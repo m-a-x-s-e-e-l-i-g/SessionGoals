@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import GoalForm from '$lib/components/GoalForm.svelte';
-  import { getGoalById, updateGoal } from '$lib/data/goals';
+  import { getGoalById, updateGoal, updateLibraryMove } from '$lib/data/goals';
   import { getListById } from '$lib/data/lists';
   import { getSpotById, upsertSpot } from '$lib/data/spots';
   import type { GoalStatus, GoalType, Spot, UpdateGoalInput } from '$lib/types';
@@ -13,6 +13,8 @@
   $: goalId = $page.params.goalId ?? '';
   $: goal = goalId ? getGoalById(goalId) : undefined;
   $: listId = $page.url.searchParams.get('listId') ?? undefined;
+  $: allUsers = ($page.data.appState?.users ?? []) as import('$lib/types').UserProfile[];
+  $: isAdmin = allUsers.some((u) => u.id === ($page.data.user?.id as string | undefined) && u.isAdmin);
   $: sourceList = listId ? getListById(listId) : undefined;
   $: initialSpot = goal?.spotId ? (getSpotById(goal.spotId) ?? null) : null;
 
@@ -21,6 +23,10 @@
     if (!goalId || !goal) return;
     if (goal.sourceGoalId) {
       error = 'This adopted goal is read-only. You can still track check status.';
+      return;
+    }
+    if (goal.isLibraryEntry && !isAdmin) {
+      error = 'Permanent library entries can only be edited by admins.';
       return;
     }
 
@@ -55,7 +61,9 @@
         await upsertSpot(spot);
       }
 
-      const updatedGoal = await updateGoal(goalId, input);
+      const updatedGoal = goal.isLibraryEntry
+        ? await updateLibraryMove(goalId, input)
+        : await updateGoal(goalId, input);
       goto(`/goals/${updatedGoal.id}`);
     } catch {
       error = 'Failed to update goal. Please try again.';
@@ -78,6 +86,12 @@
     <div class="not-found">
       <h2>This goal is read-only</h2>
       <p class="text-muted">Goals added from other athletes can be tracked but not edited.</p>
+      <a href="/goals/{goal.id}" class="btn btn-ghost">← Back to Goal</a>
+    </div>
+  {:else if goal.isLibraryEntry && !isAdmin}
+    <div class="not-found">
+      <h2>This goal is read-only</h2>
+      <p class="text-muted">Permanent library entries can only be edited by admins.</p>
       <a href="/goals/{goal.id}" class="btn btn-ghost">← Back to Goal</a>
     </div>
   {:else}
