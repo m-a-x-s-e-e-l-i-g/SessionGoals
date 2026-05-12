@@ -343,7 +343,7 @@
             <span class="quick-stat-icon">{CHECKED_ICON}</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{checkedMoveGoals.length}</span>
-              <span class="quick-stat-label">Moves mastered</span>
+              <span class="quick-stat-label">Moves Done</span>
             </span>
           </a>
           <a href="#lists" class="quick-stat">
