@@ -1,13 +1,15 @@
 <script lang="ts">
   import type { Goal } from '$lib/types';
-  import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
+  import { CHECKED_ICON, formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
   import { getGoalVisualImageUrl, proxyLibraryImageUrl } from '$lib/utils/media';
 
   export let goal: Goal;
   export let onToggle: ((id: string) => void) | undefined = undefined;
   export let onAddToMine: ((goal: Goal) => void) | undefined = undefined;
+  export let onCheckOffMine: ((goal: Goal) => void) | undefined = undefined;
   export let onCommitToLibrary: ((goal: Goal) => void) | undefined = undefined;
   export let addToMineLabel = 'Add to my goals';
+  export let checkOffMineLabel = 'Already can do';
   export let spotName: string | undefined = undefined;
   export let statusNote: string | undefined = undefined;
   export let insightNote: string | undefined = undefined;
@@ -47,7 +49,7 @@
     </span>
     <div class="goal-card-header-actions">
       {#if goal.status === 'done'}
-        <span class="badge {statusColor(goal.status)}">✓ {formatStatus(goal.status)}</span>
+        <span class="badge {statusColor(goal.status)}">{CHECKED_ICON} {formatStatus(goal.status)}</span>
       {/if}
       {#if onCommitToLibrary}
         <button
@@ -66,6 +68,15 @@
           on:click|stopPropagation={() => onAddToMine?.(goal)}
         >
           + {addToMineLabel}
+        </button>
+      {/if}
+      {#if onCheckOffMine}
+        <button
+          type="button"
+          class="add-goal add-goal-done"
+          on:click|stopPropagation={() => onCheckOffMine?.(goal)}
+        >
+          {CHECKED_ICON} {checkOffMineLabel}
         </button>
       {/if}
     </div>
@@ -271,6 +282,17 @@
   .add-goal:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
+  }
+
+  .add-goal-done {
+    color: var(--color-success);
+    border-color: color-mix(in oklch, var(--color-success) 42%, var(--color-border));
+    background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
+  }
+
+  .add-goal-done:hover {
+    border-color: var(--color-success);
+    color: var(--color-success);
   }
 
   .commit-library-btn {

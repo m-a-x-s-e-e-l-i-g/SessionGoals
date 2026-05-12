@@ -13,13 +13,19 @@
   import { createGoal, getGoals } from '$lib/data/goals';
   import { getLists } from '$lib/data/lists';
   import { getActivities, getActivityStats, getRecentActivities } from '$lib/data/activities';
-  import GoalCard from '$lib/components/GoalCard.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import type { CreateGoalInput, Goal, UserProfile } from '$lib/types';
-  import { formatActivityType } from '$lib/utils/format';
+  import type { CreateGoalInput, Goal, GoalStatus, UserProfile } from '$lib/types';
+  import {
+    CHECKED_ICON,
+    formatActivityType,
+    formatGoalStatsSummary,
+    formatGoalType,
+    pluralize,
+    typeIcon,
+  } from '$lib/utils/format';
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
@@ -66,6 +72,7 @@
   let editRole: UserProfile['role'] = 'athlete';
   let showDeleteAccountDialog = false;
   let deletingAccount = false;
+  const addingGoalMessage = 'Adding…';
 
   function startEdit() {
     if (!profile) return;
@@ -113,6 +120,12 @@
     if (g.userId !== userId) return false;
     return isOwnProfile || profile?.isPublic;
   });
+  $: activeGoals = visibleGoals.filter((goal) => goal.status !== 'done');
+  $: checkedGoals = visibleGoals.filter((goal) => goal.status === 'done');
+  $: activeMoveGoals = activeGoals.filter((goal) => goal.type === 'move');
+  $: activeSpotGoals = activeGoals.filter((goal) => goal.type === 'spot');
+  $: checkedMoveGoals = checkedGoals.filter((goal) => goal.type === 'move');
+  $: checkedSpotGoals = checkedGoals.filter((goal) => goal.type === 'spot');
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -140,16 +153,16 @@
     });
   }
 
-  function toGoalCopyInput(goal: Goal): CreateGoalInput {
+  function toGoalCopyInput(goal: Goal, status: GoalStatus): CreateGoalInput {
     return {
       type: goal.type,
       sourceGoalId: goal.id,
       title: goal.title,
-      status: 'want_to_try',
+      status,
     };
   }
 
-  async function addGoalToMine(goal: Goal) {
+  async function addGoalToMine(goal: Goal, status: GoalStatus) {
     if (!isAuthenticated || !currentUserId) return;
     if (goal.userId && goal.userId === currentUserId) return;
     if (myGoalRootIds.has(resolveRootGoalId(goal.id))) {
@@ -162,19 +175,59 @@
     goalsFeedback = undefined;
 
     try {
-      await createGoal(toGoalCopyInput(goal));
-      goalsFeedback = `Added \"${goal.title}\" to your goals.`;
+      await createGoal(toGoalCopyInput(goal, status));
+      goalsFeedback = status === 'done'
+        ? `Checked off \"${goal.title}\" in your collection.`
+        : `Added \"${goal.title}\" to your goals.`;
     } catch {
       goalsFeedback = 'Could not add this goal right now. Please try again.';
     } finally {
       addingGoalId = null;
     }
   }
+
+  async function trackGoalInMine(goal: Goal) {
+    await addGoalToMine(goal, 'want_to_try');
+  }
+
+  async function checkOffGoalInMine(goal: Goal) {
+    await addGoalToMine(goal, 'done');
+  }
 </script>
 
 <svelte:head>
   <title>{profile?.displayName ?? 'Profile'} — SessionGoals</title>
 </svelte:head>
+
+{#snippet tinyGoalCard(goal: Goal, canAddToMine: boolean)}
+  <article class="tiny-goal-card tiny-goal-card--{goal.type}">
+    <a href="/goals/{goal.id}" class="tiny-goal-title">{goal.title}</a>
+    <span class="tiny-goal-meta">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+    {#if canAddToMine}
+      <div class="tiny-goal-actions">
+        <button
+          type="button"
+          class="tiny-goal-action"
+          aria-label="Track {goal.title}"
+          on:click={() => trackGoalInMine(goal)}
+        >
+          Track
+        </button>
+        <button
+          type="button"
+          class="tiny-goal-action tiny-goal-action--done"
+          aria-label="Add {goal.title} as checked off"
+          on:click={() => checkOffGoalInMine(goal)}
+        >
+          {CHECKED_ICON}
+        </button>
+      </div>
+    {/if}
+    {#if addingGoalId === goal.id}
+      <span class="tiny-goal-loading text-muted">{addingGoalMessage}</span>
+    {/if}
+  </article>
+{/snippet}
 
 <div class="container page">
   {#if !profile}
@@ -296,13 +349,42 @@
           <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
         </div>
         <div class="profile-quick-stats">
-          <a href="#goals" class="quick-stat">
-            <span class="quick-stat-value">{visibleGoals.length}</span>
-            <span class="quick-stat-label">goal{visibleGoals.length === 1 ? '' : 's'}</span>
+          <a
+            href="#profile-spots-todo"
+            class="quick-stat quick-stat--spot"
+            aria-label={`Spot Todos: ${activeSpotGoals.length}`}
+          >
+            <span class="quick-stat-icon">📍</span>
+            <span class="quick-stat-body">
+              <span class="quick-stat-value">{activeSpotGoals.length}</span>
+              <span class="quick-stat-label">Spot Todos</span>
+            </span>
+          </a>
+          <a
+            href="#profile-moves-todo"
+            class="quick-stat quick-stat--move"
+            aria-label={`Move Todos: ${activeMoveGoals.length}`}
+          >
+            <span class="quick-stat-icon">🤸</span>
+            <span class="quick-stat-body">
+              <span class="quick-stat-value">{activeMoveGoals.length}</span>
+              <span class="quick-stat-label">Move Todos</span>
+            </span>
+          </a>
+          <a
+            href="#checked-goals"
+            class="quick-stat quick-stat--done"
+            aria-label={`Moves Done: ${checkedMoveGoals.length}`}
+          >
+            <span class="quick-stat-icon">{CHECKED_ICON}</span>
+            <span class="quick-stat-body">
+              <span class="quick-stat-value">{checkedMoveGoals.length}</span>
+              <span class="quick-stat-label">Moves Done</span>
+            </span>
           </a>
           <a href="#lists" class="quick-stat">
             <span class="quick-stat-value">{visibleLists.length}</span>
-            <span class="quick-stat-label">list{visibleLists.length === 1 ? '' : 's'}</span>
+            <span class="quick-stat-label">{pluralize(visibleLists.length, 'list')}</span>
           </a>
           {#if activityStats.streak > 0}
             <a href="#activity" class="quick-stat">
@@ -432,7 +514,12 @@
     <div class="goals-lists-wrapper">
       <section class="section-block section-goals" id="goals">
         <div class="section-header">
-          <h2 class="section-title">Goals</h2>
+          <div>
+            <h2 class="section-title">Goals</h2>
+            <p class="section-subtitle text-muted text-sm">
+              {formatGoalStatsSummary(activeSpotGoals.length, activeMoveGoals.length, checkedMoveGoals.length)}
+            </p>
+          </div>
         </div>
         {#if goalsFeedback}
           <p class="goals-feedback text-sm">{goalsFeedback}</p>
@@ -444,23 +531,113 @@
             message="No visible goals on this profile right now."
           />
         {:else}
-          <div class="grid-cards">
-            {#each visibleGoals as goal}
-              {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-              <div class="goal-card-wrap">
-                <GoalCard
-                  {goal}
-                  onAddToMine={canAddToMine ? addGoalToMine : undefined}
-                />
-                {#if addingGoalId === goal.id}
-                  <p class="text-sm text-muted">Adding to your goals...</p>
-                {/if}
+          {#if activeGoals.length > 0}
+            {#if activeSpotGoals.length > 0}
+              <div class="goal-subsection" id="profile-spots-todo">
+                <div class="goal-subsection-head">
+                  <h3 class="goal-subsection-title">📍 Spot Todos</h3>
+                  <span class="goal-subsection-badge">{activeSpotGoals.length} to do</span>
+                </div>
+                <div class="tiny-goal-grid">
+                  {#each activeSpotGoals as goal}
+                    {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                    {@render tinyGoalCard(goal, canAddToMine)}
+                  {/each}
+                </div>
               </div>
-            {/each}
-          </div>
+            {/if}
+
+            {#if activeMoveGoals.length > 0}
+              <div class="goal-subsection" id="profile-moves-todo">
+                <div class="goal-subsection-head">
+                  <h3 class="goal-subsection-title">🤸 Move Todos</h3>
+                  <span class="goal-subsection-badge">{activeMoveGoals.length} to do</span>
+                </div>
+                <div class="tiny-goal-grid">
+                  {#each activeMoveGoals as goal}
+                    {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                    {@render tinyGoalCard(goal, canAddToMine)}
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          {:else}
+            <p class="text-muted">No active goals right now.</p>
+          {/if}
+
+          {#if checkedGoals.length > 0}
+            <details
+              class="checked-collection"
+              id="checked-goals"
+              open={activeGoals.length === 0}
+              aria-label="Checked-off goals collection"
+            >
+              <summary>
+                <span>Achievements</span>
+                <span class="checked-count">
+                  {checkedMoveGoals.length} {pluralize(checkedMoveGoals.length, 'move')}
+                  {#if checkedSpotGoals.length > 0}
+                    · {checkedSpotGoals.length} {pluralize(checkedSpotGoals.length, 'spot')}
+                  {/if}
+                </span>
+              </summary>
+              {#if checkedMoveGoals.length > 0}
+                <div class="checked-group">
+                  <h3 class="checked-group-title">🤸 Moves Mastered</h3>
+                  <div class="checked-grid">
+                    {#each checkedMoveGoals as goal}
+                      {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                      <article class="checked-chip checked-chip--move">
+                        <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
+                        <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                        {#if canAddToMine}
+                          <button
+                            type="button"
+                            class="checked-add"
+                            on:click={() => checkOffGoalInMine(goal)}
+                          >
+                            {CHECKED_ICON} Add checked
+                          </button>
+                        {/if}
+                        {#if addingGoalId === goal.id}
+                          <span class="text-sm text-muted">{addingGoalMessage}</span>
+                        {/if}
+                      </article>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+              {#if checkedSpotGoals.length > 0}
+                <div class="checked-group">
+                  <h3 class="checked-group-title">📍 Spots Completed</h3>
+                  <div class="checked-grid">
+                    {#each checkedSpotGoals as goal}
+                      {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                      <article class="checked-chip checked-chip--spot">
+                        <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
+                        <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                        {#if canAddToMine}
+                          <button
+                            type="button"
+                            class="checked-add"
+                            on:click={() => checkOffGoalInMine(goal)}
+                          >
+                            {CHECKED_ICON} Add checked
+                          </button>
+                        {/if}
+                        {#if addingGoalId === goal.id}
+                          <span class="text-sm text-muted">{addingGoalMessage}</span>
+                        {/if}
+                      </article>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </details>
+          {/if}
         {/if}
       </section>
-
+ 
       <section class="section-block section-lists" id="lists">
         <div class="section-header">
           <h2 class="section-title">Lists</h2>
@@ -546,26 +723,63 @@
 
   .quick-stat {
     display: flex;
-    align-items: baseline;
-    gap: 0.3rem;
-    padding: 0.4rem 0.85rem;
-    background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
-    border: 1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
-    border-radius: 999px;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.8rem;
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-primary) 8%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
+    border-radius: var(--radius-md);
     text-decoration: none;
     color: var(--color-text);
-    transition: background 0.15s, border-color 0.15s;
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--color-primary) 10%, transparent);
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
   }
 
   .quick-stat:hover {
-    background: color-mix(in oklch, var(--color-primary) 18%, var(--color-surface));
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 24%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-primary) 12%, var(--color-surface));
     border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+    transform: translateY(-2px);
     text-decoration: none;
+  }
+
+  .quick-stat--spot {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-accent) 20%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-accent) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 26%, var(--color-border));
+  }
+
+  .quick-stat--done {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-success) 22%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-success) 28%, var(--color-border));
+  }
+
+  .quick-stat-icon {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .quick-stat-body {
+    display: grid;
+    gap: 0.1rem;
   }
 
   .quick-stat-value {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 1.35rem;
     font-weight: 800;
     color: var(--color-primary);
     line-height: 1;
@@ -611,15 +825,268 @@
     font-weight: 700;
   }
 
+  .section-subtitle {
+    margin-top: 0.25rem;
+  }
+
   .goals-feedback {
     margin-bottom: 0.65rem;
     color: var(--color-success);
   }
 
-  .goal-card-wrap {
+  .goal-subsection {
+    scroll-margin-top: 72px;
+  }
+
+  .goal-subsection + .goal-subsection {
+    margin-top: 1.5rem;
+  }
+
+  .goal-subsection-head {
     display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .goal-subsection-title,
+  .checked-group-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .goal-subsection-badge {
+    border: 1px solid color-mix(in oklch, var(--color-primary) 28%, var(--color-border));
+    border-radius: 999px;
+    color: var(--color-primary);
+    background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 0.18rem 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tiny-goal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.45rem;
+  }
+
+  .tiny-goal-card {
+    position: relative;
+    display: grid;
+    gap: 0.28rem;
+    min-height: 5.2rem;
+    padding: 0.6rem;
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 14%, transparent), transparent 58%),
+      color-mix(in oklch, var(--color-primary) 6%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-primary) 20%, var(--color-border));
+    border-radius: var(--radius-sm);
+    box-shadow: 0 6px 18px color-mix(in oklch, var(--color-primary) 8%, transparent);
+  }
+
+  .tiny-goal-card--spot {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-accent) 16%, transparent), transparent 58%),
+      color-mix(in oklch, var(--color-accent) 6%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 22%, var(--color-border));
+  }
+
+  .tiny-goal-card--move {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 15%, transparent), transparent 58%),
+      color-mix(in oklch, var(--color-primary) 7%, var(--color-surface));
+  }
+
+  .tiny-goal-title {
+    color: var(--color-text);
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-decoration: none;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tiny-goal-title:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .tiny-goal-meta {
+    width: fit-content;
+    color: var(--color-text-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tiny-goal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-self: end;
+    margin-top: 0.1rem;
+  }
+
+  .tiny-goal-action {
+    border: 1px solid color-mix(in oklch, var(--color-primary) 30%, var(--color-border));
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.3rem 0.45rem;
+  }
+
+  .tiny-goal-action--done {
+    color: var(--color-success);
+    border-color: color-mix(in oklch, var(--color-success) 38%, var(--color-border));
+  }
+
+  .tiny-goal-loading {
+    font-size: 0.68rem;
+  }
+
+  @media (max-width: 480px) {
+    .tiny-goal-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.4rem;
+    }
+
+    .tiny-goal-card {
+      min-height: 4.8rem;
+      padding: 0.5rem;
+    }
+
+    .tiny-goal-title {
+      font-size: 0.8rem;
+    }
+  }
+
+  .checked-collection {
+    margin-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.8rem;
+    scroll-margin-top: 72px;
+  }
+
+  .checked-collection summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    list-style: none;
+  }
+
+  .checked-collection summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .checked-collection summary::after {
+    content: '▾';
+    margin-left: auto;
+    color: var(--color-text-muted);
+    transition: transform 0.15s;
+  }
+
+  .checked-collection:not([open]) summary::after {
+    transform: rotate(-90deg);
+  }
+
+  .checked-count {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+  }
+
+  .checked-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.75rem;
+  }
+
+  .checked-group {
+    margin-top: 0.85rem;
+  }
+
+  .checked-group + .checked-group {
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .checked-chip {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.25rem 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-success) 22%, var(--color-border));
+    border-radius: var(--radius-sm);
+  }
+
+  .checked-chip--spot {
+    background: color-mix(in oklch, var(--color-accent) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 22%, var(--color-border));
+  }
+
+  .checked-title {
+    min-width: 0;
+    color: var(--color-text);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .checked-title:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .checked-type {
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
+  .checked-add {
+    grid-column: 1 / -1;
+    justify-self: start;
+    border: 1px solid color-mix(in oklch, var(--color-success) 42%, var(--color-border));
+    background: var(--color-surface);
+    color: var(--color-success);
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
   }
 
   .student-grid {
