@@ -58,9 +58,9 @@ export function formatGoalStatsSummary(
   moveTodoCount: number,
   doneMoveCount: number,
 ): string {
-  const spotTodoLabel = spotTodoCount === 1 ? 'Spot Todo' : 'Spot Todos';
-  const moveTodoLabel = moveTodoCount === 1 ? 'Move Todo' : 'Move Todos';
-  const doneMoveLabel = doneMoveCount === 1 ? 'Move Done' : 'Moves Done';
+  const spotTodoLabel = pluralize(spotTodoCount, 'Spot Todo');
+  const moveTodoLabel = pluralize(moveTodoCount, 'Move Todo');
+  const doneMoveLabel = pluralize(doneMoveCount, 'Move Done', 'Moves Done');
   return `${spotTodoCount} ${spotTodoLabel} · ${moveTodoCount} ${moveTodoLabel} · ${doneMoveCount} ${doneMoveLabel}`;
 }
 
