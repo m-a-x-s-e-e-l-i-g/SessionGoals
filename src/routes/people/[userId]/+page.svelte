@@ -199,6 +199,36 @@
   <title>{profile?.displayName ?? 'Profile'} — SessionGoals</title>
 </svelte:head>
 
+{#snippet tinyGoalCard(goal: Goal, canAddToMine: boolean)}
+  <article class="tiny-goal-card tiny-goal-card--{goal.type}">
+    <a href="/goals/{goal.id}" class="tiny-goal-title">{goal.title}</a>
+    <span class="tiny-goal-meta">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+    {#if canAddToMine}
+      <div class="tiny-goal-actions">
+        <button
+          type="button"
+          class="tiny-goal-action"
+          aria-label="Track {goal.title}"
+          on:click={() => trackGoalInMine(goal)}
+        >
+          Track
+        </button>
+        <button
+          type="button"
+          class="tiny-goal-action tiny-goal-action--done"
+          aria-label="Add {goal.title} as checked off"
+          on:click={() => checkOffGoalInMine(goal)}
+        >
+          {CHECKED_ICON}
+        </button>
+      </div>
+    {/if}
+    {#if addingGoalId === goal.id}
+      <span class="tiny-goal-loading text-muted">{addingGoalMessage}</span>
+    {/if}
+  </article>
+{/snippet}
+
 <div class="container page">
   {#if !profile}
     <div class="not-found">
@@ -511,33 +541,7 @@
                 <div class="tiny-goal-grid">
                   {#each activeSpotGoals as goal}
                     {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                    <article class="tiny-goal-card tiny-goal-card--spot">
-                      <a href="/goals/{goal.id}" class="tiny-goal-title">{goal.title}</a>
-                      <span class="tiny-goal-meta">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
-                      {#if canAddToMine}
-                        <div class="tiny-goal-actions">
-                          <button
-                            type="button"
-                            class="tiny-goal-action"
-                            aria-label="Track {goal.title}"
-                            on:click={() => trackGoalInMine(goal)}
-                          >
-                            Track
-                          </button>
-                          <button
-                            type="button"
-                            class="tiny-goal-action tiny-goal-action--done"
-                            aria-label="Add {goal.title} as checked off"
-                            on:click={() => checkOffGoalInMine(goal)}
-                          >
-                            {CHECKED_ICON}
-                          </button>
-                        </div>
-                      {/if}
-                      {#if addingGoalId === goal.id}
-                        <span class="tiny-goal-loading text-muted">{addingGoalMessage}</span>
-                      {/if}
-                    </article>
+                    {@render tinyGoalCard(goal, canAddToMine)}
                   {/each}
                 </div>
               </div>
@@ -552,33 +556,7 @@
                 <div class="tiny-goal-grid">
                   {#each activeMoveGoals as goal}
                     {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                    <article class="tiny-goal-card tiny-goal-card--move">
-                      <a href="/goals/{goal.id}" class="tiny-goal-title">{goal.title}</a>
-                      <span class="tiny-goal-meta">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
-                      {#if canAddToMine}
-                        <div class="tiny-goal-actions">
-                          <button
-                            type="button"
-                            class="tiny-goal-action"
-                            aria-label="Track {goal.title}"
-                            on:click={() => trackGoalInMine(goal)}
-                          >
-                            Track
-                          </button>
-                          <button
-                            type="button"
-                            class="tiny-goal-action tiny-goal-action--done"
-                            aria-label="Add {goal.title} as checked off"
-                            on:click={() => checkOffGoalInMine(goal)}
-                          >
-                            {CHECKED_ICON}
-                          </button>
-                        </div>
-                      {/if}
-                      {#if addingGoalId === goal.id}
-                        <span class="tiny-goal-loading text-muted">{addingGoalMessage}</span>
-                      {/if}
-                    </article>
+                    {@render tinyGoalCard(goal, canAddToMine)}
                   {/each}
                 </div>
               </div>
