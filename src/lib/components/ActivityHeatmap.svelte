@@ -17,11 +17,13 @@
     cells: HeatmapCell[];
   }
 
+  const cssRemPx = 16;
+
   // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
   const responsiveLayout = {
-    phone: { maxWidth: 480, horizontalPadding: 21, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
-    tablet: { maxWidth: 768, horizontalPadding: 24, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
-    desktop: { horizontalPadding: 32, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
+    phone: { maxWidth: 480, horizontalPadding: cssRemPx * 1.3, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
+    tablet: { maxWidth: 768, horizontalPadding: cssRemPx * 1.5, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
+    desktop: { horizontalPadding: cssRemPx * 2, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
   } as const;
 
   let heatmapData: WeekRow[] = [];
@@ -184,9 +186,8 @@
 
   function handleTooltipKeydown(event: KeyboardEvent, cell: HeatmapCell) {
     if (!cell.date || (event.key !== 'Enter' && event.key !== ' ')) return;
-    const tooltip = getTooltip(cell);
     if (event.key === ' ') event.preventDefault();
-    selectedTooltip = tooltip;
+    selectedTooltip = getTooltip(cell);
   }
 </script>
 
@@ -351,6 +352,7 @@
   .heatmap-wrapper {
     --cell-gap: 2px;
     --cell-min-size: 8px;
+    --cell-focus-shadow: 0 0 0 2px var(--color-primary);
     --day-label-width: 30px;
     --board-col-gap: 0.4rem;
     --board-row-gap: 0.3rem;
@@ -465,19 +467,15 @@
     cursor: default;
   }
 
-  .heatmap-cell:not(:disabled):hover {
+  .heatmap-cell:not(:disabled):is(:hover, :focus) {
     opacity: 0.8;
-    box-shadow: 0 0 0 2px var(--color-primary);
-  }
-
-  .heatmap-cell:not(:disabled):focus {
-    box-shadow: 0 0 0 2px var(--color-primary);
+    box-shadow: var(--cell-focus-shadow);
   }
 
   .heatmap-cell:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
-    box-shadow: 0 0 0 2px var(--color-primary);
+    box-shadow: var(--cell-focus-shadow);
   }
 
   .heatmap-cell.cell-empty {
