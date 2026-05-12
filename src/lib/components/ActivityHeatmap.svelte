@@ -323,6 +323,7 @@
 
   .heatmap-wrapper {
     --cell-gap: 2px;
+    --cell-min-size: 8px;
     --day-label-width: 30px;
     --board-col-gap: 0.4rem;
     --board-row-gap: 0.3rem;
@@ -331,7 +332,9 @@
     border-radius: var(--radius-md);
     padding: 1rem;
     min-height: 100%;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   .heatmap-board {
@@ -341,6 +344,7 @@
     column-gap: var(--board-col-gap);
     row-gap: var(--board-row-gap);
     width: 100%;
+    min-width: 100%;
   }
 
   .heatmap-day-spacer {
@@ -403,9 +407,10 @@
 
   .heatmap-grid {
     display: grid;
-    grid-template-columns: repeat(var(--weeks), 1fr);
+    grid-template-columns: repeat(var(--weeks), minmax(var(--cell-min-size), 1fr));
     gap: var(--cell-gap);
     width: 100%;
+    min-width: 100%;
     align-items: start;
   }
 
@@ -474,6 +479,7 @@
   @media (max-width: 768px) {
     .heatmap-wrapper {
       padding: 0.75rem;
+      --cell-min-size: 12px;
       --day-label-width: 24px;
     }
 
@@ -488,7 +494,9 @@
 
   @media (max-width: 480px) {
     .heatmap-wrapper {
-      padding: 0.55rem;
+      padding: 0.75rem 0.65rem;
+      --cell-gap: 3px;
+      --cell-min-size: 16px;
     }
 
     .heatmap-board {
