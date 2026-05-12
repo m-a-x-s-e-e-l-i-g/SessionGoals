@@ -144,7 +144,11 @@
     });
   }
 
-  function toGoalCopyInput(goal: Goal, status: GoalStatus = 'want_to_try'): CreateGoalInput {
+  function pluralize(count: number, singular: string, plural = `${singular}s`) {
+    return count === 1 ? singular : plural;
+  }
+
+  function toGoalCopyInput(goal: Goal, status: GoalStatus): CreateGoalInput {
     return {
       type: goal.type,
       sourceGoalId: goal.id,
@@ -153,7 +157,7 @@
     };
   }
 
-  async function addGoalToMine(goal: Goal, status: GoalStatus = 'want_to_try') {
+  async function addGoalToMine(goal: Goal, status: GoalStatus) {
     if (!isAuthenticated || !currentUserId) return;
     if (goal.userId && goal.userId === currentUserId) return;
     if (myGoalRootIds.has(resolveRootGoalId(goal.id))) {
@@ -175,6 +179,10 @@
     } finally {
       addingGoalId = null;
     }
+  }
+
+  async function trackGoalInMine(goal: Goal) {
+    await addGoalToMine(goal, 'want_to_try');
   }
 
   async function checkOffGoalInMine(goal: Goal) {
@@ -308,7 +316,7 @@
         <div class="profile-quick-stats">
           <a href="#goals" class="quick-stat">
             <span class="quick-stat-value">{visibleGoals.length}</span>
-            <span class="quick-stat-label">goal{visibleGoals.length === 1 ? '' : 's'}</span>
+            <span class="quick-stat-label">{pluralize(visibleGoals.length, 'goal')}</span>
           </a>
           <a href="#checked-goals" class="quick-stat">
             <span class="quick-stat-value">{checkedGoals.length}/{visibleGoals.length}</span>
@@ -316,7 +324,7 @@
           </a>
           <a href="#lists" class="quick-stat">
             <span class="quick-stat-value">{visibleLists.length}</span>
-            <span class="quick-stat-label">list{visibleLists.length === 1 ? '' : 's'}</span>
+            <span class="quick-stat-label">{pluralize(visibleLists.length, 'list')}</span>
           </a>
           {#if activityStats.streak > 0}
             <a href="#activity" class="quick-stat">
@@ -449,7 +457,7 @@
           <div>
             <h2 class="section-title">Goals</h2>
             <p class="section-subtitle text-muted text-sm">
-              {visibleGoals.length} total · {checkedGoals.length} checked off · {checkedMoveCount} move{checkedMoveCount === 1 ? '' : 's'} · {checkedSpotCount} spot{checkedSpotCount === 1 ? '' : 's'}
+              {visibleGoals.length} total · {checkedGoals.length} checked off · {checkedMoveCount} {pluralize(checkedMoveCount, 'move')} · {checkedSpotCount} {pluralize(checkedSpotCount, 'spot')}
             </p>
           </div>
         </div>
@@ -470,7 +478,7 @@
                 <div class="goal-card-wrap">
                   <GoalCard
                     {goal}
-                    onAddToMine={canAddToMine ? addGoalToMine : undefined}
+                    onAddToMine={canAddToMine ? trackGoalInMine : undefined}
                     onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
                     addToMineLabel="Track"
                   />
@@ -485,7 +493,12 @@
           {/if}
 
           {#if checkedGoals.length > 0}
-            <details class="checked-collection" id="checked-goals" open={activeGoals.length === 0}>
+            <details
+              class="checked-collection"
+              id="checked-goals"
+              open={activeGoals.length === 0}
+              aria-label="Checked-off goals collection"
+            >
               <summary>
                 <span>Checked-off collection</span>
                 <span class="checked-count">{checkedGoals.length}</span>
