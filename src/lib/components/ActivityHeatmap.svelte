@@ -18,7 +18,7 @@
   }
 
   // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
-  const RESPONSIVE_LAYOUT = {
+  const responsiveLayout = {
     phone: { maxWidth: 480, horizontalPadding: 21, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
     tablet: { maxWidth: 768, horizontalPadding: 24, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
     desktop: { horizontalPadding: 32, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
@@ -144,11 +144,11 @@
   // Compute how many weeks we can fit at the minimum comfortable cell size
   $: visibleWeekCount = (() => {
     if (!wrapperWidth || !heatmapData.length) return heatmapData.length;
-    const layout = wrapperWidth <= RESPONSIVE_LAYOUT.phone.maxWidth
-      ? RESPONSIVE_LAYOUT.phone
-      : wrapperWidth <= RESPONSIVE_LAYOUT.tablet.maxWidth
-        ? RESPONSIVE_LAYOUT.tablet
-        : RESPONSIVE_LAYOUT.desktop;
+    const layout = wrapperWidth <= responsiveLayout.phone.maxWidth
+      ? responsiveLayout.phone
+      : wrapperWidth <= responsiveLayout.tablet.maxWidth
+        ? responsiveLayout.tablet
+        : responsiveLayout.desktop;
     const { horizontalPadding, dayLabelWidth, colGap, cellGap, minCellSize } = layout;
     const available = Math.max(60, wrapperWidth - horizontalPadding - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
@@ -242,6 +242,7 @@
                   disabled={!cell.date}
                   on:click={() => showTooltip(cell)}
                   on:keydown={(event) => {
+                    if (event.key === ' ') event.preventDefault();
                     if (event.key === 'Enter' || event.key === ' ') showTooltip(cell);
                   }}
                 ></button>
@@ -465,6 +466,7 @@
   .heatmap-cell:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--color-primary);
   }
 
   .heatmap-cell.cell-empty {
