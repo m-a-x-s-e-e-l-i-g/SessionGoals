@@ -17,6 +17,13 @@
     cells: HeatmapCell[];
   }
 
+  // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
+  const RESPONSIVE_LAYOUT = {
+    phone: { maxWidth: 480, paddingH: 21, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
+    tablet: { maxWidth: 768, paddingH: 24, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
+    desktop: { paddingH: 32, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
+  } as const;
+
   let heatmapData: WeekRow[] = [];
   let monthLabels: { month: string; weekIndex: number }[] = [];
   let hasActivities = false;
@@ -137,13 +144,12 @@
   // Compute how many weeks we can fit at the minimum comfortable cell size
   $: visibleWeekCount = (() => {
     if (!wrapperWidth || !heatmapData.length) return heatmapData.length;
-    const isPhone = wrapperWidth <= 480;
-    const isTablet = wrapperWidth <= 768;
-    const paddingH = isPhone ? 21 : isTablet ? 24 : 32;
-    const dayLabelWidth = isPhone ? 0 : isTablet ? 24 : 30;
-    const colGap = isPhone ? 0 : 6;
-    const cellGap = isPhone ? 3 : 2;
-    const minCellSize = isPhone ? 16 : isTablet ? 12 : 9;
+    const layout = wrapperWidth <= RESPONSIVE_LAYOUT.phone.maxWidth
+      ? RESPONSIVE_LAYOUT.phone
+      : wrapperWidth <= RESPONSIVE_LAYOUT.tablet.maxWidth
+        ? RESPONSIVE_LAYOUT.tablet
+        : RESPONSIVE_LAYOUT.desktop;
+    const { paddingH, dayLabelWidth, colGap, cellGap, minCellSize } = layout;
     const available = Math.max(60, wrapperWidth - paddingH - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
     return Math.min(heatmapData.length, Math.max(1, maxWeeks));
