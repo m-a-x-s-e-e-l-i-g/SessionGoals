@@ -19,7 +19,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { CreateGoalInput, Goal, GoalStatus, UserProfile } from '$lib/types';
-  import { formatActivityType, formatGoalType, typeIcon } from '$lib/utils/format';
+  import { formatActivityType, formatGoalType, pluralize, typeIcon } from '$lib/utils/format';
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
@@ -117,6 +117,7 @@
   $: checkedGoals = visibleGoals.filter((goal) => goal.status === 'done');
   $: checkedMoveCount = checkedGoals.filter((goal) => goal.type === 'move').length;
   $: checkedSpotCount = checkedGoals.filter((goal) => goal.type === 'spot').length;
+  $: goalStatsSummary = `${visibleGoals.length} total · ${checkedGoals.length} checked off · ${checkedMoveCount} ${pluralize(checkedMoveCount, 'move')} · ${checkedSpotCount} ${pluralize(checkedSpotCount, 'spot')}`;
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -142,10 +143,6 @@
       month: 'short',
       day: 'numeric',
     });
-  }
-
-  function pluralize(count: number, singular: string, plural = `${singular}s`) {
-    return count === 1 ? singular : plural;
   }
 
   function toGoalCopyInput(goal: Goal, status: GoalStatus): CreateGoalInput {
@@ -456,9 +453,7 @@
         <div class="section-header">
           <div>
             <h2 class="section-title">Goals</h2>
-            <p class="section-subtitle text-muted text-sm">
-              {visibleGoals.length} total · {checkedGoals.length} checked off · {checkedMoveCount} {pluralize(checkedMoveCount, 'move')} · {checkedSpotCount} {pluralize(checkedSpotCount, 'spot')}
-            </p>
+            <p class="section-subtitle text-muted text-sm">{goalStatsSummary}</p>
           </div>
         </div>
         {#if goalsFeedback}

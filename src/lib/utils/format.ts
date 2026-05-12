@@ -47,6 +47,10 @@ export function formatActivityType(activityType: ActivityType): string {
   return map[activityType] ?? activityType;
 }
 
+export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return count === 1 ? singular : plural;
+}
+
 export function statusColor(status: GoalStatus): string {
   const map: Record<GoalStatus, string> = {
     want_to_try: 'status-open',
