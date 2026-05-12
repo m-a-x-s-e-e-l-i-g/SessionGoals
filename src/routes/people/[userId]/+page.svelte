@@ -329,14 +329,14 @@
             <span class="quick-stat-icon">📍</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{activeSpotGoals.length}</span>
-              <span class="quick-stat-label">Spot todos</span>
+              <span class="quick-stat-label">Spot Todos</span>
             </span>
           </a>
           <a href="#profile-moves-todo" class="quick-stat quick-stat--move">
             <span class="quick-stat-icon">🤸</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{activeMoveGoals.length}</span>
-              <span class="quick-stat-label">Move todos</span>
+              <span class="quick-stat-label">Move Todos</span>
             </span>
           </a>
           <a href="#checked-goals" class="quick-stat quick-stat--done">
@@ -497,7 +497,7 @@
             {#if activeSpotGoals.length > 0}
               <div class="goal-subsection" id="profile-spots-todo">
                 <div class="goal-subsection-head">
-                  <h3 class="goal-subsection-title">📍 Spot todos</h3>
+                  <h3 class="goal-subsection-title">📍 Spot Todos</h3>
                   <span class="goal-subsection-badge">{activeSpotGoals.length} to do</span>
                 </div>
                 <div class="grid-cards">
@@ -522,7 +522,7 @@
             {#if activeMoveGoals.length > 0}
               <div class="goal-subsection" id="profile-moves-todo">
                 <div class="goal-subsection-head">
-                  <h3 class="goal-subsection-title">🤸 Move todos</h3>
+                  <h3 class="goal-subsection-title">🤸 Move Todos</h3>
                   <span class="goal-subsection-badge">{activeMoveGoals.length} to do</span>
                 </div>
                 <div class="grid-cards">
@@ -555,7 +555,7 @@
               aria-label="Checked-off goals collection"
             >
               <summary>
-                <span>Mastered collection</span>
+                <span>Achievements</span>
                 <span class="checked-count">
                   {checkedMoveGoals.length} {pluralize(checkedMoveGoals.length, 'move')}
                   {#if checkedSpotGoals.length > 0}
@@ -748,7 +748,7 @@
     width: 2rem;
     height: 2rem;
     border-radius: 999px;
-    background: color-mix(in oklch, var(--color-surface) 72%, white);
+    background: var(--color-surface-2);
     border: 1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
     font-weight: 800;
     line-height: 1;
@@ -930,11 +930,6 @@
     background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
     border: 1px solid color-mix(in oklch, var(--color-success) 22%, var(--color-border));
     border-radius: var(--radius-sm);
-  }
-
-  .checked-chip--move {
-    background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
-    border-color: color-mix(in oklch, var(--color-success) 22%, var(--color-border));
   }
 
   .checked-chip--spot {
