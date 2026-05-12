@@ -18,8 +18,8 @@
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-  import type { CreateGoalInput, Goal, UserProfile } from '$lib/types';
-  import { formatActivityType } from '$lib/utils/format';
+  import type { CreateGoalInput, Goal, GoalStatus, UserProfile } from '$lib/types';
+  import { formatActivityType, formatGoalType, typeIcon } from '$lib/utils/format';
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
@@ -113,6 +113,9 @@
     if (g.userId !== userId) return false;
     return isOwnProfile || profile?.isPublic;
   });
+  $: activeGoals = visibleGoals.filter((goal) => goal.status !== 'done');
+  $: checkedGoals = visibleGoals.filter((goal) => goal.status === 'done');
+  $: checkedMoveCount = checkedGoals.filter((goal) => goal.type === 'move').length;
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -140,16 +143,16 @@
     });
   }
 
-  function toGoalCopyInput(goal: Goal): CreateGoalInput {
+  function toGoalCopyInput(goal: Goal, status: GoalStatus = 'want_to_try'): CreateGoalInput {
     return {
       type: goal.type,
       sourceGoalId: goal.id,
       title: goal.title,
-      status: 'want_to_try',
+      status,
     };
   }
 
-  async function addGoalToMine(goal: Goal) {
+  async function addGoalToMine(goal: Goal, status: GoalStatus = 'want_to_try') {
     if (!isAuthenticated || !currentUserId) return;
     if (goal.userId && goal.userId === currentUserId) return;
     if (myGoalRootIds.has(resolveRootGoalId(goal.id))) {
@@ -162,13 +165,19 @@
     goalsFeedback = undefined;
 
     try {
-      await createGoal(toGoalCopyInput(goal));
-      goalsFeedback = `Added \"${goal.title}\" to your goals.`;
+      await createGoal(toGoalCopyInput(goal, status));
+      goalsFeedback = status === 'done'
+        ? `Checked off \"${goal.title}\" in your collection.`
+        : `Added \"${goal.title}\" to your goals.`;
     } catch {
       goalsFeedback = 'Could not add this goal right now. Please try again.';
     } finally {
       addingGoalId = null;
     }
+  }
+
+  async function checkOffGoalInMine(goal: Goal) {
+    await addGoalToMine(goal, 'done');
   }
 </script>
 
@@ -299,6 +308,10 @@
           <a href="#goals" class="quick-stat">
             <span class="quick-stat-value">{visibleGoals.length}</span>
             <span class="quick-stat-label">goal{visibleGoals.length === 1 ? '' : 's'}</span>
+          </a>
+          <a href="#checked-goals" class="quick-stat">
+            <span class="quick-stat-value">{checkedGoals.length}/{visibleGoals.length}</span>
+            <span class="quick-stat-label">checked off</span>
           </a>
           <a href="#lists" class="quick-stat">
             <span class="quick-stat-value">{visibleLists.length}</span>
@@ -432,7 +445,12 @@
     <div class="goals-lists-wrapper">
       <section class="section-block section-goals" id="goals">
         <div class="section-header">
-          <h2 class="section-title">Goals</h2>
+          <div>
+            <h2 class="section-title">Goals</h2>
+            <p class="section-subtitle text-muted text-sm">
+              {visibleGoals.length} total · {checkedGoals.length} checked off · {checkedMoveCount} move{checkedMoveCount === 1 ? '' : 's'} collected
+            </p>
+          </div>
         </div>
         {#if goalsFeedback}
           <p class="goals-feedback text-sm">{goalsFeedback}</p>
@@ -444,23 +462,59 @@
             message="No visible goals on this profile right now."
           />
         {:else}
-          <div class="grid-cards">
-            {#each visibleGoals as goal}
-              {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-              <div class="goal-card-wrap">
-                <GoalCard
-                  {goal}
-                  onAddToMine={canAddToMine ? addGoalToMine : undefined}
-                />
-                {#if addingGoalId === goal.id}
-                  <p class="text-sm text-muted">Adding to your goals...</p>
-                {/if}
+          {#if activeGoals.length > 0}
+            <div class="grid-cards">
+              {#each activeGoals as goal}
+                {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                <div class="goal-card-wrap">
+                  <GoalCard
+                    {goal}
+                    onAddToMine={canAddToMine ? addGoalToMine : undefined}
+                    onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
+                    addToMineLabel="Track"
+                  />
+                  {#if addingGoalId === goal.id}
+                    <p class="text-sm text-muted">Adding to your goals...</p>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="text-muted">No active goals right now.</p>
+          {/if}
+
+          {#if checkedGoals.length > 0}
+            <details class="checked-collection" id="checked-goals" open={activeGoals.length === 0}>
+              <summary>
+                <span>Checked-off collection</span>
+                <span class="checked-count">{checkedGoals.length}</span>
+              </summary>
+              <div class="checked-grid">
+                {#each checkedGoals as goal}
+                  {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                  <article class="checked-chip">
+                    <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
+                    <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                    {#if canAddToMine}
+                      <button
+                        type="button"
+                        class="checked-add"
+                        on:click={() => checkOffGoalInMine(goal)}
+                      >
+                        ✓ Add checked
+                      </button>
+                    {/if}
+                    {#if addingGoalId === goal.id}
+                      <span class="text-sm text-muted">Adding...</span>
+                    {/if}
+                  </article>
+                {/each}
               </div>
-            {/each}
-          </div>
+            </details>
+          {/if}
         {/if}
       </section>
-
+ 
       <section class="section-block section-lists" id="lists">
         <div class="section-header">
           <h2 class="section-title">Lists</h2>
@@ -611,6 +665,10 @@
     font-weight: 700;
   }
 
+  .section-subtitle {
+    margin-top: 0.25rem;
+  }
+
   .goals-feedback {
     margin-bottom: 0.65rem;
     color: var(--color-success);
@@ -620,6 +678,104 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+  }
+
+  .checked-collection {
+    margin-top: 1rem;
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.8rem;
+    scroll-margin-top: 72px;
+  }
+
+  .checked-collection summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    list-style: none;
+  }
+
+  .checked-collection summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .checked-collection summary::after {
+    content: '▾';
+    margin-left: auto;
+    color: var(--color-text-muted);
+    transition: transform 0.15s;
+  }
+
+  .checked-collection:not([open]) summary::after {
+    transform: rotate(-90deg);
+  }
+
+  .checked-count {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
+  }
+
+  .checked-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.75rem;
+  }
+
+  .checked-chip {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.25rem 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-success) 22%, var(--color-border));
+    border-radius: var(--radius-sm);
+  }
+
+  .checked-title {
+    min-width: 0;
+    color: var(--color-text);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .checked-title:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .checked-type {
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
+  .checked-add {
+    grid-column: 1 / -1;
+    justify-self: start;
+    border: 1px solid color-mix(in oklch, var(--color-success) 42%, var(--color-border));
+    background: var(--color-surface);
+    color: var(--color-success);
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
   }
 
   .student-grid {
