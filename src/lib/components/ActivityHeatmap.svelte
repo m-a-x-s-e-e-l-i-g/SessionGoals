@@ -19,13 +19,14 @@
     cells: HeatmapCell[];
   }
 
-  const cssRemPx = browser ? Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16 : 16;
+  const remInPixels = browser ? Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16 : 16;
+  const SPACE_KEY = ' ';
 
   // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
   const responsiveLayout = {
-    phone: { maxWidth: 480, horizontalPadding: cssRemPx * 1.3, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
-    tablet: { maxWidth: 768, horizontalPadding: cssRemPx * 1.5, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
-    desktop: { horizontalPadding: cssRemPx * 2, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
+    phone: { maxWidth: 480, horizontalPadding: remInPixels * 1.3, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
+    tablet: { maxWidth: 768, horizontalPadding: remInPixels * 1.5, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
+    desktop: { horizontalPadding: remInPixels * 2, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
   } as const;
 
   let heatmapData: WeekRow[] = [];
@@ -162,14 +163,16 @@
   // ── Responsive week slicing ─────────────────────────────────────────────
   let wrapperWidth = 0;
 
+  function getLayoutForWidth(width: number) {
+    if (width <= responsiveLayout.phone.maxWidth) return responsiveLayout.phone;
+    if (width <= responsiveLayout.tablet.maxWidth) return responsiveLayout.tablet;
+    return responsiveLayout.desktop;
+  }
+
   // Compute how many weeks we can fit at the minimum comfortable cell size
   $: visibleWeekCount = (() => {
     if (!wrapperWidth || !heatmapData.length) return heatmapData.length;
-    const layout = wrapperWidth <= responsiveLayout.phone.maxWidth
-      ? responsiveLayout.phone
-      : wrapperWidth <= responsiveLayout.tablet.maxWidth
-        ? responsiveLayout.tablet
-        : responsiveLayout.desktop;
+    const layout = getLayoutForWidth(wrapperWidth);
     const { horizontalPadding, dayLabelWidth, colGap, cellGap, minCellSize } = layout;
     const available = Math.max(60, wrapperWidth - horizontalPadding - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
@@ -203,8 +206,8 @@
   }
 
   function handleTooltipKeydown(event: KeyboardEvent, cell: HeatmapCell) {
-    if (!cell.tooltip || (event.key !== 'Enter' && event.key !== ' ')) return;
-    if (event.key === ' ') event.preventDefault();
+    if (!cell.tooltip || (event.key !== 'Enter' && event.key !== SPACE_KEY)) return;
+    if (event.key === SPACE_KEY) event.preventDefault();
     selectedTooltip = cell.tooltip;
   }
 </script>
