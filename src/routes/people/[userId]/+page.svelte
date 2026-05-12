@@ -123,13 +123,14 @@
   });
   $: activeGoals = visibleGoals.filter((goal) => goal.status !== 'done');
   $: checkedGoals = visibleGoals.filter((goal) => goal.status === 'done');
-  $: checkedMoveCount = checkedGoals.filter((goal) => goal.type === 'move').length;
-  $: checkedSpotCount = checkedGoals.filter((goal) => goal.type === 'spot').length;
+  $: activeMoveGoals = activeGoals.filter((goal) => goal.type === 'move');
+  $: activeSpotGoals = activeGoals.filter((goal) => goal.type === 'spot');
+  $: checkedMoveGoals = checkedGoals.filter((goal) => goal.type === 'move');
+  $: checkedSpotGoals = checkedGoals.filter((goal) => goal.type === 'spot');
   $: goalStatsSummary = formatGoalStatsSummary(
-    visibleGoals.length,
-    checkedGoals.length,
-    checkedMoveCount,
-    checkedSpotCount,
+    activeSpotGoals.length,
+    activeMoveGoals.length,
+    checkedMoveGoals.length,
   );
 
   $: visibleLists = getLists().filter((l) => {
@@ -324,13 +325,26 @@
           <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
         </div>
         <div class="profile-quick-stats">
-          <a href="#goals" class="quick-stat">
-            <span class="quick-stat-value">{visibleGoals.length}</span>
-            <span class="quick-stat-label">{pluralize(visibleGoals.length, 'goal')}</span>
+          <a href="#profile-spots-todo" class="quick-stat quick-stat--spot">
+            <span class="quick-stat-icon">📍</span>
+            <span class="quick-stat-body">
+              <span class="quick-stat-value">{activeSpotGoals.length}</span>
+              <span class="quick-stat-label">Spot quests</span>
+            </span>
           </a>
-          <a href="#checked-goals" class="quick-stat">
-            <span class="quick-stat-value">{checkedGoals.length}/{visibleGoals.length}</span>
-            <span class="quick-stat-label">checked off</span>
+          <a href="#profile-moves-todo" class="quick-stat quick-stat--move">
+            <span class="quick-stat-icon">🤸</span>
+            <span class="quick-stat-body">
+              <span class="quick-stat-value">{activeMoveGoals.length}</span>
+              <span class="quick-stat-label">Move quests</span>
+            </span>
+          </a>
+          <a href="#checked-goals" class="quick-stat quick-stat--done">
+            <span class="quick-stat-icon">{CHECKED_ICON}</span>
+            <span class="quick-stat-body">
+              <span class="quick-stat-value">{checkedMoveGoals.length}</span>
+              <span class="quick-stat-label">Moves mastered</span>
+            </span>
           </a>
           <a href="#lists" class="quick-stat">
             <span class="quick-stat-value">{visibleLists.length}</span>
@@ -480,22 +494,55 @@
           />
         {:else}
           {#if activeGoals.length > 0}
-            <div class="grid-cards">
-              {#each activeGoals as goal}
-                {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                <div class="goal-card-wrap">
-                  <GoalCard
-                    {goal}
-                    onAddToMine={canAddToMine ? trackGoalInMine : undefined}
-                    onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
-                    addToMineLabel="Track"
-                  />
-                  {#if addingGoalId === goal.id}
-                    <p class="text-sm text-muted">{addingGoalMessage}</p>
-                  {/if}
+            {#if activeSpotGoals.length > 0}
+              <div class="goal-subsection" id="profile-spots-todo">
+                <div class="goal-subsection-head">
+                  <h3 class="goal-subsection-title">📍 Spot quests</h3>
+                  <span class="goal-subsection-badge">{activeSpotGoals.length} to do</span>
                 </div>
-              {/each}
-            </div>
+                <div class="grid-cards">
+                  {#each activeSpotGoals as goal}
+                    {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                    <div class="goal-card-wrap">
+                      <GoalCard
+                        {goal}
+                        onAddToMine={canAddToMine ? trackGoalInMine : undefined}
+                        onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
+                        addToMineLabel="Track"
+                      />
+                      {#if addingGoalId === goal.id}
+                        <p class="text-sm text-muted">{addingGoalMessage}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            {#if activeMoveGoals.length > 0}
+              <div class="goal-subsection" id="profile-moves-todo">
+                <div class="goal-subsection-head">
+                  <h3 class="goal-subsection-title">🤸 Move quests</h3>
+                  <span class="goal-subsection-badge">{activeMoveGoals.length} to do</span>
+                </div>
+                <div class="grid-cards">
+                  {#each activeMoveGoals as goal}
+                    {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                    <div class="goal-card-wrap">
+                      <GoalCard
+                        {goal}
+                        onAddToMine={canAddToMine ? trackGoalInMine : undefined}
+                        onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
+                        addToMineLabel="Track"
+                      />
+                      {#if addingGoalId === goal.id}
+                        <p class="text-sm text-muted">{addingGoalMessage}</p>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
           {:else}
             <p class="text-muted">No active goals right now.</p>
           {/if}
@@ -508,30 +555,66 @@
               aria-label="Checked-off goals collection"
             >
               <summary>
-                <span>Checked-off collection</span>
-                <span class="checked-count">{checkedGoals.length}</span>
+                <span>Mastered collection</span>
+                <span class="checked-count">
+                  {checkedMoveGoals.length} {pluralize(checkedMoveGoals.length, 'move')}
+                  {#if checkedSpotGoals.length > 0}
+                    · {checkedSpotGoals.length} {pluralize(checkedSpotGoals.length, 'spot')}
+                  {/if}
+                </span>
               </summary>
-              <div class="checked-grid">
-                {#each checkedGoals as goal}
-                  {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                  <article class="checked-chip">
-                    <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
-                    <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
-                    {#if canAddToMine}
-                      <button
-                        type="button"
-                        class="checked-add"
-                        on:click={() => checkOffGoalInMine(goal)}
-                      >
-                        {CHECKED_ICON} Add checked
-                      </button>
-                    {/if}
-                    {#if addingGoalId === goal.id}
-                      <span class="text-sm text-muted">{addingGoalMessage}</span>
-                    {/if}
-                  </article>
-                {/each}
-              </div>
+              {#if checkedMoveGoals.length > 0}
+                <div class="checked-group">
+                  <h3 class="checked-group-title">🤸 Moves mastered</h3>
+                  <div class="checked-grid">
+                    {#each checkedMoveGoals as goal}
+                      {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                      <article class="checked-chip">
+                        <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
+                        <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                        {#if canAddToMine}
+                          <button
+                            type="button"
+                            class="checked-add"
+                            on:click={() => checkOffGoalInMine(goal)}
+                          >
+                            {CHECKED_ICON} Add checked
+                          </button>
+                        {/if}
+                        {#if addingGoalId === goal.id}
+                          <span class="text-sm text-muted">{addingGoalMessage}</span>
+                        {/if}
+                      </article>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+              {#if checkedSpotGoals.length > 0}
+                <div class="checked-group">
+                  <h3 class="checked-group-title">📍 Spots completed</h3>
+                  <div class="checked-grid">
+                    {#each checkedSpotGoals as goal}
+                      {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
+                      <article class="checked-chip checked-chip--spot">
+                        <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
+                        <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                        {#if canAddToMine}
+                          <button
+                            type="button"
+                            class="checked-add"
+                            on:click={() => checkOffGoalInMine(goal)}
+                          >
+                            {CHECKED_ICON} Add checked
+                          </button>
+                        {/if}
+                        {#if addingGoalId === goal.id}
+                          <span class="text-sm text-muted">{addingGoalMessage}</span>
+                        {/if}
+                      </article>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </details>
           {/if}
         {/if}
@@ -622,26 +705,63 @@
 
   .quick-stat {
     display: flex;
-    align-items: baseline;
-    gap: 0.3rem;
-    padding: 0.4rem 0.85rem;
-    background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
-    border: 1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
-    border-radius: 999px;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.8rem;
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-primary) 8%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-primary) 24%, var(--color-border));
+    border-radius: var(--radius-md);
     text-decoration: none;
     color: var(--color-text);
-    transition: background 0.15s, border-color 0.15s;
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--color-primary) 10%, transparent);
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
   }
 
   .quick-stat:hover {
-    background: color-mix(in oklch, var(--color-primary) 18%, var(--color-surface));
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 24%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-primary) 12%, var(--color-surface));
     border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+    transform: translateY(-2px);
     text-decoration: none;
+  }
+
+  .quick-stat--spot {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-accent) 20%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-accent) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 26%, var(--color-border));
+  }
+
+  .quick-stat--done {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-success) 22%, transparent), transparent 62%),
+      color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-success) 28%, var(--color-border));
+  }
+
+  .quick-stat-icon {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-surface) 72%, white);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .quick-stat-body {
+    display: grid;
+    gap: 0.1rem;
   }
 
   .quick-stat-value {
     font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-size: 1.35rem;
     font-weight: 800;
     color: var(--color-primary);
     line-height: 1;
@@ -702,6 +822,43 @@
     gap: 0.35rem;
   }
 
+  .goal-subsection {
+    scroll-margin-top: 72px;
+  }
+
+  .goal-subsection + .goal-subsection {
+    margin-top: 1.5rem;
+  }
+
+  .goal-subsection-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .goal-subsection-title,
+  .checked-group-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .goal-subsection-badge {
+    border: 1px solid color-mix(in oklch, var(--color-primary) 28%, var(--color-border));
+    border-radius: 999px;
+    color: var(--color-primary);
+    background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 0.18rem 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
   .checked-collection {
     margin-top: 1rem;
     border-top: 1px solid var(--color-border);
@@ -755,6 +912,15 @@
     margin-top: 0.75rem;
   }
 
+  .checked-group {
+    margin-top: 0.85rem;
+  }
+
+  .checked-group + .checked-group {
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
   .checked-chip {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -764,6 +930,11 @@
     background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
     border: 1px solid color-mix(in oklch, var(--color-success) 22%, var(--color-border));
     border-radius: var(--radius-sm);
+  }
+
+  .checked-chip--spot {
+    background: color-mix(in oklch, var(--color-accent) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 22%, var(--color-border));
   }
 
   .checked-title {

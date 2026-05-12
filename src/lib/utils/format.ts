@@ -54,12 +54,11 @@ export function pluralize(count: number, singular: string, plural = `${singular}
 }
 
 export function formatGoalStatsSummary(
-  total: number,
-  checked: number,
-  checkedMoves: number,
-  checkedSpots: number,
+  todoSpots: number,
+  todoMoves: number,
+  doneMoves: number,
 ): string {
-  return `${total} total · ${checked} checked off · ${checkedMoves} ${pluralize(checkedMoves, 'move')} · ${checkedSpots} ${pluralize(checkedSpots, 'spot')}`;
+  return `${todoSpots} spot ${pluralize(todoSpots, 'quest')} · ${todoMoves} move ${pluralize(todoMoves, 'quest')} · ${doneMoves} ${pluralize(doneMoves, 'move')} mastered`;
 }
 
 export function statusColor(status: GoalStatus): string {
