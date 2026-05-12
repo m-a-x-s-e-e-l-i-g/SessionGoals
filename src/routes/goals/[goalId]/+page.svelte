@@ -68,6 +68,12 @@
 
   let showDeleteDialog = false;
   let isDeleting = false;
+
+  $: deleteDialogTitle = isAdoptedGoal ? 'Untrack goal?' : 'Delete goal?';
+  $: deleteDialogMessage = isAdoptedGoal
+    ? 'This will remove the goal from your list. The goal will still be available in the library.'
+    : 'This goal will be permanently deleted. You can\'t undo this action.';
+  $: deleteDialogConfirmLabel = isAdoptedGoal ? 'Untrack' : 'Delete goal';
   let justChecked = false;
   let addError: string | undefined;
   let addingToMine = false;
@@ -231,9 +237,9 @@
 
 <ConfirmDialog
   isOpen={showDeleteDialog}
-  title="Delete goal?"
-  message="This goal will be permanently deleted. You can't undo this action."
-  confirmLabel="Delete goal"
+  title={deleteDialogTitle}
+  message={deleteDialogMessage}
+  confirmLabel={deleteDialogConfirmLabel}
   cancelLabel="Cancel"
   isDangerous={true}
   isLoading={isDeleting}
@@ -263,8 +269,8 @@
               <img src="/images/icons/trash.svg" alt="" width="18" height="18" />
             </button>
           {:else}
-            <button class="btn-icon btn-icon-danger" on:click={handleDelete} aria-label="Remove goal">
-              <img src="/images/icons/trash.svg" alt="" width="18" height="18" />
+            <button class="btn btn-sm btn-ghost" on:click={handleDelete} aria-label="Untrack goal">
+              Untrack
             </button>
           {/if}
         {:else if isAuthenticated}
