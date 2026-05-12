@@ -127,11 +127,7 @@
   $: activeSpotGoals = activeGoals.filter((goal) => goal.type === 'spot');
   $: checkedMoveGoals = checkedGoals.filter((goal) => goal.type === 'move');
   $: checkedSpotGoals = checkedGoals.filter((goal) => goal.type === 'spot');
-  $: goalStatsSummary = formatGoalStatsSummary(
-    activeSpotGoals.length,
-    activeMoveGoals.length,
-    checkedMoveGoals.length,
-  );
+  $: goalStatsSummary = formatGoalStatsSummary(activeSpotGoals.length, activeMoveGoals.length, checkedMoveGoals.length);
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -565,7 +561,7 @@
               </summary>
               {#if checkedMoveGoals.length > 0}
                 <div class="checked-group">
-                  <h3 class="checked-group-title">🤸 Moves mastered</h3>
+                  <h3 class="checked-group-title">🤸 Moves Mastered</h3>
                   <div class="checked-grid">
                     {#each checkedMoveGoals as goal}
                       {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
@@ -591,7 +587,7 @@
               {/if}
               {#if checkedSpotGoals.length > 0}
                 <div class="checked-group">
-                  <h3 class="checked-group-title">📍 Spots completed</h3>
+                  <h3 class="checked-group-title">📍 Spots Completed</h3>
                   <div class="checked-grid">
                     {#each checkedSpotGoals as goal}
                       {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
