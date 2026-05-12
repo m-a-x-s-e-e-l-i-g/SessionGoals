@@ -216,8 +216,6 @@
   <div class="heatmap-header">
     <div>
       <p class="heatmap-eyebrow">Attendance board</p>
-      <h3 class="heatmap-title">Last 52 weeks</h3>
-      <p class="heatmap-subtitle">Color shows training minutes per day: 0, 1–60m, 60m–2h, then 2h+.</p>
     </div>
     <div class="heatmap-legend" aria-hidden="true">
       <span class="legend-item">
@@ -314,20 +312,6 @@
     text-transform: uppercase;
     color: var(--color-accent);
     margin-bottom: 0.35rem;
-  }
-
-  .heatmap-title {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 0.95;
-    margin-bottom: 0.35rem;
-  }
-
-  .heatmap-subtitle {
-    max-width: 42ch;
-    color: var(--color-text-muted);
-    font-size: 0.9rem;
   }
 
   .heatmap-legend {
@@ -472,11 +456,15 @@
   .heatmap-cell {
     appearance: none;
     border: 0;
-    padding: 0;
     box-sizing: border-box;
+    display: block;
     width: 100%;
+    height: auto;
     aspect-ratio: 1;
     border-radius: 2px;
+    line-height: 0;
+    min-height: 0;
+    padding: 0;
     transition: opacity 0.15s, box-shadow 0.15s;
   }
 
