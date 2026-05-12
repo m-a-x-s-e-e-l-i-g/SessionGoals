@@ -241,6 +241,9 @@
                   aria-label={getTooltip(cell)}
                   disabled={!cell.date}
                   on:click={() => showTooltip(cell)}
+                  on:keydown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') showTooltip(cell);
+                  }}
                 ></button>
               {/each}
             </div>
@@ -441,11 +444,11 @@
   .heatmap-cell {
     appearance: none;
     border: 0;
+    padding: 0;
     box-sizing: border-box;
     width: 100%;
     aspect-ratio: 1;
     border-radius: 2px;
-    padding: 0;
     cursor: pointer;
     transition: opacity 0.15s, box-shadow 0.15s;
   }
