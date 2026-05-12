@@ -19,9 +19,9 @@
 
   // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
   const RESPONSIVE_LAYOUT = {
-    phone: { maxWidth: 480, paddingH: 21, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
-    tablet: { maxWidth: 768, paddingH: 24, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
-    desktop: { paddingH: 32, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
+    phone: { maxWidth: 480, horizontalPadding: 21, dayLabelWidth: 0, colGap: 0, cellGap: 3, minCellSize: 16 },
+    tablet: { maxWidth: 768, horizontalPadding: 24, dayLabelWidth: 24, colGap: 6, cellGap: 2, minCellSize: 12 },
+    desktop: { horizontalPadding: 32, dayLabelWidth: 30, colGap: 6, cellGap: 2, minCellSize: 9 },
   } as const;
 
   let heatmapData: WeekRow[] = [];
@@ -149,9 +149,10 @@
       : wrapperWidth <= RESPONSIVE_LAYOUT.tablet.maxWidth
         ? RESPONSIVE_LAYOUT.tablet
         : RESPONSIVE_LAYOUT.desktop;
-    const { paddingH, dayLabelWidth, colGap, cellGap, minCellSize } = layout;
-    const available = Math.max(60, wrapperWidth - paddingH - dayLabelWidth - colGap);
+    const { horizontalPadding, dayLabelWidth, colGap, cellGap, minCellSize } = layout;
+    const available = Math.max(60, wrapperWidth - horizontalPadding - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
+    // Do not force a minimum week count; containment is more important on very narrow screens.
     return Math.min(heatmapData.length, Math.max(1, maxWeeks));
   })();
 
@@ -215,7 +216,7 @@
         <div class="heatmap-day-spacer"></div>
         <div class="heatmap-months">
           {#each displayMonthLabels as label}
-            <div class="month-label" style={`--week-line: ${label.weekIndex + 1}`}>
+            <div class="month-label" style={`--month-grid-column: ${label.weekIndex + 1}`}>
               {label.month}
             </div>
           {/each}
@@ -237,7 +238,6 @@
                   type="button"
                   class="heatmap-cell cell-{cell.intensity}"
                   class:cell-future={cell.isFuture}
-                  title={getTooltip(cell)}
                   aria-label={getTooltip(cell)}
                   disabled={!cell.date}
                   on:click={() => showTooltip(cell)}
@@ -403,7 +403,7 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    grid-column: var(--week-line);
+    grid-column: var(--month-grid-column);
   }
 
   .day-labels {
