@@ -116,6 +116,7 @@
   $: activeGoals = visibleGoals.filter((goal) => goal.status !== 'done');
   $: checkedGoals = visibleGoals.filter((goal) => goal.status === 'done');
   $: checkedMoveCount = checkedGoals.filter((goal) => goal.type === 'move').length;
+  $: checkedSpotCount = checkedGoals.filter((goal) => goal.type === 'spot').length;
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -448,7 +449,7 @@
           <div>
             <h2 class="section-title">Goals</h2>
             <p class="section-subtitle text-muted text-sm">
-              {visibleGoals.length} total · {checkedGoals.length} checked off · {checkedMoveCount} move{checkedMoveCount === 1 ? '' : 's'} collected
+              {visibleGoals.length} total · {checkedGoals.length} checked off · {checkedMoveCount} move{checkedMoveCount === 1 ? '' : 's'} · {checkedSpotCount} spot{checkedSpotCount === 1 ? '' : 's'}
             </p>
           </div>
         </div>
