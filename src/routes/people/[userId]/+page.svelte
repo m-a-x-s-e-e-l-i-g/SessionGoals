@@ -127,7 +127,6 @@
   $: activeSpotGoals = activeGoals.filter((goal) => goal.type === 'spot');
   $: checkedMoveGoals = checkedGoals.filter((goal) => goal.type === 'move');
   $: checkedSpotGoals = checkedGoals.filter((goal) => goal.type === 'spot');
-  $: goalStatsSummary = formatGoalStatsSummary(activeSpotGoals.length, activeMoveGoals.length, checkedMoveGoals.length);
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -321,21 +320,33 @@
           <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
         </div>
         <div class="profile-quick-stats">
-          <a href="#profile-spots-todo" class="quick-stat quick-stat--spot">
+          <a
+            href="#profile-spots-todo"
+            class="quick-stat quick-stat--spot"
+            aria-label={`Spot Todos: ${activeSpotGoals.length}`}
+          >
             <span class="quick-stat-icon">📍</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{activeSpotGoals.length}</span>
               <span class="quick-stat-label">Spot Todos</span>
             </span>
           </a>
-          <a href="#profile-moves-todo" class="quick-stat quick-stat--move">
+          <a
+            href="#profile-moves-todo"
+            class="quick-stat quick-stat--move"
+            aria-label={`Move Todos: ${activeMoveGoals.length}`}
+          >
             <span class="quick-stat-icon">🤸</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{activeMoveGoals.length}</span>
               <span class="quick-stat-label">Move Todos</span>
             </span>
           </a>
-          <a href="#checked-goals" class="quick-stat quick-stat--done">
+          <a
+            href="#checked-goals"
+            class="quick-stat quick-stat--done"
+            aria-label={`Moves Done: ${checkedMoveGoals.length}`}
+          >
             <span class="quick-stat-icon">{CHECKED_ICON}</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{checkedMoveGoals.length}</span>
@@ -476,7 +487,9 @@
         <div class="section-header">
           <div>
             <h2 class="section-title">Goals</h2>
-            <p class="section-subtitle text-muted text-sm">{goalStatsSummary}</p>
+            <p class="section-subtitle text-muted text-sm">
+              {formatGoalStatsSummary(activeSpotGoals.length, activeMoveGoals.length, checkedMoveGoals.length)}
+            </p>
           </div>
         </div>
         {#if goalsFeedback}
