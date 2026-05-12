@@ -60,7 +60,7 @@ export function formatGoalStatsSummary(
 ): string {
   const spotTodoLabel = pluralize(spotTodoCount, 'Spot Todo');
   const moveTodoLabel = pluralize(moveTodoCount, 'Move Todo');
-  const doneMoveLabel = pluralize(doneMoveCount, 'Move Done', 'Moves Done');
+  const doneMoveLabel = pluralize(doneMoveCount, 'Done Move');
   return `${spotTodoCount} ${spotTodoLabel} · ${moveTodoCount} ${moveTodoLabel} · ${doneMoveCount} ${doneMoveLabel}`;
 }
 
