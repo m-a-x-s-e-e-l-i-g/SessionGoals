@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { browser } from '$app/environment';
   import type { Activity } from '$lib/types';
 
   export let activities: Activity[] = [];
@@ -18,7 +19,7 @@
     cells: HeatmapCell[];
   }
 
-  const cssRemPx = 16; // Approximate rem-based CSS padding before client styles are measurable.
+  const cssRemPx = browser ? Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16 : 16;
 
   // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
   const responsiveLayout = {
@@ -173,8 +174,7 @@
     const available = Math.max(60, wrapperWidth - horizontalPadding - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
     // Do not force a minimum week count; containment is more important on very narrow screens.
-    const containedWeekCount = Math.max(1, maxWeeks);
-    return Math.min(heatmapData.length, containedWeekCount);
+    return Math.min(heatmapData.length, Math.max(1, maxWeeks));
   })();
 
   $: weekOffset = heatmapData.length - visibleWeekCount;
@@ -264,7 +264,7 @@
                   type="button"
                   class="heatmap-cell cell-{cell.intensity}"
                   class:cell-future={cell.isFuture}
-                  aria-label={cell.tooltip || 'No activity data for this date'}
+                  aria-label={cell.tooltip || 'No date in this attendance range'}
                   disabled={!cell.tooltip}
                   on:click={() => showTooltip(cell)}
                   on:keydown={(event) => handleTooltipKeydown(event, cell)}
