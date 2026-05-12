@@ -181,6 +181,13 @@
   function showTooltip(cell: HeatmapCell) {
     selectedTooltip = getTooltip(cell);
   }
+
+  function handleTooltipKeydown(event: KeyboardEvent, cell: HeatmapCell) {
+    const tooltip = getTooltip(cell);
+    if (!tooltip) return;
+    if (event.key === ' ') event.preventDefault();
+    if (event.key === 'Enter' || event.key === ' ') selectedTooltip = tooltip;
+  }
 </script>
 
 <div class="heatmap-container">
@@ -234,17 +241,15 @@
           {#each displayData as week}
             <div class="heatmap-week">
               {#each week.cells as cell}
+                {@const tooltip = getTooltip(cell)}
                 <button
                   type="button"
                   class="heatmap-cell cell-{cell.intensity}"
                   class:cell-future={cell.isFuture}
-                  aria-label={getTooltip(cell)}
-                  disabled={!cell.date}
+                  aria-label={tooltip || 'No activity data for this date'}
+                  disabled={!tooltip}
                   on:click={() => showTooltip(cell)}
-                  on:keydown={(event) => {
-                    if (event.key === ' ') event.preventDefault();
-                    if (event.key === 'Enter' || event.key === ' ') showTooltip(cell);
-                  }}
+                  on:keydown={(event) => handleTooltipKeydown(event, cell)}
                 ></button>
               {/each}
             </div>
@@ -458,7 +463,7 @@
     cursor: default;
   }
 
-  .heatmap-cell:hover {
+  .heatmap-cell:not(:disabled):hover {
     opacity: 0.8;
     box-shadow: 0 0 0 2px var(--color-primary);
   }
