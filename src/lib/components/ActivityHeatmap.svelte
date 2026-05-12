@@ -20,6 +20,7 @@
   let heatmapData: WeekRow[] = [];
   let monthLabels: { month: string; weekIndex: number }[] = [];
   let hasActivities = false;
+  let selectedTooltip = '';
 
   $: {
     const filtered = userId ? activities.filter((a) => a.userId === userId) : activities;
@@ -136,14 +137,16 @@
   // Compute how many weeks we can fit at the minimum comfortable cell size
   $: visibleWeekCount = (() => {
     if (!wrapperWidth || !heatmapData.length) return heatmapData.length;
-    const paddingH = 32;        // 1rem each side
-    const dayLabelWidth = 30;   // desktop; hidden on mobile so conservative
-    const colGap = 6;           // ~0.4rem
-    const cellGap = 2;
-    const minCellSize = 9;
+    const isPhone = wrapperWidth <= 480;
+    const isTablet = wrapperWidth <= 768;
+    const paddingH = isPhone ? 21 : isTablet ? 24 : 32;
+    const dayLabelWidth = isPhone ? 0 : isTablet ? 24 : 30;
+    const colGap = isPhone ? 0 : 6;
+    const cellGap = isPhone ? 3 : 2;
+    const minCellSize = isPhone ? 16 : isTablet ? 12 : 9;
     const available = Math.max(60, wrapperWidth - paddingH - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
-    return Math.min(heatmapData.length, Math.max(12, maxWeeks));
+    return Math.min(heatmapData.length, Math.max(1, maxWeeks));
   })();
 
   $: weekOffset = heatmapData.length - visibleWeekCount;
@@ -166,6 +169,10 @@
 
     const sessionText = `${cell.sessions} session${cell.sessions !== 1 ? 's' : ''}`;
     return `${formatted}: ${cell.minutes} minute${cell.minutes !== 1 ? 's' : ''} across ${sessionText}`;
+  }
+
+  function showTooltip(cell: HeatmapCell) {
+    selectedTooltip = getTooltip(cell);
   }
 </script>
 
@@ -202,7 +209,7 @@
         <div class="heatmap-day-spacer"></div>
         <div class="heatmap-months">
           {#each displayMonthLabels as label}
-            <div class="month-label" style={`--week-index: ${label.weekIndex}`}>
+            <div class="month-label" style={`--week-line: ${label.weekIndex + 1}`}>
               {label.month}
             </div>
           {/each}
@@ -220,17 +227,23 @@
           {#each displayData as week}
             <div class="heatmap-week">
               {#each week.cells as cell}
-                <div
+                <button
+                  type="button"
                   class="heatmap-cell cell-{cell.intensity}"
                   class:cell-future={cell.isFuture}
                   title={getTooltip(cell)}
                   aria-label={getTooltip(cell)}
-                ></div>
+                  disabled={!cell.date}
+                  on:click={() => showTooltip(cell)}
+                ></button>
               {/each}
             </div>
           {/each}
         </div>
       </div>
+      {#if selectedTooltip}
+        <p class="heatmap-tap-tooltip" aria-live="polite">{selectedTooltip}</p>
+      {/if}
     {:else}
       <div class="heatmap-empty">
         <p class="heatmap-empty-title">No sessions logged yet.</p>
@@ -332,9 +345,7 @@
     border-radius: var(--radius-md);
     padding: 1rem;
     min-height: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
   }
 
   .heatmap-board {
@@ -372,8 +383,11 @@
   }
 
   .heatmap-months {
-    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--weeks), minmax(var(--cell-min-size), 1fr));
+    gap: var(--cell-gap);
     height: 1rem;
+    min-width: 100%;
   }
 
   .month-label {
@@ -383,9 +397,7 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    position: absolute;
-    left: calc((var(--week-index) / var(--weeks)) * 100%);
-    top: 0;
+    grid-column: var(--week-line);
   }
 
   .day-labels {
@@ -421,11 +433,19 @@
   }
 
   .heatmap-cell {
+    appearance: none;
+    border: 0;
+    box-sizing: border-box;
     width: 100%;
     aspect-ratio: 1;
     border-radius: 2px;
+    padding: 0;
     cursor: pointer;
     transition: opacity 0.15s, box-shadow 0.15s;
+  }
+
+  .heatmap-cell:disabled {
+    cursor: default;
   }
 
   .heatmap-cell:hover {
@@ -457,6 +477,15 @@
 
   .heatmap-cell.cell-future {
     opacity: 0.2;
+  }
+
+  .heatmap-tap-tooltip {
+    display: none;
+    margin-top: 0.65rem;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: center;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -514,6 +543,10 @@
 
     .month-label {
       font-size: 0.55rem;
+    }
+
+    .heatmap-tap-tooltip {
+      display: block;
     }
   }
 </style>
