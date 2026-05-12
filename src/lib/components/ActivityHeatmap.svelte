@@ -183,8 +183,8 @@
   }
 
   function handleTooltipKeydown(event: KeyboardEvent, cell: HeatmapCell) {
+    if (!cell.date || (event.key !== 'Enter' && event.key !== ' ')) return;
     const tooltip = getTooltip(cell);
-    if (!tooltip || (event.key !== 'Enter' && event.key !== ' ')) return;
     if (event.key === ' ') event.preventDefault();
     selectedTooltip = tooltip;
   }
@@ -245,7 +245,7 @@
                   type="button"
                   class="heatmap-cell cell-{cell.intensity}"
                   class:cell-future={cell.isFuture}
-                  aria-label={cell.date ? 'Show activity details for this date' : 'No activity data for this date'}
+                  aria-label={cell.date ? getTooltip(cell) : 'No activity data for this date'}
                   disabled={!cell.date}
                   on:click={() => showTooltip(cell)}
                   on:keydown={(event) => handleTooltipKeydown(event, cell)}
@@ -467,6 +467,10 @@
 
   .heatmap-cell:not(:disabled):hover {
     opacity: 0.8;
+    box-shadow: 0 0 0 2px var(--color-primary);
+  }
+
+  .heatmap-cell:not(:disabled):focus {
     box-shadow: 0 0 0 2px var(--color-primary);
   }
 
