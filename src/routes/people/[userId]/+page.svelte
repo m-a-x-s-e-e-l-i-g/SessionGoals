@@ -13,7 +13,6 @@
   import { createGoal, getGoals } from '$lib/data/goals';
   import { getLists } from '$lib/data/lists';
   import { getActivities, getActivityStats, getRecentActivities } from '$lib/data/activities';
-  import GoalCard from '$lib/components/GoalCard.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import ActivityHeatmap from '$lib/components/ActivityHeatmap.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -509,20 +508,36 @@
                   <h3 class="goal-subsection-title">📍 Spot Todos</h3>
                   <span class="goal-subsection-badge">{activeSpotGoals.length} to do</span>
                 </div>
-                <div class="grid-cards">
+                <div class="tiny-goal-grid">
                   {#each activeSpotGoals as goal}
                     {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                    <div class="goal-card-wrap">
-                      <GoalCard
-                        {goal}
-                        onAddToMine={canAddToMine ? trackGoalInMine : undefined}
-                        onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
-                        addToMineLabel="Track"
-                      />
-                      {#if addingGoalId === goal.id}
-                        <p class="text-sm text-muted">{addingGoalMessage}</p>
+                    <article class="tiny-goal-card tiny-goal-card--spot">
+                      <a href="/goals/{goal.id}" class="tiny-goal-title">{goal.title}</a>
+                      <span class="tiny-goal-meta">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                      {#if canAddToMine}
+                        <div class="tiny-goal-actions">
+                          <button
+                            type="button"
+                            class="tiny-goal-action"
+                            aria-label="Track {goal.title}"
+                            on:click={() => trackGoalInMine(goal)}
+                          >
+                            Track
+                          </button>
+                          <button
+                            type="button"
+                            class="tiny-goal-action tiny-goal-action--done"
+                            aria-label="Add {goal.title} as checked off"
+                            on:click={() => checkOffGoalInMine(goal)}
+                          >
+                            {CHECKED_ICON}
+                          </button>
+                        </div>
                       {/if}
-                    </div>
+                      {#if addingGoalId === goal.id}
+                        <span class="tiny-goal-loading text-muted">{addingGoalMessage}</span>
+                      {/if}
+                    </article>
                   {/each}
                 </div>
               </div>
@@ -534,20 +549,36 @@
                   <h3 class="goal-subsection-title">🤸 Move Todos</h3>
                   <span class="goal-subsection-badge">{activeMoveGoals.length} to do</span>
                 </div>
-                <div class="grid-cards">
+                <div class="tiny-goal-grid">
                   {#each activeMoveGoals as goal}
                     {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                    <div class="goal-card-wrap">
-                      <GoalCard
-                        {goal}
-                        onAddToMine={canAddToMine ? trackGoalInMine : undefined}
-                        onCheckOffMine={canAddToMine ? checkOffGoalInMine : undefined}
-                        addToMineLabel="Track"
-                      />
-                      {#if addingGoalId === goal.id}
-                        <p class="text-sm text-muted">{addingGoalMessage}</p>
+                    <article class="tiny-goal-card tiny-goal-card--move">
+                      <a href="/goals/{goal.id}" class="tiny-goal-title">{goal.title}</a>
+                      <span class="tiny-goal-meta">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
+                      {#if canAddToMine}
+                        <div class="tiny-goal-actions">
+                          <button
+                            type="button"
+                            class="tiny-goal-action"
+                            aria-label="Track {goal.title}"
+                            on:click={() => trackGoalInMine(goal)}
+                          >
+                            Track
+                          </button>
+                          <button
+                            type="button"
+                            class="tiny-goal-action tiny-goal-action--done"
+                            aria-label="Add {goal.title} as checked off"
+                            on:click={() => checkOffGoalInMine(goal)}
+                          >
+                            {CHECKED_ICON}
+                          </button>
+                        </div>
                       {/if}
-                    </div>
+                      {#if addingGoalId === goal.id}
+                        <span class="tiny-goal-loading text-muted">{addingGoalMessage}</span>
+                      {/if}
+                    </article>
                   {/each}
                 </div>
               </div>
@@ -825,12 +856,6 @@
     color: var(--color-success);
   }
 
-  .goal-card-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-
   .goal-subsection {
     scroll-margin-top: 72px;
   }
@@ -866,6 +891,112 @@
     padding: 0.18rem 0.55rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  .tiny-goal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.45rem;
+  }
+
+  .tiny-goal-card {
+    position: relative;
+    display: grid;
+    gap: 0.28rem;
+    min-height: 5.2rem;
+    padding: 0.6rem;
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 14%, transparent), transparent 58%),
+      color-mix(in oklch, var(--color-primary) 6%, var(--color-surface));
+    border: 1px solid color-mix(in oklch, var(--color-primary) 20%, var(--color-border));
+    border-radius: var(--radius-sm);
+    box-shadow: 0 6px 18px color-mix(in oklch, var(--color-primary) 8%, transparent);
+  }
+
+  .tiny-goal-card--spot {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-accent) 16%, transparent), transparent 58%),
+      color-mix(in oklch, var(--color-accent) 6%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-accent) 22%, var(--color-border));
+  }
+
+  .tiny-goal-card--move {
+    background:
+      radial-gradient(circle at top left, color-mix(in oklch, var(--color-primary) 15%, transparent), transparent 58%),
+      color-mix(in oklch, var(--color-primary) 7%, var(--color-surface));
+  }
+
+  .tiny-goal-title {
+    color: var(--color-text);
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-decoration: none;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tiny-goal-title:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .tiny-goal-meta {
+    width: fit-content;
+    color: var(--color-text-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tiny-goal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-self: end;
+    margin-top: 0.1rem;
+  }
+
+  .tiny-goal-action {
+    border: 1px solid color-mix(in oklch, var(--color-primary) 30%, var(--color-border));
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.3rem 0.45rem;
+  }
+
+  .tiny-goal-action--done {
+    color: var(--color-success);
+    border-color: color-mix(in oklch, var(--color-success) 38%, var(--color-border));
+  }
+
+  .tiny-goal-loading {
+    font-size: 0.68rem;
+  }
+
+  @media (max-width: 480px) {
+    .tiny-goal-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.4rem;
+    }
+
+    .tiny-goal-card {
+      min-height: 4.8rem;
+      padding: 0.5rem;
+    }
+
+    .tiny-goal-title {
+      font-size: 0.8rem;
+    }
   }
 
   .checked-collection {
