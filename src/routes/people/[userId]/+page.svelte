@@ -19,7 +19,14 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import type { CreateGoalInput, Goal, GoalStatus, UserProfile } from '$lib/types';
-  import { formatActivityType, formatGoalType, pluralize, typeIcon } from '$lib/utils/format';
+  import {
+    CHECKED_ICON,
+    formatActivityType,
+    formatGoalStatsSummary,
+    formatGoalType,
+    pluralize,
+    typeIcon,
+  } from '$lib/utils/format';
 
   $: isAuthenticated = !!$page.data.user;
   $: currentUserId = $page.data.user?.id;
@@ -66,6 +73,7 @@
   let editRole: UserProfile['role'] = 'athlete';
   let showDeleteAccountDialog = false;
   let deletingAccount = false;
+  const addingGoalMessage = 'Adding…';
 
   function startEdit() {
     if (!profile) return;
@@ -117,7 +125,12 @@
   $: checkedGoals = visibleGoals.filter((goal) => goal.status === 'done');
   $: checkedMoveCount = checkedGoals.filter((goal) => goal.type === 'move').length;
   $: checkedSpotCount = checkedGoals.filter((goal) => goal.type === 'spot').length;
-  $: goalStatsSummary = `${visibleGoals.length} total · ${checkedGoals.length} checked off · ${checkedMoveCount} ${pluralize(checkedMoveCount, 'move')} · ${checkedSpotCount} ${pluralize(checkedSpotCount, 'spot')}`;
+  $: goalStatsSummary = formatGoalStatsSummary(
+    visibleGoals.length,
+    checkedGoals.length,
+    checkedMoveCount,
+    checkedSpotCount,
+  );
 
   $: visibleLists = getLists().filter((l) => {
     if (l.userId !== userId) return false;
@@ -478,7 +491,7 @@
                     addToMineLabel="Track"
                   />
                   {#if addingGoalId === goal.id}
-                    <p class="text-sm text-muted">Adding to your goals...</p>
+                    <p class="text-sm text-muted">{addingGoalMessage}</p>
                   {/if}
                 </div>
               {/each}
@@ -510,11 +523,11 @@
                         class="checked-add"
                         on:click={() => checkOffGoalInMine(goal)}
                       >
-                        ✓ Add checked
+                        {CHECKED_ICON} Add checked
                       </button>
                     {/if}
                     {#if addingGoalId === goal.id}
-                      <span class="text-sm text-muted">Adding...</span>
+                      <span class="text-sm text-muted">{addingGoalMessage}</span>
                     {/if}
                   </article>
                 {/each}

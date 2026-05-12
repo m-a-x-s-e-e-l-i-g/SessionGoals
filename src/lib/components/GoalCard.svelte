@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Goal } from '$lib/types';
-  import { formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
+  import { CHECKED_ICON, formatStatus, formatGoalType, statusColor, typeIcon } from '$lib/utils/format';
   import { getGoalVisualImageUrl, proxyLibraryImageUrl } from '$lib/utils/media';
 
   export let goal: Goal;
@@ -49,7 +49,7 @@
     </span>
     <div class="goal-card-header-actions">
       {#if goal.status === 'done'}
-        <span class="badge {statusColor(goal.status)}">✓ {formatStatus(goal.status)}</span>
+        <span class="badge {statusColor(goal.status)}">{CHECKED_ICON} {formatStatus(goal.status)}</span>
       {/if}
       {#if onCommitToLibrary}
         <button
@@ -76,7 +76,7 @@
           class="add-goal add-goal-done"
           on:click|stopPropagation={() => onCheckOffMine?.(goal)}
         >
-          ✓ {checkOffMineLabel}
+          {CHECKED_ICON} {checkOffMineLabel}
         </button>
       {/if}
     </div>

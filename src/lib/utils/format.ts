@@ -1,5 +1,7 @@
 import type { ActivityType, GoalStatus, GoalType, GoalListType, GoalListVisibility } from '$lib/types';
 
+export const CHECKED_ICON = '✓';
+
 export function formatStatus(status: GoalStatus): string {
   const map: Record<GoalStatus, string> = {
     want_to_try: 'Unchecked',
@@ -49,6 +51,15 @@ export function formatActivityType(activityType: ActivityType): string {
 
 export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return count === 1 ? singular : plural;
+}
+
+export function formatGoalStatsSummary(
+  total: number,
+  checked: number,
+  checkedMoves: number,
+  checkedSpots: number,
+): string {
+  return `${total} total · ${checked} checked off · ${checkedMoves} ${pluralize(checkedMoves, 'move')} · ${checkedSpots} ${pluralize(checkedSpots, 'spot')}`;
 }
 
 export function statusColor(status: GoalStatus): string {
