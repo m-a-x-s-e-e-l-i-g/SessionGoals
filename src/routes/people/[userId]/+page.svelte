@@ -329,14 +329,14 @@
             <span class="quick-stat-icon">📍</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{activeSpotGoals.length}</span>
-              <span class="quick-stat-label">Spot quests</span>
+              <span class="quick-stat-label">Spot todos</span>
             </span>
           </a>
           <a href="#profile-moves-todo" class="quick-stat quick-stat--move">
             <span class="quick-stat-icon">🤸</span>
             <span class="quick-stat-body">
               <span class="quick-stat-value">{activeMoveGoals.length}</span>
-              <span class="quick-stat-label">Move quests</span>
+              <span class="quick-stat-label">Move todos</span>
             </span>
           </a>
           <a href="#checked-goals" class="quick-stat quick-stat--done">
@@ -497,7 +497,7 @@
             {#if activeSpotGoals.length > 0}
               <div class="goal-subsection" id="profile-spots-todo">
                 <div class="goal-subsection-head">
-                  <h3 class="goal-subsection-title">📍 Spot quests</h3>
+                  <h3 class="goal-subsection-title">📍 Spot todos</h3>
                   <span class="goal-subsection-badge">{activeSpotGoals.length} to do</span>
                 </div>
                 <div class="grid-cards">
@@ -522,7 +522,7 @@
             {#if activeMoveGoals.length > 0}
               <div class="goal-subsection" id="profile-moves-todo">
                 <div class="goal-subsection-head">
-                  <h3 class="goal-subsection-title">🤸 Move quests</h3>
+                  <h3 class="goal-subsection-title">🤸 Move todos</h3>
                   <span class="goal-subsection-badge">{activeMoveGoals.length} to do</span>
                 </div>
                 <div class="grid-cards">
@@ -569,7 +569,7 @@
                   <div class="checked-grid">
                     {#each checkedMoveGoals as goal}
                       {@const canAddToMine = isAuthenticated && goal.userId !== currentUserId && !myGoalRootIds.has(resolveRootGoalId(goal.id))}
-                      <article class="checked-chip">
+                      <article class="checked-chip checked-chip--move">
                         <a href="/goals/{goal.id}" class="checked-title">{goal.title}</a>
                         <span class="checked-type text-muted">{typeIcon(goal.type)} {formatGoalType(goal.type)}</span>
                         {#if canAddToMine}
@@ -930,6 +930,11 @@
     background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
     border: 1px solid color-mix(in oklch, var(--color-success) 22%, var(--color-border));
     border-radius: var(--radius-sm);
+  }
+
+  .checked-chip--move {
+    background: color-mix(in oklch, var(--color-success) 8%, var(--color-surface));
+    border-color: color-mix(in oklch, var(--color-success) 22%, var(--color-border));
   }
 
   .checked-chip--spot {

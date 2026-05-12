@@ -58,7 +58,7 @@ export function formatGoalStatsSummary(
   todoMoves: number,
   doneMoves: number,
 ): string {
-  return `${todoSpots} spot ${pluralize(todoSpots, 'quest')} · ${todoMoves} move ${pluralize(todoMoves, 'quest')} · ${doneMoves} ${pluralize(doneMoves, 'move')} mastered`;
+  return `${todoSpots} spot ${pluralize(todoSpots, 'todo')} · ${todoMoves} move ${pluralize(todoMoves, 'todo')} · ${doneMoves} ${pluralize(doneMoves, 'move')} mastered`;
 }
 
 export function statusColor(status: GoalStatus): string {
