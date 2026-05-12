@@ -11,13 +11,14 @@
     intensity: 'empty' | 'low' | 'medium' | 'high';
     isToday: boolean;
     isFuture: boolean;
+    tooltip: string;
   }
 
   interface WeekRow {
     cells: HeatmapCell[];
   }
 
-  const cssRemPx = 16;
+  const cssRemPx = 16; // Approximate rem-based CSS padding before client styles are measurable.
 
   // Mirrors the CSS breakpoint sizing below; phones use a larger gap to keep tap-sized cells distinct.
   const responsiveLayout = {
@@ -82,8 +83,24 @@
 
     const rows: WeekRow[] = Array.from({ length: 7 }, () => ({ cells: [] }));
     const monthLabelMap = new Map<number, string>();
-    const emptyCell = (): HeatmapCell => ({ date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false, isFuture: false });
-    const futureCell = (): HeatmapCell => ({ date: '', minutes: 0, sessions: 0, intensity: 'empty', isToday: false, isFuture: true });
+    const emptyCell = (): HeatmapCell => ({
+      date: '',
+      minutes: 0,
+      sessions: 0,
+      intensity: 'empty',
+      isToday: false,
+      isFuture: false,
+      tooltip: '',
+    });
+    const futureCell = (): HeatmapCell => ({
+      date: '',
+      minutes: 0,
+      sessions: 0,
+      intensity: 'empty',
+      isToday: false,
+      isFuture: true,
+      tooltip: '',
+    });
 
     let currentDate = new Date(loopStart);
     let weekIndex = 0;
@@ -110,6 +127,7 @@
         intensity,
         isToday: !isFiller && dateStr === todayStr,
         isFuture: false,
+        tooltip: isFiller ? '' : buildTooltip(dateStr, minutes, sessions),
       });
 
       // Track month labels only for real (non-filler) dates
@@ -155,7 +173,8 @@
     const available = Math.max(60, wrapperWidth - horizontalPadding - dayLabelWidth - colGap);
     const maxWeeks = Math.floor((available + cellGap) / (minCellSize + cellGap));
     // Do not force a minimum week count; containment is more important on very narrow screens.
-    return Math.min(heatmapData.length, Math.max(1, maxWeeks));
+    const containedWeekCount = Math.max(1, maxWeeks);
+    return Math.min(heatmapData.length, containedWeekCount);
   })();
 
   $: weekOffset = heatmapData.length - visibleWeekCount;
@@ -164,30 +183,29 @@
     .filter((l) => l.weekIndex >= weekOffset)
     .map((l) => ({ month: l.month, weekIndex: l.weekIndex - weekOffset }));
 
-  function getTooltip(cell: HeatmapCell): string {
-    if (!cell.date) return '';
-    const date = new Date(cell.date + 'T00:00:00Z');
+  function buildTooltip(dateStr: string, minutes: number, sessions: number): string {
+    const date = new Date(dateStr + 'T00:00:00Z');
     const formatted = date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
     });
-    if (cell.minutes === 0) {
+    if (minutes === 0) {
       return `${formatted}: No training minutes logged`;
     }
 
-    const sessionText = `${cell.sessions} session${cell.sessions !== 1 ? 's' : ''}`;
-    return `${formatted}: ${cell.minutes} minute${cell.minutes !== 1 ? 's' : ''} across ${sessionText}`;
+    const sessionText = `${sessions} session${sessions !== 1 ? 's' : ''}`;
+    return `${formatted}: ${minutes} minute${minutes !== 1 ? 's' : ''} across ${sessionText}`;
   }
 
   function showTooltip(cell: HeatmapCell) {
-    selectedTooltip = getTooltip(cell);
+    selectedTooltip = cell.tooltip;
   }
 
   function handleTooltipKeydown(event: KeyboardEvent, cell: HeatmapCell) {
-    if (!cell.date || (event.key !== 'Enter' && event.key !== ' ')) return;
+    if (!cell.tooltip || (event.key !== 'Enter' && event.key !== ' ')) return;
     if (event.key === ' ') event.preventDefault();
-    selectedTooltip = getTooltip(cell);
+    selectedTooltip = cell.tooltip;
   }
 </script>
 
@@ -246,8 +264,8 @@
                   type="button"
                   class="heatmap-cell cell-{cell.intensity}"
                   class:cell-future={cell.isFuture}
-                  aria-label={cell.date ? getTooltip(cell) : 'No activity data for this date'}
-                  disabled={!cell.date}
+                  aria-label={cell.tooltip || 'No activity data for this date'}
+                  disabled={!cell.tooltip}
                   on:click={() => showTooltip(cell)}
                   on:keydown={(event) => handleTooltipKeydown(event, cell)}
                 ></button>
