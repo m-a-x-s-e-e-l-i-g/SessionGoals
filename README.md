@@ -53,6 +53,7 @@ Discover other athletes, explore their public profiles, and browse a shared move
 SessionGoals uses Google sign-in. Create an account to start tracking your progress.
 
 | `PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key used by auth |
+| `PUBLIC_SITE_URL` | No | Canonical site origin for `sitemap.xml` and `robots.txt` (falls back to the request origin) |
 | `PARKOUR_SPOT_API_URL` | No | Base URL for parkour.spot API (defaults to `https://parkour.spot/api/v1`) |
 | `PARKOUR_SPOT_API_KEY` | Yes (for spot search) | API key used by server-side spot search |
 | `PARKOUR_SPOT_BEARER_TOKEN` | No (future callback use) | Bearer token for verifying parkour.spot callbacks |

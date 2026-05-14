@@ -15,10 +15,19 @@ const PUBLIC_PATH_PREFIXES = [
   '/lists',
   '/spots'
 ];
-const PUBLIC_EXACT_PATHS = ['/favicon.png', '/robots.txt'];
+const PUBLIC_EXACT_PATHS = ['/favicon.png', '/robots.txt', '/sitemap.xml'];
+
+function isPublicGoalDetailPath(pathname: string) {
+  const segments = pathname.split('/').filter(Boolean);
+  return segments.length === 2 && segments[0] === 'goals' && segments[1] !== 'new';
+}
 
 function isPublicPath(pathname: string) {
   if (PUBLIC_EXACT_PATHS.includes(pathname)) {
+    return true;
+  }
+
+  if (isPublicGoalDetailPath(pathname)) {
     return true;
   }
 
