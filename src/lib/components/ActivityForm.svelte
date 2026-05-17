@@ -131,9 +131,10 @@
         type="button"
         class="collapse-toggle"
         aria-expanded={!collapsed}
-        aria-label={collapsed ? 'Expand quick log form' : 'Collapse quick log form'}
+        aria-label={collapsed ? 'Show quick log form' : 'Hide quick log form'}
         on:click={() => (collapsed = !collapsed)}
       >
+        <span class="collapse-toggle-label">{collapsed ? 'Show quick log form' : 'Hide quick log form'}</span>
         <svg class="collapse-icon" class:rotated={!collapsed} viewBox="0 0 16 16" fill="none" aria-hidden="true" width="16" height="16">
           <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -236,18 +237,28 @@
   }
 
   .collapse-toggle {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    justify-content: space-between;
+    gap: 0.45rem;
+    min-height: 2rem;
+    border-radius: 999px;
     background: var(--color-surface-2);
     border: 1px solid var(--color-border);
     color: var(--color-text-muted);
     cursor: pointer;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.6rem 0.3rem 0.75rem;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     flex-shrink: 0;
+  }
+
+  .collapse-toggle-label {
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .collapse-toggle:hover {
