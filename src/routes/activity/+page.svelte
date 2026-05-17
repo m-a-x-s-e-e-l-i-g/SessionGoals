@@ -99,7 +99,7 @@
   <div class="page-header activity-header">
     <div>
       <p class="page-eyebrow">Training log</p>
-      <h1 class="page-title activity-title">Your sessions should feel earned on the page too.</h1>
+      <h1 class="page-title activity-title">Your sessions should feel as strong as the work behind them.</h1>
     </div>
     <p class="page-deck">
       Track parkour and support work together, spot the gaps before they turn into weeks,
@@ -238,9 +238,10 @@
   }
 
   .activity-title {
-    max-width: 12ch;
-    font-size: clamp(2.8rem, 7vw, 4.9rem);
-    line-height: 0.92;
+    max-width: 18ch;
+    font-size: clamp(2.4rem, 6.2vw, 4.4rem);
+    line-height: 0.96;
+    text-wrap: balance;
   }
 
   .page-deck,
@@ -536,8 +537,9 @@
     }
 
     .activity-title {
-      max-width: 10ch;
-      font-size: clamp(2.4rem, 10vw, 3.3rem);
+      max-width: 100%;
+      font-size: clamp(2rem, 8.5vw, 2.9rem);
+      line-height: 0.98;
     }
 
     .activity-item {
