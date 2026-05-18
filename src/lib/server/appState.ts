@@ -135,6 +135,7 @@ export async function loadAppStateForRequest(
     userId: row.user_id ?? undefined,
     sourceGoalId: row.source_goal_id ?? undefined,
     isLibraryEntry: !!row.is_library_entry,
+    isListOnly: !!row.is_list_only,
     type: normalizeGoalType(row.type),
     title: row.title,
     description: row.description ?? undefined,

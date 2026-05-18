@@ -39,6 +39,7 @@ export interface Goal {
   userId?: string;
   sourceGoalId?: string;
   isLibraryEntry: boolean;
+  isListOnly?: boolean;
   type: GoalType;
   title: string;
   description?: string;
@@ -102,6 +103,7 @@ export interface CreateGoalInput {
   title: string;
   description?: string;
   status: GoalStatus;
+  listOnly?: boolean;
   spotId?: string;
   imageUrl?: string;
   sourceUrl?: string;

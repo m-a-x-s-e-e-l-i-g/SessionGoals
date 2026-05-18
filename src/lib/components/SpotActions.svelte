@@ -75,6 +75,7 @@
       title: 'Spot visit',
       description: undefined,
       status: 'want_to_try',
+      listOnly: true,
       spotId: savedSpot.id,
       sourceUrl: undefined,
     });

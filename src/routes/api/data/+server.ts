@@ -142,6 +142,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         .insert({
           user_id: locals.user.id,
           source_goal_id: sourceGoalId,
+          is_list_only: input.listOnly === true,
           type: sourceGoalRow?.type ?? input.type,
           title: sourceGoalRow?.title ?? normalizedTitle,
           description: sourceGoalRow?.description ?? input.description ?? null,
@@ -454,6 +455,27 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
       if (error) throw new Error(error.message);
 
+      // Keep all trackers (including the owner) in sync when list items change.
+      const { data: progressRows, error: progressRowsError } = await locals.supabase
+        .from('list_progress')
+        .select('id')
+        .eq('source_list_id', listId);
+      if (progressRowsError) throw new Error(progressRowsError.message);
+
+      if ((progressRows ?? []).length > 0) {
+        const inserts = (progressRows ?? []).map((row) => ({
+          progress_id: row.id,
+          goal_id: goalId,
+          done: false,
+        }));
+
+        const { error: syncProgressError } = await locals.supabase
+          .from('list_progress_items')
+          .upsert(inserts, { onConflict: 'progress_id,goal_id', ignoreDuplicates: true });
+
+        if (syncProgressError) throw new Error(syncProgressError.message);
+      }
+
       const snapshot = await snapshotFor(locals, locals.user.id);
       const list = snapshot.lists.find((entry) => entry.id === listId);
       if (!list) return json({ ok: false, error: 'List not found.' }, { status: 404 });
@@ -482,6 +504,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         .eq('goal_id', goalId);
 
       if (error) throw new Error(error.message);
+
+      const { data: progressRows, error: progressRowsError } = await locals.supabase
+        .from('list_progress')
+        .select('id')
+        .eq('source_list_id', listId);
+      if (progressRowsError) throw new Error(progressRowsError.message);
+
+      const progressIds = (progressRows ?? []).map((row) => row.id);
+      if (progressIds.length > 0) {
+        const { error: cleanupProgressError } = await locals.supabase
+          .from('list_progress_items')
+          .delete()
+          .in('progress_id', progressIds)
+          .eq('goal_id', goalId);
+        if (cleanupProgressError) throw new Error(cleanupProgressError.message);
+      }
 
       const snapshot = await snapshotFor(locals, locals.user.id);
       const list = snapshot.lists.find((entry) => entry.id === listId);
@@ -606,21 +644,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
         if (createError || !createdProgress) throw new Error(createError?.message ?? 'Failed to start tracking list.');
         progressId = createdProgress.id;
+      }
 
-        const { data: items, error: itemsError } = await locals.supabase
-          .from('goal_list_items')
-          .select('goal_id')
-          .eq('list_id', sourceListId);
+      const { data: items, error: itemsError } = await locals.supabase
+        .from('goal_list_items')
+        .select('goal_id')
+        .eq('list_id', sourceListId);
 
-        if (itemsError) throw new Error(itemsError.message);
+      if (itemsError) throw new Error(itemsError.message);
 
-        if ((items ?? []).length > 0) {
-          const inserts = (items ?? []).map((item) => ({ progress_id: progressId, goal_id: item.goal_id, done: false }));
-          const { error: insertProgressItemsError } = await locals.supabase
-            .from('list_progress_items')
-            .insert(inserts);
-          if (insertProgressItemsError) throw new Error(insertProgressItemsError.message);
-        }
+      if ((items ?? []).length > 0) {
+        const inserts = (items ?? []).map((item) => ({ progress_id: progressId, goal_id: item.goal_id, done: false }));
+        const { error: syncProgressItemsError } = await locals.supabase
+          .from('list_progress_items')
+          .upsert(inserts, { onConflict: 'progress_id,goal_id', ignoreDuplicates: true });
+        if (syncProgressItemsError) throw new Error(syncProgressItemsError.message);
       }
 
       const snapshot = await snapshotFor(locals, locals.user.id);
@@ -639,6 +677,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
       if (userId !== locals.user.id) return forbidden();
 
+      const { data: list } = await locals.supabase
+        .from('goal_lists')
+        .select('id, visibility, user_id')
+        .eq('id', sourceListId)
+        .maybeSingle();
+
+      if (!list) return json({ ok: false, error: 'List not found.' }, { status: 404 });
+      if (list.visibility !== 'public' && list.user_id !== locals.user.id) {
+        return forbidden('You can only track your own or public lists.');
+      }
+
       const { data: progress } = await locals.supabase
         .from('list_progress')
         .select('id')
@@ -646,16 +695,72 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!progress) return json({ ok: false, error: 'Progress not found.' }, { status: 404 });
+      let progressId = progress?.id;
 
-      const { data: progressItem } = await locals.supabase
+      if (!progressId) {
+        const { data: createdProgress, error: createProgressError } = await locals.supabase
+          .from('list_progress')
+          .insert({ source_list_id: sourceListId, user_id: userId })
+          .select('id')
+          .single();
+
+        if (createProgressError || !createdProgress) {
+          throw new Error(createProgressError?.message ?? 'Failed to create list progress.');
+        }
+
+        progressId = createdProgress.id;
+
+        const { data: items, error: itemsError } = await locals.supabase
+          .from('goal_list_items')
+          .select('goal_id')
+          .eq('list_id', sourceListId);
+
+        if (itemsError) throw new Error(itemsError.message);
+
+        if ((items ?? []).length > 0) {
+          const inserts = (items ?? []).map((item) => ({ progress_id: progressId, goal_id: item.goal_id, done: false }));
+          const { error: seedProgressItemsError } = await locals.supabase
+            .from('list_progress_items')
+            .upsert(inserts, { onConflict: 'progress_id,goal_id', ignoreDuplicates: true });
+          if (seedProgressItemsError) throw new Error(seedProgressItemsError.message);
+        }
+      }
+
+      let { data: progressItem } = await locals.supabase
         .from('list_progress_items')
         .select('id, done')
-        .eq('progress_id', progress.id)
+        .eq('progress_id', progressId)
         .eq('goal_id', goalId)
         .maybeSingle();
 
-      if (!progressItem) return json({ ok: false, error: 'Progress item not found.' }, { status: 404 });
+      if (!progressItem) {
+        const { data: listItem } = await locals.supabase
+          .from('goal_list_items')
+          .select('goal_id')
+          .eq('list_id', sourceListId)
+          .eq('goal_id', goalId)
+          .maybeSingle();
+
+        if (!listItem) return json({ ok: false, error: 'Progress item not found.' }, { status: 404 });
+
+        const { error: createItemError } = await locals.supabase
+          .from('list_progress_items')
+          .upsert(
+            { progress_id: progressId, goal_id: goalId, done: false },
+            { onConflict: 'progress_id,goal_id', ignoreDuplicates: true },
+          );
+        if (createItemError) throw new Error(createItemError.message);
+
+        const { data: insertedItem, error: insertedItemError } = await locals.supabase
+          .from('list_progress_items')
+          .select('id, done')
+          .eq('progress_id', progressId)
+          .eq('goal_id', goalId)
+          .maybeSingle();
+        if (insertedItemError) throw new Error(insertedItemError.message);
+        if (!insertedItem) throw new Error('Progress item could not be loaded after creation.');
+        progressItem = insertedItem;
+      }
 
       const nextDone = !progressItem.done;
       const { error: updateItemError } = await locals.supabase
@@ -671,12 +776,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       const { error: touchError } = await locals.supabase
         .from('list_progress')
         .update({ updated_at: new Date().toISOString() })
-        .eq('id', progress.id);
+        .eq('id', progressId);
 
       if (touchError) throw new Error(touchError.message);
 
       const snapshot = await snapshotFor(locals, locals.user.id);
-      const updated = snapshot.progress.find((entry) => entry.id === progress.id);
+      const updated = snapshot.progress.find((entry) => entry.id === progressId);
       if (!updated) throw new Error('Progress updated but failed to reload.');
       return json({ ok: true, data: updated });
     }

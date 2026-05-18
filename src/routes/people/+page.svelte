@@ -14,7 +14,7 @@
   $: myStudents = currentUserId ? getStudentsForTeacher(currentUserId) : [];
 
   function profileStats(userId: string): { goals: number; publicLists: number } {
-    const goals = getGoals().filter((g) => g.userId === userId).length;
+    const goals = getGoals().filter((g) => g.userId === userId && !g.isListOnly).length;
     const publicLists = getPublicLists().filter((l) => l.userId === userId).length;
     return { goals, publicLists };
   }

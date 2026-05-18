@@ -82,7 +82,7 @@
   // Root IDs of every goal the current user owns (originals + tracked copies)
   $: myGoalRootIds = new Set(
     allGoals
-      .filter((goal) => goal.userId === currentUserId)
+      .filter((goal) => goal.userId === currentUserId && !goal.isListOnly)
       .map((goal) => resolveLibraryMoveId(goal)),
   );
 
@@ -103,6 +103,7 @@
         goal.type === 'move' &&
         !goal.sourceGoalId &&
         !goal.isLibraryEntry &&
+        !goal.isListOnly &&
         goal.userId &&
         !committedSourceIds.has(goal.id),
     )

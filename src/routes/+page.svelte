@@ -19,7 +19,7 @@
     .sort((a, b) => b.items.length - a.items.length)
     .slice(0, 8);
   const publicSpots = getSpots().slice(0, 6);
-  const publicGoals = getGoals().filter((goal) => !!goal.userId && publicUserIds.has(goal.userId));
+  const publicGoals = getGoals().filter((goal) => !!goal.userId && !goal.isListOnly && publicUserIds.has(goal.userId));
   const publicActivityStats = publicUsers.map((user) => ({
     user,
     stats: getActivityStats(7, user.id)

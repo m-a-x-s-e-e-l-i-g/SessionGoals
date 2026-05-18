@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { commitToLibrary, deleteLibraryMove, createGoal, getGoalById, getGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
+  import { commitToLibrary, deleteLibraryMove, createGoal, getGoalById, getGoals, getMyGoals, updateGoalStatus, deleteGoal } from '$lib/data/goals';
   import { getSpotById } from '$lib/data/spots';
   import { addGoalToList } from '$lib/data/lists';
   import { appStateStore } from '$lib/data/state';
@@ -22,9 +22,11 @@
   $: currentUserId = $page.data.user?.id as string | undefined;
   $: isOwnGoal = isAuthenticated && !!currentUserId && !!goal?.userId && goal.userId === currentUserId;
   $: isAdoptedGoal = !!goal?.sourceGoalId;
+  $: isListOnlyGoal = !!goal?.isListOnly;
+  $: isUntrackableOwnGoal = isOwnGoal && (isAdoptedGoal || isListOnlyGoal);
   $: isLibraryEntry = !!goal?.isLibraryEntry;
   $: sourceGoalIsLibrary = goal?.sourceGoalId ? (goalById.get(goal.sourceGoalId)?.isLibraryEntry ?? false) : false;
-  $: myGoals = currentUserId ? getGoals().filter((entry) => entry.userId === currentUserId) : [];
+  $: myGoals = currentUserId ? getMyGoals() : [];
   $: goalById = new Map(getGoals().map((g) => [g.id, g]));
   $: allUsers = ($page.data.appState?.users ?? []) as import('$lib/types').UserProfile[];
   $: isAdmin = allUsers.some((u) => u.id === currentUserId && u.isAdmin);
@@ -69,11 +71,13 @@
   let showDeleteDialog = false;
   let isDeleting = false;
 
-  $: deleteDialogTitle = isAdoptedGoal ? 'Untrack goal?' : 'Delete goal?';
+  $: deleteDialogTitle = isUntrackableOwnGoal ? 'Untrack goal?' : 'Delete goal?';
   $: deleteDialogMessage = isAdoptedGoal
     ? 'This will remove the goal from your list. The goal will still be available in the library.'
+    : isListOnlyGoal
+      ? 'This list-only goal will be removed from your lists.'
     : 'This goal will be permanently deleted. You can\'t undo this action.';
-  $: deleteDialogConfirmLabel = isAdoptedGoal ? 'Untrack' : 'Delete goal';
+  $: deleteDialogConfirmLabel = isUntrackableOwnGoal ? 'Untrack' : 'Delete goal';
   let justChecked = false;
   let addError: string | undefined;
   let addingToMine = false;
@@ -152,8 +156,11 @@
     if (!goalId) return;
     isDeleting = true;
     try {
+      const returnListId = isListOnlyGoal
+        ? (myListsContaining[0]?.id ?? listsContainingGoal[0]?.id)
+        : undefined;
       await deleteGoal(goalId);
-      goto('/goals');
+      goto(returnListId ? `/lists/${returnListId}` : '/goals');
     } finally {
       isDeleting = false;
     }
@@ -261,7 +268,7 @@
       </div>
       <div class="header-actions">
         {#if isOwnGoal}
-          {#if !isAdoptedGoal}
+          {#if !isUntrackableOwnGoal}
             <a href="/goals/{goal.id}/edit" class="btn-icon" aria-label="Edit goal">
               <img src="/images/icons/edit.svg" alt="" width="18" height="18" />
             </a>
@@ -327,6 +334,8 @@
 
         {#if isOwnGoal && isAdoptedGoal}
           <p class="text-muted text-sm">{sourceGoalIsLibrary ? 'This is a permanent library move. You can check it off or untrack it, but details are managed by admins.' : 'This goal was added from another athlete. You can track it, but details are read-only.'}</p>
+        {:else if isOwnGoal && isListOnlyGoal}
+          <p class="text-muted text-sm">This is a list-only goal. It is not part of your personal goals board and can be untracked at any time.</p>
         {/if}
 
         {#if justChecked}

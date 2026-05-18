@@ -6,14 +6,17 @@ export function getGoals(): Goal[] {
   return getAppState().goals;
 }
 
-export function getGoalsByUser(userId?: string): Goal[] {
+export function getGoalsByUser(userId?: string, options?: { includeListOnly?: boolean }): Goal[] {
   const effectiveUserId = userId ?? getCurrentUserIdFromState();
   if (!effectiveUserId) return [];
-  return getAppState().goals.filter((goal) => goal.userId === effectiveUserId);
+  const includeListOnly = options?.includeListOnly === true;
+  return getAppState().goals.filter(
+    (goal) => goal.userId === effectiveUserId && (includeListOnly || !goal.isListOnly),
+  );
 }
 
-export function getMyGoals(): Goal[] {
-  return getGoalsByUser();
+export function getMyGoals(options?: { includeListOnly?: boolean }): Goal[] {
+  return getGoalsByUser(undefined, options);
 }
 
 export function getGoalById(id: string): Goal | undefined {

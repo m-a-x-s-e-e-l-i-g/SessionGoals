@@ -11,7 +11,6 @@
   import { enrollStudentToPublicList } from '$lib/data/coaching';
   import { getStudentsForTeacher, getUserById, isTeacher } from '$lib/data/users';
   import { getSpotById } from '$lib/data/spots';
-  import { updateGoalStatus } from '$lib/data/goals';
   import { getGoalVisualImageUrl, proxyLibraryImageUrl } from '$lib/utils/media';
   import { getProgressForList,
     startTrackingList,
@@ -19,7 +18,7 @@
     toggleListItemProgress,
   } from '$lib/data/listProgress';
   import { removeGoalFromList, reorderListItems } from '$lib/data/lists';
-  import type { ListProgress, UserProfile, GoalStatus, GoalListItem } from '$lib/types';
+  import type { UserProfile, GoalListItem } from '$lib/types';
   import { appStateStore } from '$lib/data/state';
 
   $: isAuthenticated = !!$page.data.user;
@@ -97,6 +96,18 @@
   $: totalCount = progress ? progress.items.length : 0;
   $: progressPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
+  let ensuringOwnerProgress = false;
+  $: if (isOwnList && list && currentUserId && !progress && !ensuringOwnerProgress) {
+    ensuringOwnerProgress = true;
+    startTrackingList(list, currentUserId)
+      .catch(() => {
+        // Keep UI usable even if auto-initialization fails.
+      })
+      .finally(() => {
+        ensuringOwnerProgress = false;
+      });
+  }
+
   async function handleDelete() {
     if (!listId) return;
     showDeleteDialog = true;
@@ -144,12 +155,6 @@
       expandedGoalIds.add(goalId);
     }
     expandedGoalIds = expandedGoalIds; // trigger reactivity
-  }
-
-  async function handleToggleGoalDone(goalId: string, currentStatus: GoalStatus) {
-    const next: GoalStatus = currentStatus === 'done' ? 'want_to_try' : 'done';
-    await updateGoalStatus(goalId, next);
-    // list + progress re-derive automatically via $appStateStore subscription
   }
 
   // Local ordered items for optimistic reordering (synced from list.items)
@@ -477,9 +482,7 @@
         {#each localItems as item, idx (item.goalId)}
           {#if item.goal}
             {@const goal = item.goal}
-            {@const done = isOwnList
-              ? goal.status === 'done'
-              : !!progress?.items.find((p) => p.goalId === item.goalId)?.done}
+            {@const done = !!progress?.items.find((p) => p.goalId === item.goalId)?.done}
             {@const spot = goal.spotId ? getSpotById(goal.spotId) : undefined}
             {@const canExpand = !!(goal.description || spot || goal.sourceUrl || goal.links.length > 0 || isOwnList)}
             {@const expanded = canExpand && expandedGoalIds.has(item.goalId)}
@@ -503,7 +506,7 @@
                   type="button"
                   class="tick-btn"
                   class:ticked={done}
-                  on:click|stopPropagation={() => handleToggleGoalDone(item.goalId, goal.status)}
+                  on:click|stopPropagation={() => handleToggleProgress(item.goalId)}
                   aria-label={done ? 'Mark as not done' : 'Mark as done'}
                   aria-pressed={done}
                 >

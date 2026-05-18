@@ -50,7 +50,7 @@
   // If any root of a viewed goal matches here, the user already has that move in some form.
   $: myGoalRootIds = new Set(
     allGoals
-      .filter((g) => g.userId === currentUserId)
+      .filter((g) => g.userId === currentUserId && !g.isListOnly)
       .map((g) => resolveRootGoalId(g.id))
   );
   $: userId = $page.params.userId ?? '';
@@ -118,6 +118,7 @@
 
   $: visibleGoals = getGoals().filter((g) => {
     if (g.userId !== userId) return false;
+    if (g.isListOnly) return false;
     return isOwnProfile || profile?.isPublic;
   });
   $: activeGoals = visibleGoals.filter((goal) => goal.status !== 'done');

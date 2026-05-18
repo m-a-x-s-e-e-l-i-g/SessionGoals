@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { createGoal, getGoals } from '$lib/data/goals';
+  import { createGoal, getGoals, getMyGoals } from '$lib/data/goals';
   import { addGoalToList, getListById } from '$lib/data/lists';
   import { getUserById } from '$lib/data/users';
   import { upsertSpot } from '$lib/data/spots';
@@ -40,7 +40,7 @@
   $: sourceList = listId ? getListById(listId) : undefined;
   $: currentUserId = $page.data.user?.id as string | undefined;
   $: isAuthenticated = !!$page.data.user;
-  $: myGoals = currentUserId ? getGoals().filter((goal) => goal.userId === currentUserId) : [];
+  $: myGoals = currentUserId ? getMyGoals() : [];
   $: myGoalBySourceId = new Map(
     myGoals
       .filter((goal) => !!goal.sourceGoalId)
@@ -54,7 +54,7 @@
   }
 
   $: moveTemplates = getGoals().filter(
-    (goal) => goal.type === 'move' && !goal.sourceGoalId && !goal.isLibraryEntry && goal.userId !== currentUserId
+    (goal) => goal.type === 'move' && !goal.sourceGoalId && !goal.isLibraryEntry && !goal.isListOnly && goal.userId !== currentUserId
   );
   $: libraryMoves = getGoals().filter(
     (goal) => goal.type === 'move' && goal.isLibraryEntry
@@ -202,6 +202,20 @@
       return;
     }
 
+    if (listId) {
+      submitting = true;
+      error = undefined;
+      success = undefined;
+      try {
+        await addGoalToList(listId, goal);
+        goto(`/lists/${listId}`);
+      } catch {
+        error = 'Could not add this move to the list right now. Check your connection and try again.';
+        submitting = false;
+      }
+      return;
+    }
+
     const existingGoal = myGoalBySourceId.get(goal.id);
     if (existingGoal) {
       goto(`/goals/${existingGoal.id}`);
@@ -267,6 +281,7 @@
       title: resolvedTitle,
       description: description.trim() || undefined,
       status: isDone ? 'done' : 'want_to_try',
+      listOnly: !!listId,
       spotId: selectedType === 'spot' ? selectedSpot?.id : undefined,
       imageUrl: imageUrl.trim() || undefined,
       sourceUrl: sourceUrl.trim() || undefined,
